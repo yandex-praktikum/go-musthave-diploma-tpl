@@ -1,0 +1,63 @@
+name: gophermart
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    container: golang:1.17
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: praktikum
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Download autotests binaries
+        uses: robinraju/release-downloader@v1.2
+        with:
+          repository: Yandex-Practicum/go-autotests-bin
+          latest: true
+          fileName: "*"
+          out-file-path: .tools
+
+      - name: Setup autotest binary
+        run: |
+          chmod -R +x $GITHUB_WORKSPACE/.tools
+          mv $GITHUB_WORKSPACE/.tools/gophermarttest /usr/local/bin/gophermarttest
+          mv $GITHUB_WORKSPACE/.tools/random /usr/local/bin/random
+
+      - name: Prepare binaries
+        run: |
+          (cd cmd/gophermart && go build -o gophermart)
+          (cd cmd/accrual && chmod +x accrual_linux_amd64)
+
+      - name: Test
+        run: |
+          gophermarttest \
+            -test.v -test.run=^TestGophermart$ \
+            -gophermart-binary-path=cmd/gophermart/gophermart \
+            -gophermart-host=localhost \
+            -gophermart-port=8080 \
+            -gophermart-database-uri="postgresql://postgres:postgres@postgres/praktikum?sslmode=disable" \
+            -accrual-binary-path=cmd/accrual/accrual_linux_amd64 \
+            -accrual-host=localhost \
+            -accrual-port=$(random unused-port) \
+            -accrual-database-uri="postgresql://postgres:postgres@postgres/praktikum?sslmode=disable"
