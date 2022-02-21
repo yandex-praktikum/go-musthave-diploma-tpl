@@ -10,8 +10,11 @@ type Repository interface {
 	//auth methods
 	SaveUser(*models.User, string) error
 	GetUser(*models.User) (string, error)
+	//user methods
 	CreateLoyaltyAccount(string) error
 	SaveOrder(order *models.Order, login string) error
+	GetOrders(login string) ([]models.Order, error)
+	GetBalance(login string) (*models.Account, error)
 }
 
 type Service struct {

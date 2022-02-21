@@ -3,7 +3,6 @@ package repository
 import (
 	"Loyalty/internal/models"
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -18,12 +17,11 @@ func (r *Repository) SaveUser(user *models.User, accountNumber string) error {
 	r.db.QueryRow(context.Background(), q, user.Login, user.Password, accountNumber).Scan(&number)
 	//internal db error
 	if number == "" {
-		return errors.New("error: internal db error")
+		return ErrInt
 	}
 	//login already used
 	if number != accountNumber {
-		err := errors.New("error: login conflict")
-		return fmt.Errorf(`%w`, err)
+		return fmt.Errorf(`%w`, ErrLoginConfl)
 	}
 	return nil
 }
@@ -38,7 +36,7 @@ func (r *Repository) GetUser(user *models.User) (string, error) {
 		users.login=$1 AND users.password=$2;`
 	r.db.QueryRow(context.Background(), q, user.Login, user.Password).Scan(&number)
 	if number == "" {
-		return "", errors.New("error: username or password is not correct")
+		return "", ErrUsrUncor
 	}
 	return number, nil
 }

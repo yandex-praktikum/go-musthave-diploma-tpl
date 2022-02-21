@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -28,6 +29,7 @@ func (a *Auth) CreateUser(user *models.User, accountNumber string) error {
 	//try saving user in DB
 	err := a.Repository.SaveUser(user, accountNumber)
 	if err != nil {
+		logrus.Error(err)
 		return err
 	}
 	return nil
@@ -43,6 +45,7 @@ func (a *Auth) GenerateTokenPair(login string) (string, string, error) {
 	})
 	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
+		logrus.Error(err)
 		return "", "", err
 	}
 	//create refresh token
@@ -53,6 +56,7 @@ func (a *Auth) GenerateTokenPair(login string) (string, string, error) {
 	})
 	rToken, err := rtClaims.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
+		logrus.Error(err)
 		return "", "", err
 	}
 	return token, rToken, nil
@@ -71,6 +75,7 @@ func (a *Auth) ValidateToken(bearertoken string, tokenType string) (string, erro
 		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
+		logrus.Error(err)
 		return "", err
 	}
 	//read claims

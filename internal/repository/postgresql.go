@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -19,8 +18,7 @@ import (
 type DB interface {
 	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...interface{}) pgx.Row
-	Ping(ctx context.Context) error
-	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Ping(context.Context) error
 }
 
 func NewDB(ctx context.Context) (*pgxpool.Pool, error) {
