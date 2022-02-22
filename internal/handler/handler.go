@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"strconv"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
@@ -74,10 +73,7 @@ func (h *Handler) saveOrder(c *gin.Context) {
 	//получение ответа
 	//..................
 	var order models.Order
-	order.Number, err = strconv.ParseUint(string(number), 0, 64)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-	}
+	order.Number = string(number)
 	order.Status = "status"
 	order.Accrual = rand.Float64()
 	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {

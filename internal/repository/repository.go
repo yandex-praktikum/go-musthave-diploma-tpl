@@ -102,7 +102,7 @@ func (r *Repository) GetBalance(login string) (*models.Account, error) {
 }
 
 //check order ========================================================
-func (r *Repository) CheckOrder(number uint64, login string) (string, error) {
+func (r *Repository) CheckOrder(number string, login string) (string, error) {
 	var status string
 	q := `SELECT status
 	FROM orders
@@ -168,7 +168,8 @@ func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 		orders ON order_id=orders.id
 	WHERE
 		user_id=(SELECT id FROM users
-	WHERE login=$1);`
+	WHERE login=$1)
+		ORDER BY processed_at;`
 
 	rows, err := r.db.Query(context.Background(), q, login)
 	if err != nil {

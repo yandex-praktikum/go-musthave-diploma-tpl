@@ -15,7 +15,7 @@ type Repository interface {
 	SaveOrder(order *models.Order, login string) error
 	GetOrders(login string) ([]models.Order, error)
 	GetBalance(login string) (*models.Account, error)
-	CheckOrder(number uint64, login string) (string, error)
+	CheckOrder(number string, login string) (string, error)
 	Withdraw(*models.Withdraw, string) error
 	GetWithdrawls(string) ([]models.Withdraw, error)
 }
