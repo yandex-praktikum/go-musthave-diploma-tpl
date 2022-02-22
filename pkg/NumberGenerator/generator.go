@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func GenerateNumber(len int) (string, error) {
+func GenerateNumber(len int) (uint64, error) {
 	var sum string
 	arr := make([]int, len)
 	for i := range arr {
@@ -17,7 +17,7 @@ func GenerateNumber(len int) (string, error) {
 	res, _ := strconv.ParseInt(sum, 10, 64)
 	number, err := crypto.Int(crypto.Reader, big.NewInt(int64(res)))
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return number.String(), nil
+	return number.Uint64(), nil
 }

@@ -8,13 +8,16 @@ import (
 
 type Repository interface {
 	//auth methods
-	SaveUser(*models.User, string) error
-	GetUser(*models.User) (string, error)
+	SaveUser(*models.User, uint64) error
+	GetUser(*models.User) (uint64, error)
 	//user methods
-	CreateLoyaltyAccount(string) error
+	CreateLoyaltyAccount(uint64) error
 	SaveOrder(order *models.Order, login string) error
 	GetOrders(login string) ([]models.Order, error)
 	GetBalance(login string) (*models.Account, error)
+	CheckOrder(number uint64, login string) (string, error)
+	Withdraw(*models.Withdraw, string) error
+	GetWithdrawls(string) ([]models.Withdraw, error)
 }
 
 type Service struct {
@@ -26,15 +29,15 @@ func NewService(r *repository.Repository) *Service {
 	return &Service{Repository: r, Auth: *NewAuth(r)}
 }
 
-func (s *Service) CreateLoyaltyAccount(user *models.User) (string, error) {
+func (s *Service) CreateLoyaltyAccount(user *models.User) (uint64, error) {
 	//create account number
 	number, err := numbergenerator.GenerateNumber(15)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	//save accoun in db
 	if err := s.Repository.CreateLoyaltyAccount(number); err != nil {
-		return "", err
+		return 0, err
 	}
 	return number, nil
 }

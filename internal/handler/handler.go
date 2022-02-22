@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strconv"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
@@ -42,13 +43,13 @@ func (h *Handler) Init() *gin.Engine {
 		//orders from user
 		user.POST("/orders", h.saveOrder)
 		//withdrawal request
-		user.POST("/balance/withdraw")
+		user.POST("/balance/withdraw", h.withdraw)
 		//getting a list of orders
 		user.GET("/orders", h.getOrders)
 		//getting balance
 		user.GET("/balance", h.getBalance)
 		//getting information of withdrawals
-		user.GET("/balance/withdrawals")
+		user.GET("/balance/withdrawals", h.getWithdrowals)
 	}
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": "Not correct URL"})
@@ -73,7 +74,10 @@ func (h *Handler) saveOrder(c *gin.Context) {
 	//получение ответа
 	//..................
 	var order models.Order
-	order.Number = string(number)
+	order.Number, err = strconv.ParseUint(string(number), 0, 64)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+	}
 	order.Status = "status"
 	order.Accrual = rand.Float64()
 	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {
@@ -94,9 +98,9 @@ func (h *Handler) saveOrder(c *gin.Context) {
 
 //=========================================================================
 func (h *Handler) getOrders(c *gin.Context) {
-	ordersList, err := h.service.GetOrders(h.userLogin)
+	ordersList, err := h.service.Repository.GetOrders(h.userLogin)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if len(ordersList) == 0 {
@@ -108,10 +112,64 @@ func (h *Handler) getOrders(c *gin.Context) {
 
 //=========================================================================
 func (h *Handler) getBalance(c *gin.Context) {
-	accountState, err := h.service.GetBalance(h.userLogin)
+	accountState, err := h.service.Repository.GetBalance(h.userLogin)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, accountState)
+}
+
+//=========================================================================
+func (h *Handler) withdraw(c *gin.Context) {
+	var withdraw models.Withdraw
+	if err := c.ShouldBindJSON(&withdraw); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//check orer in db
+	status, err := h.service.Repository.CheckOrder(withdraw.Order, h.userLogin)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	//chcek order status
+	if status == "" {
+		c.JSON(http.StatusUnprocessableEntity, repository.ErrInt)
+		return
+	}
+	/////........... Если статус ??? доделать
+
+	//check bonuses
+	accountState, err := h.service.Repository.GetBalance(h.userLogin)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// if not enough bonuses
+	if accountState.Current < withdraw.Sum {
+		c.JSON(http.StatusPaymentRequired, gin.H{"error": "not enough bonuses"})
+		return
+	}
+	if err := h.service.Repository.Withdraw(&withdraw, h.userLogin); err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"withdraw": "done"})
+}
+
+//=========================================================================
+func (h *Handler) getWithdrowals(c *gin.Context) {
+	withdrawls, err := h.service.Repository.GetWithdrawls(h.userLogin)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(withdrawls) == 0 {
+		c.JSON(http.StatusNoContent, gin.H{"info": "withdrawls not found"})
+		return
+	}
+	c.JSON(http.StatusOK, withdrawls)
 }

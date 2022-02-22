@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,22 +17,23 @@ func NewRepository(db DB) *Repository {
 	return &Repository{db: db}
 }
 
-//get user from db
-func (r *Repository) CreateLoyaltyAccount(number string) error {
+//get user from db ========================================================
+func (r *Repository) CreateLoyaltyAccount(number uint64) error {
 	var i int
-	q := `INSERT INTO accounts (number,current,withdrawn)
+
+	q := `INSERT INTO accounts (number, current, withdrawn)
 	VALUES ($1,0,0)
 	RETURNING id;`
 	r.db.QueryRow(context.Background(), q, number).Scan(&i)
 	if i == 0 {
 		return ErrInt
 	}
-	logrus.Printf("created new account %s", number)
+	logrus.Printf("created new account %d", number)
 
 	return nil
 }
 
-//save order
+//save order ========================================================
 func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	var i int
 	var loginFromDb string
@@ -44,8 +46,9 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	number=EXCLUDED.number
 	RETURNING id,uploaded_at,(SELECT login FROM users WHERE id=orders.user_id);`
 
-	r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated).Scan(&i, &timeFromDb, &loginFromDb)
-	if i == 0 {
+	row := r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated)
+	if err := row.Scan(&i, &timeFromDb, &loginFromDb); err != nil {
+		logrus.Error(err)
 		return ErrInt
 	}
 	if timeCreated.Unix() != timeFromDb.Unix() {
@@ -57,7 +60,7 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	return nil
 }
 
-//get orders list
+//get orders list ========================================================
 func (r *Repository) GetOrders(login string) ([]models.Order, error) {
 	q := `SELECT number, status, accrual, uploaded_at
 	FROM orders
@@ -82,26 +85,105 @@ func (r *Repository) GetOrders(login string) ([]models.Order, error) {
 	return list, nil
 }
 
-//get customer balance
+//get customer balance ========================================================
 func (r *Repository) GetBalance(login string) (*models.Account, error) {
 	q := `SELECT current, withdrawn
 	FROM accounts 
 		WHERE
-	id=(SELECT id FROM users WHERE login=$1);`
+	id=(SELECT account_id FROM users WHERE login=$1);`
+
+	var account models.Account
+	row := r.db.QueryRow(context.Background(), q, login)
+	if err := row.Scan(&account.Current, &account.Withdrawn); err != nil {
+		logrus.Error(err)
+		return nil, ErrInt
+	}
+	return &account, nil
+}
+
+//check order ========================================================
+func (r *Repository) CheckOrder(number uint64, login string) (string, error) {
+	var status string
+	q := `SELECT status
+	FROM orders
+		WHERE
+	user_id=(SELECT id FROM users WHERE login=$1) and number=$2;`
+
+	res := r.db.QueryRow(context.Background(), q, login, number)
+	if err := res.Scan(&status); err != nil {
+		logrus.Error(err)
+		return "", ErrInt
+	}
+	return status, nil
+}
+
+//withdraw ========================================================
+func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
+	tx, err := r.db.BeginTx(context.TODO(), pgx.TxOptions{})
+	if err != nil {
+		logrus.Error(err)
+		return ErrInt
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(context.TODO())
+		} else {
+			tx.Commit(context.TODO())
+		}
+	}()
+	var id int
+	q := `INSERT INTO withdrawls
+	 (order_id, sum, processed_at)
+	 	VALUES ((
+			 SELECT id FROM orders
+		WHERE
+			number=$1
+		 ),$2,$3)
+		 RETURNING id;`
+	res := r.db.QueryRow(context.Background(), q, withdraw.Order, withdraw.Sum, time.Now())
+	if err := res.Scan(&id); err != nil {
+		logrus.Error(err)
+		return ErrInt
+	}
+
+	q = `UPDATE accounts 
+	SET current=current-$1,withdrawn=withdrawn+$1
+		WHERE id=
+	(SELECT account_id FROM users
+		WHERE login=$2);`
+	_, err = r.db.Exec(context.Background(), q, withdraw.Sum, login)
+	if err != nil {
+		logrus.Error(err)
+		return ErrInt
+	}
+
+	return nil
+}
+
+//get withdrawls ========================================================
+func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
+	q := `SELECT number,sum,processed_at
+	FROM withdrawls    
+	JOIN 
+		orders ON order_id=orders.id
+	WHERE
+		user_id=(SELECT id FROM users
+	WHERE login=$1);`
 
 	rows, err := r.db.Query(context.Background(), q, login)
 	if err != nil {
 		logrus.Error(err)
 		return nil, ErrInt
 	}
-	var account models.Account
+	var list = make([]models.Withdraw, 0, 10)
 	for rows.Next() {
-		err := rows.Scan(&account.Current, &account.Withdrawn)
+		var withdraw models.Withdraw
+		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.Processed_at)
 		if err != nil {
 			logrus.Error(err)
 			return nil, ErrInt
 		}
-
+		list = append(list, withdraw)
 	}
-	return &account, nil
+	return list, nil
 }

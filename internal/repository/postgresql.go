@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -19,6 +20,8 @@ type DB interface {
 	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...interface{}) pgx.Row
 	Ping(context.Context) error
+	BeginTx(context.Context, pgx.TxOptions) (pgx.Tx, error)
+	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
 }
 
 func NewDB(ctx context.Context) (*pgxpool.Pool, error) {
@@ -59,7 +62,7 @@ func AutoMigration(isAllowed bool) error {
 	}
 
 	//run automigration
-	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Order{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Order{}, &models.Withdrawl{}); err != nil {
 		return err
 	}
 	db.Exec("ALTER TABLE users ADD CONSTRAINT loyalty_account_fk FOREIGN KEY (loyalty_account) REFERENCES accounts(id)")

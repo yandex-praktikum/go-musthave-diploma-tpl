@@ -22,7 +22,7 @@ func NewAuth(repos *repository.Repository) *Auth {
 	return &Auth{Repository: repos}
 }
 
-func (a *Auth) CreateUser(user *models.User, accountNumber string) error {
+func (a *Auth) CreateUser(user *models.User, accountNumber uint64) error {
 	//hashing the password
 	user.Password = a.HashingPassword(user.Password)
 

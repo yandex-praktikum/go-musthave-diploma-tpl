@@ -17,7 +17,7 @@ type UpdateRequest struct {
 
 type signInResponse struct {
 	Login         string `json:"login"`
-	AccountNumber string `json:"account_number"`
+	AccountNumber uint64 `json:"account_number"`
 	RefreshToken  string `json:"refresh_token"`
 }
 
@@ -104,6 +104,10 @@ func (h *Handler) SignUp(c *gin.Context) {
 	number, err := h.service.Repository.GetUser(&user)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	//create tokens
