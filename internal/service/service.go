@@ -3,7 +3,7 @@ package service
 import (
 	"Loyalty/internal/models"
 	"Loyalty/internal/repository"
-	numbergenerator "Loyalty/pkg/NumberGenerator"
+	numbergenerator "Loyalty/pkg/numberGenerator"
 )
 
 type Repository interface {
