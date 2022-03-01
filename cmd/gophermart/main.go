@@ -9,7 +9,6 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -51,16 +50,16 @@ func main() {
 	h := handler.NewHandler(s, *logger)
 
 	//run accrual server
-	cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")
-	go cmd.Run()
+	// cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")
+	// go cmd.Run()
 
 	//mock accrual server
-	go func() {
-		time.Sleep(time.Second * 2)
-		if err := c.AccrualMock(); err != nil {
-			logger.Error(err)
-		}
-	}()
+	// go func() {
+	// 	time.Sleep(time.Second * 2)
+	// 	if err := c.AccrualMock(); err != nil {
+	// 		logger.Error(err)
+	// 	}
+	// }()
 
 	//run worker for updating orders queue
 	go s.UpdateOrdersQueue()
