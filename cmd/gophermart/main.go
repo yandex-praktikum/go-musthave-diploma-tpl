@@ -7,7 +7,6 @@ import (
 	"Loyalty/internal/repository"
 	"Loyalty/internal/service"
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,16 +19,21 @@ import (
 )
 
 func main() {
+	//init logger
 	logger := logrus.New()
-	logger.SetFormatter(new(logrus.TextFormatter))
-	logger.SetLevel(logrus.InfoLevel)
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC3339,
+	})
+	logger.SetLevel(logrus.DebugLevel)
 
 	//init configs
-	if err := configs.InitConfig(); err != nil {
+	config, err := configs.InitConfig()
+	if err != nil {
 		logger.Fatal(err)
 	}
 	//db connection
-	db, err := repository.NewDB(context.Background())
+	db, err := repository.NewDB(context.Background(), config.DatabaseURI)
 	if err != nil {
 		logger.Fatal("No database connection ")
 	}
@@ -38,9 +42,12 @@ func main() {
 		logger.Error("Error: migrations wasn't successful")
 	}
 
+	//init accrual client
+	c := client.NewAccrualClient(*logger, config.AccrualAddress)
+
 	//init main components
 	r := repository.NewRepository(db)
-	s := service.NewService(r)
+	s := service.NewService(r, c, *logger)
 	h := handler.NewHandler(s)
 
 	//run accrual server
@@ -48,28 +55,31 @@ func main() {
 	go cmd.Run()
 
 	//mock accrual server
-	accrualClient := client.NewAccrualClient(*logger)
 	go func() {
 		time.Sleep(time.Second * 2)
-		if err := accrualClient.AccrualMock(); err != nil {
+		if err := c.AccrualMock(); err != nil {
 			logger.Error(err)
 		}
 	}()
 
+	//run worker for updating orders queue
+	go s.UpdateOrdersQueue()
+
 	//init server
-	adr := fmt.Sprint(viper.GetString("host"), ":", viper.GetString("port"))
+
 	server := &http.Server{
-		Addr:    adr,
+		Addr:    config.ServerAddress,
 		Handler: h.Init(),
 	}
 	//run server
 	go server.ListenAndServe()
 
-	logger.Infof("Server started by address: %s", adr)
+	logger.Infof("Server started by address: %s", config.ServerAddress)
 
 	//shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
+	<-time.After(time.Second * 2)
 	logrus.Info("Server stopped")
 }

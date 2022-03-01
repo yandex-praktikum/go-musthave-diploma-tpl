@@ -4,13 +4,14 @@ import (
 	"Loyalty/internal/models"
 	"Loyalty/internal/repository"
 	"Loyalty/internal/service"
+	"Loyalty/pkg/luhn"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 )
+
+const StatusNew = "NEW"
 
 type Handler struct {
 	service   *service.Service
@@ -65,30 +66,31 @@ func (h *Handler) saveOrder(c *gin.Context) {
 		return
 	}
 	//validate order number
-	if ok := govalidator.IsNumeric(string(number)); !ok {
-		c.String(http.StatusUnprocessableEntity, "Not valid order number")
+	if ok := luhn.Validate(string(number)); !ok {
+		c.String(http.StatusUnprocessableEntity, "Not valid number of order")
 		return
 	}
-	//запрос в систему начисления баллов
-	//получение ответа
-	//..................
+	//save order in db
 	var order models.Order
 	order.Number = string(number)
-	order.Status = "status"
-	order.Accrual = rand.Float64()
+	order.Status = StatusNew
+	order.Accrual = 0
 	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {
-		switch err.Error() {
-		case repository.ErrInt.Error():
+		switch err {
+		case repository.ErrInt:
 			c.String(http.StatusInternalServerError, err.Error())
-		case repository.ErrOrdUsrConfl.Error():
+		case repository.ErrOrdUsrConfl:
 			c.String(http.StatusConflict, err.Error())
-		case repository.ErrOrdOverLap.Error():
+		case repository.ErrOrdOverLap:
 			c.String(http.StatusOK, err.Error())
 		default:
 			c.String(http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
+	//add order to queue
+	h.service.Repository.AddToQueue(string(number))
+
 	c.String(http.StatusAccepted, "order has been accepted for processing")
 }
 

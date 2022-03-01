@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -24,21 +23,12 @@ type DB interface {
 	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
 }
 
-func NewDB(ctx context.Context) (*pgxpool.Pool, error) {
-	//db connection string
-	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
-		viper.GetString("db.host"),
-		viper.GetString("db.port"),
-		viper.GetString("db.username"),
-		viper.GetString("db.dbname"),
-		os.Getenv("DB_PASSWORD"),
-		viper.GetString("db.sslmode"))
+func NewDB(ctx context.Context, address string) (*pgxpool.Pool, error) {
 	//init connection
-	conn, err := pgxpool.Connect(ctx, dsn)
+	conn, err := pgxpool.Connect(ctx, address)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Println("DB connection success")
 	return conn, nil
 }
 
@@ -68,8 +58,6 @@ func AutoMigration(isAllowed bool) error {
 	db.Exec("ALTER TABLE users ADD CONSTRAINT loyalty_account_fk FOREIGN KEY (loyalty_account) REFERENCES accounts(id)")
 	db.Exec("ALTER TABLE orders ADD CONSTRAINT user_id_fk FOREIGN KEY (user_id) REFERENCES users(id)")
 	db.Exec("ALTER TABLE withdrawals ADD CONSTRAINT order_id_fk FOREIGN KEY (order_id) REFERENCES orders(id)")
-
-	logrus.Println("Migration success")
 
 	return nil
 }

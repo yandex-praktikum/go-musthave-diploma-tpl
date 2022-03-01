@@ -1,21 +1,41 @@
 package client
 
 import (
+	"Loyalty/internal/models"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-type client struct {
-	logger *logrus.Logger
+const StatusRegistered string = "REGISTERED"
+const StatusInvalid string = "INVALID"
+const StatusProcessing string = "PROCESSING"
+const StatusProcessed string = "PROCESSED"
+
+type AccrualClient struct {
+	client  *http.Client
+	logger  *logrus.Logger
+	address string
 }
 
-func NewAccrualClient(logger logrus.Logger) *client {
-	return &client{logger: &logger}
+func NewAccrualClient(logger logrus.Logger, address string) *AccrualClient {
+	return &AccrualClient{
+		client: &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns:        10000,
+				MaxIdleConnsPerHost: 10000,
+				MaxConnsPerHost:     10000,
+			},
+			Timeout: time.Duration(3) * time.Second,
+		},
+		logger:  &logger,
+		address: address}
 }
 
 type cashback struct {
@@ -34,22 +54,31 @@ type order struct {
 	Goods  []goods `json:"goods"`
 }
 
-func (c *client) SentOrder(order string) error {
-	url := fmt.Sprint("http://localhost:8080/api/orders/", order)
-	resp, err := http.Get(url)
+func (c *AccrualClient) SentOrder(order string) (*models.Accrual, error) {
+	url := fmt.Sprint(c.address, order)
+	resp, err := c.client.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
+	var accrual models.Accrual
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	if len(body) == 0 {
+		err := errors.New("error: not found result")
+		return nil, fmt.Errorf(`%w`, err)
+	}
+	if err := json.Unmarshal(body, &accrual); err != nil {
+		return nil, err
+	}
+	c.logger.Infof("Accrual request: %s, response: %v", order, accrual)
 
-	return nil
+	return &accrual, nil
 }
 
-func (c *client) AccrualMock() error {
+func (c *AccrualClient) AccrualMock() error {
 	cashbacks := []cashback{
 		{
 			Mutch:      "IPhone",
@@ -108,7 +137,7 @@ func (c *client) AccrualMock() error {
 		if err != nil {
 			return err
 		}
-		c.logger.Infof("Request: %v, status: %s", string(body), resp.Status)
+		c.logger.Infof("Accrual mock. Request: %v, status: %s", string(body), resp.Status)
 	}
 	url = "http://localhost:8080/api/orders"
 	for _, val := range orders {
@@ -121,7 +150,7 @@ func (c *client) AccrualMock() error {
 		if err != nil {
 			return err
 		}
-		c.logger.Infof("Request: %v, status: %s", string(body), resp.Status)
+		c.logger.Infof("Accrual mock. Request: %v, status: %s", string(body), resp.Status)
 	}
 
 	return nil

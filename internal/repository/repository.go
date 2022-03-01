@@ -3,6 +3,7 @@ package repository
 import (
 	"Loyalty/internal/models"
 	"context"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -10,11 +11,19 @@ import (
 )
 
 type Repository struct {
-	db DB
+	db    DB
+	queue []string
+	mx    *sync.Mutex
+	cash  *sync.Map
 }
 
 func NewRepository(db DB) *Repository {
-	return &Repository{db: db}
+	return &Repository{
+		db:    db,
+		queue: make([]string, 0, 10),
+		mx:    &sync.Mutex{},
+		cash:  &sync.Map{},
+	}
 }
 
 //get user from db ========================================================
@@ -57,6 +66,11 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 		}
 		return ErrOrdOverLap
 	}
+	return nil
+}
+
+//update order
+func (r *Repository) UpdateOrder(order *models.Order) error {
 	return nil
 }
 

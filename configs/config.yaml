@@ -1,13 +1,4 @@
-host: "localhost"
-port: "8000"
-
 db: 
-    username: "postgres"
-    host: "localhost"
-    port: "5432"
-    dbname: "loyalty_system"
-    sslmode: "disable"
-
     migration:
                 isAllowed: true
                 
@@ -15,3 +6,5 @@ auth:
     #token live(minutes)
     accessTokenExp: 30
 
+accrual:
+    timeout: 500
