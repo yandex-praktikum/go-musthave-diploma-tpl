@@ -3,13 +3,10 @@ package repository
 import (
 	"Loyalty/internal/models"
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -32,21 +29,13 @@ func NewDB(ctx context.Context, address string) (*pgxpool.Pool, error) {
 	return conn, nil
 }
 
-func AutoMigration(isAllowed bool) error {
+func AutoMigration(isAllowed bool, address string) error {
 
 	if !isAllowed {
 		return nil
 	}
-	//db connection string
-	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
-		viper.GetString("db.host"),
-		viper.GetString("db.port"),
-		viper.GetString("db.username"),
-		viper.GetString("db.dbname"),
-		os.Getenv("DB_PASSWORD"),
-		viper.GetString("db.sslmode"))
 	//open connection
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(address), &gorm.Config{})
 	if err != nil {
 		return err
 	}

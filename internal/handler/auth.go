@@ -33,6 +33,7 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 	//validate token
 	login, err := h.service.ValidateToken(bearerToken, "access")
 	if err != nil {
+		h.logger.Error(err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthenticated"})
 		c.Abort()
 		return
@@ -46,16 +47,19 @@ func (h *Handler) SignIn(c *gin.Context) {
 	var user models.User
 	//parse request
 	if err := c.ShouldBindJSON(&user); err != nil {
+		h.logger.Error(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	//validation request
-	if ok, _ := govalidator.ValidateStruct(user); !ok {
+	if ok, err := govalidator.ValidateStruct(user); !ok {
+		h.logger.Error(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Not allowed request"})
 		return
 	}
-	if (len(user.Password) < 7) || (len(user.Password) > 20) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "password length will be from 7 to 15 simbols"})
+	if (len(user.Password) < 7) || (len(user.Password) > 40) {
+		h.logger.Error("uncorrect password")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password length will be from 7 to 40 simbols"})
 		return
 	}
 

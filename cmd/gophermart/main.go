@@ -38,7 +38,7 @@ func main() {
 		logger.Fatal("No database connection ")
 	}
 	//migration
-	if err := repository.AutoMigration(viper.GetBool("db.migration.isAllowed")); err != nil {
+	if err := repository.AutoMigration(viper.GetBool("db.migration.isAllowed"), config.DatabaseURI); err != nil {
 		logger.Error("Error: migrations wasn't successful")
 	}
 
@@ -48,7 +48,7 @@ func main() {
 	//init main components
 	r := repository.NewRepository(db)
 	s := service.NewService(r, c, *logger)
-	h := handler.NewHandler(s)
+	h := handler.NewHandler(s, *logger)
 
 	//run accrual server
 	cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")

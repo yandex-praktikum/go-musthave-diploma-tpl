@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const StatusNew = "NEW"
@@ -16,10 +17,14 @@ const StatusNew = "NEW"
 type Handler struct {
 	service   *service.Service
 	userLogin string
+	logger    *logrus.Logger
 }
 
-func NewHandler(service *service.Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *service.Service, logger logrus.Logger) *Handler {
+	return &Handler{
+		service: service,
+		logger:  &logger,
+	}
 }
 
 //=========================================================================
