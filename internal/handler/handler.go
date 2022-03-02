@@ -81,14 +81,15 @@ func (h *Handler) saveOrder(c *gin.Context) {
 	order.Status = StatusNew
 	order.Accrual = 0
 	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {
-		switch err {
-		case repository.ErrInt:
+		h.logger.Error(err)
+		switch err.Error() {
+		case repository.ErrInt.Error():
 			c.String(http.StatusInternalServerError, err.Error())
 			return
-		case repository.ErrOrdUsrConfl:
+		case repository.ErrOrdUsrConfl.Error():
 			c.String(http.StatusConflict, err.Error())
 			return
-		case repository.ErrOrdOverLap:
+		case repository.ErrOrdOverLap.Error():
 			c.String(http.StatusOK, err.Error())
 			return
 		default:
