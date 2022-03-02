@@ -62,7 +62,7 @@ func main() {
 	// }()
 
 	// //run worker for updating orders queue
-	// go s.UpdateOrdersQueue()
+	go s.UpdateOrdersQueue()
 
 	//init server
 	server := &http.Server{
