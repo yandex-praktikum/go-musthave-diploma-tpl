@@ -107,10 +107,6 @@ func (h *Handler) SignUp(c *gin.Context) {
 	user.Password = h.service.Auth.HashingPassword(user.Password)
 	number, err := h.service.Repository.GetUser(&user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
