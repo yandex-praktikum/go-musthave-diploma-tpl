@@ -20,10 +20,10 @@ type Handler struct {
 	logger    *logrus.Logger
 }
 
-func NewHandler(service *service.Service, logger logrus.Logger) *Handler {
+func NewHandler(service *service.Service, logger *logrus.Logger) *Handler {
 	return &Handler{
 		service: service,
-		logger:  &logger,
+		logger:  logger,
 	}
 }
 

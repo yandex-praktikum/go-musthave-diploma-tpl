@@ -23,10 +23,10 @@ type AccrualClient struct {
 	address string
 }
 
-func NewAccrualClient(logger logrus.Logger, address string) *AccrualClient {
+func NewAccrualClient(logger *logrus.Logger, address string) *AccrualClient {
 	return &AccrualClient{
 		client:  &http.Client{},
-		logger:  &logger,
+		logger:  logger,
 		address: address,
 	}
 }

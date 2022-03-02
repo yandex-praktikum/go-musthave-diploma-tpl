@@ -1,7 +1,8 @@
 package luhn
 
 func Validate(number string) bool {
-	var sum int = 0
+	var sum int
+	sum = 0
 	len := len(number)
 	isSecond := false
 	for i := len - 1; i >= 0; i-- {
