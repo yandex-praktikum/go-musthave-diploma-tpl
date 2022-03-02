@@ -145,8 +145,6 @@ func (h *Handler) withdraw(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, repository.ErrInt)
 		return
 	}
-	/////........... Если статус ??? доделать
-
 	//check bonuses
 	accountState, err := h.service.Repository.GetBalance(h.userLogin)
 	if err != nil {
