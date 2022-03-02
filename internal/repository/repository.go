@@ -203,7 +203,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 //get withdrawls ========================================================
 func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 	q := `SELECT number,sum,processed_at
-	FROM withdrawls    
+	FROM withdrawals    
 	JOIN 
 		orders ON order_id=orders.id
 	WHERE
