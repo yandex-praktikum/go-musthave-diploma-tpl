@@ -83,7 +83,6 @@ func (s *Service) UpdateOrdersQueue() {
 				s.Repository.RemoveFromQueue()
 				continue
 			}
-
 			time.Sleep(timeOut)
 			s.logger.Error(err)
 			continue

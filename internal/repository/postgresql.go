@@ -44,7 +44,7 @@ func AutoMigration(isAllowed bool, address string) error {
 	if err := db.AutoMigrate(&models.User{}, &models.Account{}, &models.Order{}, &models.Withdrawal{}); err != nil {
 		return err
 	}
-	db.Exec("ALTER TABLE users ADD CONSTRAINT loyalty_account_fk FOREIGN KEY (loyalty_account) REFERENCES accounts(id)")
+	db.Exec("ALTER TABLE users ADD CONSTRAINT loyalty_account_fk FOREIGN KEY (account_id) REFERENCES accounts(id)")
 	db.Exec("ALTER TABLE orders ADD CONSTRAINT user_id_fk FOREIGN KEY (user_id) REFERENCES users(id)")
 	db.Exec("ALTER TABLE withdrawals ADD CONSTRAINT order_id_fk FOREIGN KEY (order_id) REFERENCES orders(id)")
 

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,16 +25,10 @@ type AccrualClient struct {
 
 func NewAccrualClient(logger logrus.Logger, address string) *AccrualClient {
 	return &AccrualClient{
-		client: &http.Client{
-			Transport: &http.Transport{
-				MaxIdleConns:        10000,
-				MaxIdleConnsPerHost: 10000,
-				MaxConnsPerHost:     10000,
-			},
-			Timeout: time.Duration(3) * time.Second,
-		},
+		client:  &http.Client{},
 		logger:  &logger,
-		address: address}
+		address: address,
+	}
 }
 
 type cashback struct {
@@ -55,8 +48,9 @@ type order struct {
 }
 
 func (c *AccrualClient) SentOrder(order string) (*models.Accrual, error) {
-	url := fmt.Sprint(c.address, order)
+	url := fmt.Sprint(c.address, "/api/orders/", order)
 	resp, err := c.client.Get(url)
+	c.logger.Infof("Accrual response: %v", resp)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +119,7 @@ func (c *AccrualClient) AccrualMock() error {
 			},
 		},
 	}
-	url := "http://localhost:8080/api/goods"
+	url := fmt.Sprint(c.address, "/api/goods")
 
 	for _, val := range cashbacks {
 		body, err := json.Marshal(val)
@@ -133,20 +127,20 @@ func (c *AccrualClient) AccrualMock() error {
 			return err
 		}
 		buffer := bytes.NewBuffer(body)
-		resp, err := http.Post(url, "application/json", buffer)
+		resp, err := c.client.Post(url, "application/json", buffer)
 		if err != nil {
 			return err
 		}
 		c.logger.Infof("Accrual mock. Request: %v, status: %s", string(body), resp.Status)
 	}
-	url = "http://localhost:8080/api/orders"
+	url = fmt.Sprint(c.address, "/api/orders")
 	for _, val := range orders {
 		body, err := json.Marshal(val)
 		if err != nil {
 			return err
 		}
 		buffer := bytes.NewBuffer(body)
-		resp, err := http.Post(url, "application/json", buffer)
+		resp, err := c.client.Post(url, "application/json", buffer)
 		if err != nil {
 			return err
 		}

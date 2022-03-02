@@ -30,7 +30,7 @@ func InitConfig() (*Config, error) {
 
 	serverAddressDefault := os.Getenv("RUN_ADDRESS")
 	dbURIDefault := os.Getenv("DATABASE_URI")
-	accrualAddressDefault := os.Getenv("DATABASE_URI")
+	accrualAddressDefault := os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
 
 	flag.StringVar(&serverAddress, "a", serverAddressDefault, "address of API server")
 	flag.StringVar(&dbURI, "d", dbURIDefault, "str to DB connection")

@@ -54,18 +54,17 @@ func main() {
 	// go cmd.Run()
 
 	//mock accrual server
-	// go func() {
-	// 	time.Sleep(time.Second * 2)
-	// 	if err := c.AccrualMock(); err != nil {
-	// 		logger.Error(err)
-	// 	}
-	// }()
+	go func() {
+		time.Sleep(time.Second * 2)
+		if err := c.AccrualMock(); err != nil {
+			logger.Error(err)
+		}
+	}()
 
 	//run worker for updating orders queue
 	go s.UpdateOrdersQueue()
 
 	//init server
-
 	server := &http.Server{
 		Addr:    config.ServerAddress,
 		Handler: h.Init(),
