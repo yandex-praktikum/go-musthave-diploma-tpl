@@ -84,16 +84,16 @@ func (h *Handler) saveOrder(c *gin.Context) {
 		switch err {
 		case repository.ErrInt:
 			c.String(http.StatusInternalServerError, err.Error())
-			return
+			c.Abort()
 		case repository.ErrOrdUsrConfl:
 			c.String(http.StatusConflict, err.Error())
-			return
+			c.Abort()
 		case repository.ErrOrdOverLap:
 			c.String(http.StatusOK, err.Error())
-			return
+			c.Abort()
 		default:
 			c.String(http.StatusInternalServerError, err.Error())
-			return
+			c.Abort()
 		}
 
 	}
