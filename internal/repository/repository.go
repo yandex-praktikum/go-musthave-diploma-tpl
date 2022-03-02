@@ -18,13 +18,13 @@ type Repository struct {
 	logger *logrus.Logger
 }
 
-func NewRepository(db DB, logger logrus.Logger) *Repository {
+func NewRepository(db DB, logger *logrus.Logger) *Repository {
 	return &Repository{
 		db:     db,
 		queue:  make([]string, 0, 10),
 		mx:     &sync.Mutex{},
 		cash:   &sync.Map{},
-		logger: &logger,
+		logger: logger,
 	}
 }
 
@@ -219,7 +219,7 @@ func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 	var list = make([]models.Withdraw, 0, 10)
 	for rows.Next() {
 		var withdraw models.Withdraw
-		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.Processed_at)
+		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.ProcessedAt)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, ErrInt

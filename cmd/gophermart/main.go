@@ -42,12 +42,12 @@ func main() {
 	}
 
 	//init accrual client
-	c := client.NewAccrualClient(*logger, config.AccrualAddress)
+	c := client.NewAccrualClient(logger, config.AccrualAddress)
 
 	//init main components
-	r := repository.NewRepository(db, *logger)
-	s := service.NewService(r, c, *logger)
-	h := handler.NewHandler(s, *logger)
+	r := repository.NewRepository(db, logger)
+	s := service.NewService(r, c, logger)
+	h := handler.NewHandler(s, logger)
 
 	//run accrual server
 	// cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")
