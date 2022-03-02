@@ -72,12 +72,12 @@ func (s *Service) UpdateOrdersQueue() {
 	timeOut := time.Millisecond * time.Duration(viper.GetInt("accrual.timeout"))
 	for {
 		time.Sleep(1 * time.Second) //убрать
-		order := s.Repository.TakeFirst()
-		if order == "" {
+		number := s.Repository.TakeFirst()
+		if number == "" {
 			time.Sleep(timeOut)
 			continue
 		}
-		accrual, err := s.Client.SentOrder(order)
+		accrual, err := s.Client.SentOrder(number)
 		if err != nil {
 			if errors.Is(err, errors.Unwrap(err)) {
 				s.Repository.RemoveFromQueue()
@@ -88,12 +88,14 @@ func (s *Service) UpdateOrdersQueue() {
 			s.logger.Error(err)
 			continue
 		}
-		s.logger.Infof("Worker: %v", accrual)
+		var order models.Order
+		order.Number = accrual.Order
+		order.Status = accrual.Status
+		order.Accrual = accrual.Accrual
+
+		s.logger.Infof("Worker: %v", order)
 		//if order status is final
 		if accrual.Status == client.StatusInvalid || accrual.Status == client.StatusProcessed {
-			var order models.Order
-			order.Number = accrual.Order
-			order.Status = accrual.Status
 
 			if err := s.Repository.UpdateOrder(&order); err != nil {
 				time.Sleep(timeOut)

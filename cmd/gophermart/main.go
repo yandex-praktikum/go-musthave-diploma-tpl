@@ -45,7 +45,7 @@ func main() {
 	c := client.NewAccrualClient(*logger, config.AccrualAddress)
 
 	//init main components
-	r := repository.NewRepository(db)
+	r := repository.NewRepository(db, *logger)
 	s := service.NewService(r, c, *logger)
 	h := handler.NewHandler(s, *logger)
 

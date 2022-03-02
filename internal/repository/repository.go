@@ -11,18 +11,20 @@ import (
 )
 
 type Repository struct {
-	db    DB
-	queue []string
-	mx    *sync.Mutex
-	cash  *sync.Map
+	db     DB
+	queue  []string
+	mx     *sync.Mutex
+	cash   *sync.Map
+	logger *logrus.Logger
 }
 
-func NewRepository(db DB) *Repository {
+func NewRepository(db DB, logger logrus.Logger) *Repository {
 	return &Repository{
-		db:    db,
-		queue: make([]string, 0, 10),
-		mx:    &sync.Mutex{},
-		cash:  &sync.Map{},
+		db:     db,
+		queue:  make([]string, 0, 10),
+		mx:     &sync.Mutex{},
+		cash:   &sync.Map{},
+		logger: &logger,
 	}
 }
 
@@ -37,7 +39,7 @@ func (r *Repository) CreateLoyaltyAccount(number uint64) error {
 	if i == 0 {
 		return ErrInt
 	}
-	logrus.Printf("created new account %d", number)
+	r.logger.Printf("created new account %d", number)
 
 	return nil
 }
@@ -57,7 +59,7 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 
 	row := r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated)
 	if err := row.Scan(&i, &timeFromDb, &loginFromDb); err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return ErrInt
 	}
 	if timeCreated.Unix() != timeFromDb.Unix() {
@@ -69,8 +71,32 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	return nil
 }
 
-//update order
+//update order ========================================================
 func (r *Repository) UpdateOrder(order *models.Order) error {
+	q := `UPDATE orders 
+	SET status=$1,accrual=$2
+		WHERE number=$3;`
+	_, err := r.db.Exec(context.Background(), q, order.Status, order.Accrual, order.Number)
+	if err != nil {
+		r.logger.Error(err)
+		return ErrInt
+	}
+
+	if order.Accrual > 0 {
+		q = `UPDATE accounts 
+		SET current=current+$1
+			WHERE id=
+		(SELECT user_id FROM orders
+			WHERE number=$2);`
+		_, err = r.db.Exec(context.Background(), q, order.Accrual, order.Number)
+		if err != nil {
+			r.logger.Error(err)
+			return ErrInt
+		}
+
+		return nil
+	}
+
 	return nil
 }
 
@@ -83,7 +109,7 @@ func (r *Repository) GetOrders(login string) ([]models.Order, error) {
 
 	rows, err := r.db.Query(context.Background(), q, login)
 	if err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return nil, ErrInt
 	}
 	var list = make([]models.Order, 0, 10)
@@ -91,7 +117,7 @@ func (r *Repository) GetOrders(login string) ([]models.Order, error) {
 		var order models.Order
 		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
 		if err != nil {
-			logrus.Error(err)
+			r.logger.Error(err)
 			return nil, ErrInt
 		}
 		list = append(list, order)
@@ -109,7 +135,7 @@ func (r *Repository) GetBalance(login string) (*models.Account, error) {
 	var account models.Account
 	row := r.db.QueryRow(context.Background(), q, login)
 	if err := row.Scan(&account.Current, &account.Withdrawn); err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return nil, ErrInt
 	}
 	return &account, nil
@@ -125,7 +151,7 @@ func (r *Repository) CheckOrder(number string, login string) (string, error) {
 
 	res := r.db.QueryRow(context.Background(), q, login, number)
 	if err := res.Scan(&status); err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return "", ErrInt
 	}
 	return status, nil
@@ -135,7 +161,7 @@ func (r *Repository) CheckOrder(number string, login string) (string, error) {
 func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 	tx, err := r.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	if err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return ErrInt
 	}
 	defer func() {
@@ -156,7 +182,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 		 RETURNING id;`
 	res := r.db.QueryRow(context.Background(), q, withdraw.Order, withdraw.Sum, time.Now())
 	if err := res.Scan(&id); err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return ErrInt
 	}
 
@@ -167,7 +193,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 		WHERE login=$2);`
 	_, err = r.db.Exec(context.Background(), q, withdraw.Sum, login)
 	if err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return ErrInt
 	}
 
@@ -187,7 +213,7 @@ func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 
 	rows, err := r.db.Query(context.Background(), q, login)
 	if err != nil {
-		logrus.Error(err)
+		r.logger.Error(err)
 		return nil, ErrInt
 	}
 	var list = make([]models.Withdraw, 0, 10)
@@ -195,7 +221,7 @@ func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 		var withdraw models.Withdraw
 		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.Processed_at)
 		if err != nil {
-			logrus.Error(err)
+			r.logger.Error(err)
 			return nil, ErrInt
 		}
 		list = append(list, withdraw)

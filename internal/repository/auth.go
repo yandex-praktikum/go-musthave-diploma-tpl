@@ -4,13 +4,11 @@ import (
 	"Loyalty/internal/models"
 	"context"
 	"fmt"
-	"log"
 )
 
 //save user in db ===========================================================
 func (r *Repository) SaveUser(user *models.User, accountNumber uint64) error {
 	var number uint64
-	log.Println(accountNumber)
 	q := `INSERT INTO users as u (login, password, account_id)
     VALUES($1,$2,(SELECT id FROM accounts WHERE number=$3))
 	ON CONFLICT (login) DO UPDATE SET 
