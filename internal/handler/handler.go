@@ -84,18 +84,17 @@ func (h *Handler) saveOrder(c *gin.Context) {
 		switch err {
 		case repository.ErrInt:
 			c.String(http.StatusInternalServerError, err.Error())
-			c.Abort()
+			return
 		case repository.ErrOrdUsrConfl:
 			c.String(http.StatusConflict, err.Error())
-			c.Abort()
+			return
 		case repository.ErrOrdOverLap:
 			c.String(http.StatusOK, err.Error())
-			c.Abort()
+			return
 		default:
 			c.String(http.StatusInternalServerError, err.Error())
-			c.Abort()
+			return
 		}
-
 	}
 	//add order to queue
 	h.service.Repository.AddToQueue(string(number))
