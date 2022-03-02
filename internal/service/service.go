@@ -49,7 +49,7 @@ type Service struct {
 func NewService(r *repository.Repository, c *client.AccrualClient, logger logrus.Logger) *Service {
 	return &Service{
 		Repository: r,
-		Auth:       *NewAuth(r),
+		Auth:       *NewAuth(r, &logger),
 		Client:     c,
 		logger:     &logger,
 	}
