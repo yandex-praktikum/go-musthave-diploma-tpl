@@ -47,8 +47,8 @@ func (r *Repository) CreateLoyaltyAccount(number uint64) error {
 //save order ========================================================
 func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	var i int
-	var loginFromDb string
-	var timeFromDb time.Time
+	var loginFromDB string
+	var timeFromDB time.Time
 	timeCreated := time.Now()
 
 	q := `INSERT INTO orders(number,user_id,status,accrual,uploaded_at)
@@ -58,12 +58,12 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	RETURNING id,uploaded_at,(SELECT login FROM users WHERE id=orders.user_id);`
 
 	row := r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated)
-	if err := row.Scan(&i, &timeFromDb, &loginFromDb); err != nil {
+	if err := row.Scan(&i, &timeFromDB, &loginFromDB); err != nil {
 		r.logger.Error(err)
 		return ErrInt
 	}
-	if timeCreated.Unix() != timeFromDb.Unix() {
-		if loginFromDb != login {
+	if timeCreated.Unix() != timeFromDB.Unix() {
+		if loginFromDB != login {
 			return ErrOrdUsrConfl
 		}
 		return ErrOrdOverLap

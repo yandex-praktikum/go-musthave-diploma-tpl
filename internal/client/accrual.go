@@ -131,6 +131,7 @@ func (c *AccrualClient) AccrualMock() error {
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close()
 		c.logger.Infof("Accrual mock. Request: %v, status: %s", string(body), resp.Status)
 	}
 	url = fmt.Sprint(c.address, "/api/orders")
@@ -144,6 +145,7 @@ func (c *AccrualClient) AccrualMock() error {
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close()
 		c.logger.Infof("Accrual mock. Request: %v, status: %s", string(body), resp.Status)
 	}
 
