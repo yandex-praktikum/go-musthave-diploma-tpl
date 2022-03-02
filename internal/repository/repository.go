@@ -159,20 +159,20 @@ func (r *Repository) CheckOrder(number string, login string) (string, error) {
 
 //withdraw ========================================================
 func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
-	tx, err := r.db.BeginTx(context.TODO(), pgx.TxOptions{})
+	tx, err := r.db.BeginTx(context.Background(), pgx.TxOptions{})
 	if err != nil {
 		r.logger.Error(err)
 		return ErrInt
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback(context.TODO())
+			tx.Rollback(context.Background())
 		} else {
-			tx.Commit(context.TODO())
+			tx.Commit(context.Background())
 		}
 	}()
 	var id int
-	q := `INSERT INTO withdrawls
+	q := `INSERT INTO withdrawals
 	 (order_id, sum, processed_at)
 	 	VALUES ((
 			 SELECT id FROM orders
