@@ -4,6 +4,7 @@ import (
 	"Loyalty/internal/client"
 	"Loyalty/internal/models"
 	"Loyalty/internal/repository"
+	"Loyalty/pkg/luhn"
 	numbergenerator "Loyalty/pkg/numberGenerator"
 	"errors"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+const StatusNew = "NEW"
 
 type Repository interface {
 	//auth methods
@@ -53,7 +56,39 @@ func NewService(r *repository.Repository, c *client.AccrualClient, logger *logru
 		logger:     logger,
 	}
 }
+func (s *Service) Withdraw(withdraw *models.WithdrawalDTO, login string) error {
+	//validate order number
+	if ok := luhn.Validate(string(withdraw.Order)); !ok {
+		return ErrNotValid
+	}
+	//check bonuses
+	accountState, err := s.Repository.GetBalance(login)
+	if err != nil {
+		return ErrInt
+	}
+	sum := uint64(withdraw.Sum * 100)
+	// if not enough bonuses
+	if accountState.Current < sum {
+		return ErrNoMoney
+	}
+	//save order in db
+	var order models.Order
+	order.Number = string(withdraw.Order)
+	order.Status = StatusNew
+	order.Accrual = 0
+	if err := s.Repository.SaveOrder(&order, login); err != nil {
+		return ErrInt
+	}
+	//save withdraw in db
+	if err := s.Repository.Withdraw(withdraw, login); err != nil {
+		return ErrInt
+	}
+	//add order to queue
+	s.Repository.AddToQueue(string(withdraw.Order))
+	return nil
+}
 
+// creating account for user
 func (s *Service) CreateLoyaltyAccount(user *models.User) (uint64, error) {
 	//create account number
 	number, err := numbergenerator.GenerateNumber(15)
@@ -67,6 +102,7 @@ func (s *Service) CreateLoyaltyAccount(user *models.User) (uint64, error) {
 	return number, nil
 }
 
+// updating orders queue ============================================================
 func (s *Service) UpdateOrdersQueue() {
 	timeOut := time.Millisecond * time.Duration(viper.GetInt("accrual.timeout"))
 	for {
