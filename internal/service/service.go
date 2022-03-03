@@ -22,7 +22,6 @@ type Repository interface {
 	GetOrders(login string) ([]models.Order, error)
 	UpdateOrder(*models.Order) error
 	GetBalance(login string) (*models.Account, error)
-	CheckOrder(number string, login string) (string, error)
 	Withdraw(*models.Withdraw, string) error
 	GetWithdrawls(string) ([]models.Withdraw, error)
 	//orders queue

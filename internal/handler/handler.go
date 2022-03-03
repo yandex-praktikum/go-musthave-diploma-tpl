@@ -82,20 +82,18 @@ func (h *Handler) saveOrder(c *gin.Context) {
 	order.Accrual = 0
 	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {
 		h.logger.Error(err)
-		switch err.Error() {
-		case repository.ErrInt.Error():
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		case repository.ErrOrdUsrConfl.Error():
-			c.String(http.StatusConflict, err.Error())
-			return
-		case repository.ErrOrdOverLap.Error():
-			c.String(http.StatusOK, err.Error())
-			return
+		switch err {
+		case repository.ErrInt:
+			c.Status(http.StatusInternalServerError)
+		case repository.ErrOrdUsrConfl:
+			c.Status(http.StatusConflict)
+		case repository.ErrOrdOverLap:
+			c.Status(http.StatusOK)
 		default:
 			c.String(http.StatusInternalServerError, err.Error())
-			return
+
 		}
+		return
 	}
 	//add order to queue
 	h.service.Repository.AddToQueue(string(number))
@@ -134,16 +132,9 @@ func (h *Handler) withdraw(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	//check orer in db
-	status, err := h.service.Repository.CheckOrder(withdraw.Order, h.userLogin)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	//chcek order status
-	if status == "" {
-		c.JSON(http.StatusUnprocessableEntity, repository.ErrInt)
+	//validate order number
+	if ok := luhn.Validate(string(withdraw.Order)); !ok {
+		c.String(http.StatusUnprocessableEntity, "Not valid number of order")
 		return
 	}
 	//check bonuses
@@ -152,17 +143,28 @@ func (h *Handler) withdraw(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	// if not enough bonuses
 	if accountState.Current < withdraw.Sum {
 		c.JSON(http.StatusPaymentRequired, gin.H{"error": "not enough bonuses"})
 		return
 	}
+	//save order in db
+	var order models.Order
+	order.Number = string(withdraw.Order)
+	order.Status = StatusNew
+	order.Accrual = 0
+	if err := h.service.Repository.SaveOrder(&order, h.userLogin); err != nil {
+		h.logger.Error(err)
+		return
+	}
+	//save withdraw in db
 	if err := h.service.Repository.Withdraw(&withdraw, h.userLogin); err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"withdraw": "done"})
+	//add order to queue
+	h.service.Repository.AddToQueue(string(withdraw.Order))
 }
 
 //=========================================================================

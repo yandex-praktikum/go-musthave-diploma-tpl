@@ -51,15 +51,15 @@ func main() {
 
 	//run accrual server
 	// cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")
-	// go cmd.Run()
+	//go cmd.Run()
 
-	// //mock accrual server
-	// go func() {
-	// 	time.Sleep(time.Second * 2)
-	// 	if err := c.AccrualMock(); err != nil {
-	// 		logger.Error(err)
-	// 	}
-	// }()
+	//mock accrual server
+	go func() {
+		time.Sleep(time.Second * 2)
+		if err := c.AccrualMock(); err != nil {
+			logger.Error(err)
+		}
+	}()
 
 	// //run worker for updating orders queue
 	go s.UpdateOrdersQueue()
