@@ -141,22 +141,6 @@ func (r *Repository) GetBalance(login string) (*models.Account, error) {
 	return &account, nil
 }
 
-//check order ========================================================
-func (r *Repository) CheckOrder(number string, login string) (string, error) {
-	var status string
-	q := `SELECT status
-	FROM orders
-		WHERE
-	user_id=(SELECT id FROM users WHERE login=$1) and number=$2;`
-
-	res := r.db.QueryRow(context.Background(), q, login, number)
-	if err := res.Scan(&status); err != nil {
-		r.logger.Error(err)
-		return "", ErrInt
-	}
-	return status, nil
-}
-
 //withdraw ========================================================
 func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 	tx, err := r.db.BeginTx(context.Background(), pgx.TxOptions{})
@@ -181,6 +165,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 		 ),$2,$3)
 		 RETURNING id;`
 	res := r.db.QueryRow(context.Background(), q, withdraw.Order, withdraw.Sum, time.Now())
+
 	if err := res.Scan(&id); err != nil {
 		r.logger.Error(err)
 		return ErrInt
