@@ -123,8 +123,8 @@ func (h *Handler) getBalance(c *gin.Context) {
 		return
 	}
 	var balance models.Balance
-	balance.Current = float64(accountState.Current / 100)
-	balance.Withdrawn = float64(accountState.Withdrawn / 100)
+	balance.Current = float64(accountState.Current) / 100
+	balance.Withdrawn = float64(accountState.Withdrawn) / 100
 	c.JSON(http.StatusOK, balance)
 }
 
