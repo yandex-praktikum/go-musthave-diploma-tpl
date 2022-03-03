@@ -118,11 +118,12 @@ func (r *Repository) GetOrders(login string) ([]models.OrderDTO, error) {
 	var list = make([]models.OrderDTO, 0, 10)
 	for rows.Next() {
 		var order models.OrderDTO
-		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &accrual)
+		err := rows.Scan(&order.Number, &order.Status, &accrual, &order.UploadedAt)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, ErrInt
 		}
+		order.UploadedAt.Format(time.RFC3339)
 		order.Accrual = float64(accrual)
 		list = append(list, order)
 	}
