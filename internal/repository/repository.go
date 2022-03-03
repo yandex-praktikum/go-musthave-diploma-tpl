@@ -124,7 +124,7 @@ func (r *Repository) GetOrders(login string) ([]models.OrderDTO, error) {
 			return nil, ErrInt
 		}
 		order.UploadedAt.Format(time.RFC3339)
-		order.Accrual = float64(accrual)
+		order.Accrual = float64(accrual) / 100
 		list = append(list, order)
 	}
 	return list, nil
