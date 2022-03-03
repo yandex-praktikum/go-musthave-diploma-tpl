@@ -58,6 +58,7 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	RETURNING id,uploaded_at,(SELECT login FROM users WHERE id=orders.user_id);`
 
 	row := r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated)
+	r.logger.Info("Hello from DB ", row)
 	if err := row.Scan(&i, &timeFromDB, &loginFromDB); err != nil {
 		r.logger.Error(err)
 		return ErrInt
