@@ -103,7 +103,8 @@ func (r *Repository) UpdateOrder(order *models.Order) error {
 }
 
 //get orders list ========================================================
-func (r *Repository) GetOrders(login string) ([]models.Order, error) {
+func (r *Repository) GetOrders(login string) ([]models.OrderDTO, error) {
+	var accrual int
 	q := `SELECT number, status, accrual, uploaded_at
 	FROM orders
 		WHERE
@@ -114,14 +115,15 @@ func (r *Repository) GetOrders(login string) ([]models.Order, error) {
 		r.logger.Error(err)
 		return nil, ErrInt
 	}
-	var list = make([]models.Order, 0, 10)
+	var list = make([]models.OrderDTO, 0, 10)
 	for rows.Next() {
-		var order models.Order
-		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		var order models.OrderDTO
+		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &accrual)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, ErrInt
 		}
+		order.Accrual = float64(accrual)
 		list = append(list, order)
 	}
 	return list, nil
@@ -144,7 +146,7 @@ func (r *Repository) GetBalance(login string) (*models.Account, error) {
 }
 
 //withdraw ========================================================
-func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
+func (r *Repository) Withdraw(withdraw *models.WithdrawalDTO, login string) error {
 	tx, err := r.db.BeginTx(context.Background(), pgx.TxOptions{})
 	if err != nil {
 		r.logger.Error(err)
@@ -166,7 +168,8 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 			number=$1
 		 ),$2,$3)
 		 RETURNING id;`
-	res := r.db.QueryRow(context.Background(), q, withdraw.Order, withdraw.Sum, time.Now())
+	sum := int(withdraw.Sum * 100)
+	res := r.db.QueryRow(context.Background(), q, withdraw.Order, sum, time.Now())
 
 	if err := res.Scan(&id); err != nil {
 		r.logger.Error(err)
@@ -178,7 +181,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 		WHERE id=
 	(SELECT account_id FROM users
 		WHERE login=$2);`
-	_, err = r.db.Exec(context.Background(), q, withdraw.Sum, login)
+	_, err = r.db.Exec(context.Background(), q, sum, login)
 	if err != nil {
 		r.logger.Error(err)
 		return ErrInt
@@ -188,7 +191,7 @@ func (r *Repository) Withdraw(withdraw *models.Withdraw, login string) error {
 }
 
 //get withdrawls ========================================================
-func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
+func (r *Repository) GetWithdrawls(login string) ([]models.WithdrawalDTO, error) {
 	q := `SELECT number,sum,processed_at
 	FROM withdrawals    
 	JOIN 
@@ -203,10 +206,13 @@ func (r *Repository) GetWithdrawls(login string) ([]models.Withdraw, error) {
 		r.logger.Error(err)
 		return nil, ErrInt
 	}
-	var list = make([]models.Withdraw, 0, 10)
+	var list = make([]models.WithdrawalDTO, 0, 10)
 	for rows.Next() {
-		var withdraw models.Withdraw
-		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.ProcessedAt)
+		var withdraw models.WithdrawalDTO
+		var sum int
+		err := rows.Scan(&withdraw.Order, &sum, &withdraw.ProcessedAt)
+		withdraw.ProcessedAt.Format(time.RFC3339)
+		withdraw.Sum = float64(sum / 100)
 		if err != nil {
 			r.logger.Error(err)
 			return nil, ErrInt

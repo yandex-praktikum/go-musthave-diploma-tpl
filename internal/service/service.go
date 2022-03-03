@@ -19,11 +19,11 @@ type Repository interface {
 	//user methods
 	CreateLoyaltyAccount(uint64) error
 	SaveOrder(order *models.Order, login string) error
-	GetOrders(login string) ([]models.Order, error)
+	GetOrders(login string) ([]models.OrderDTO, error)
 	UpdateOrder(*models.Order) error
 	GetBalance(login string) (*models.Account, error)
-	Withdraw(*models.Withdraw, string) error
-	GetWithdrawls(string) ([]models.Withdraw, error)
+	Withdraw(*models.WithdrawalDTO, string) error
+	GetWithdrawls(string) ([]models.WithdrawalDTO, error)
 	//orders queue
 	AddToQueue(order string)
 	TakeFirst() string
@@ -70,12 +70,13 @@ func (s *Service) CreateLoyaltyAccount(user *models.User) (uint64, error) {
 func (s *Service) UpdateOrdersQueue() {
 	timeOut := time.Millisecond * time.Duration(viper.GetInt("accrual.timeout"))
 	for {
-		time.Sleep(1 * time.Second) //убрать
+		//take first order from queue
 		number := s.Repository.TakeFirst()
 		if number == "" {
 			time.Sleep(timeOut)
 			continue
 		}
+		//sent order to accrual system
 		accrual, err := s.Client.SentOrder(number)
 		if err != nil {
 			if errors.Is(err, errors.Unwrap(err)) {
@@ -89,7 +90,7 @@ func (s *Service) UpdateOrdersQueue() {
 		var order models.Order
 		order.Number = accrual.Order
 		order.Status = accrual.Status
-		order.Accrual = accrual.Accrual
+		order.Accrual = int(accrual.Accrual * 100)
 
 		s.logger.Infof("Worker: %v", order)
 		//if order status is final
@@ -109,7 +110,7 @@ func (s *Service) UpdateOrdersQueue() {
 				var order models.Order
 				order.Number = accrual.Order
 				order.Status = accrual.Status
-				order.Accrual = accrual.Accrual
+				order.Accrual = int(accrual.Accrual * 100)
 				s.Repository.UpdateOrder(&order)
 				s.Repository.AddToCash(accrual.Order, accrual.Status)
 			}

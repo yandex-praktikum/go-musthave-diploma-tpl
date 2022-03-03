@@ -122,12 +122,15 @@ func (h *Handler) getBalance(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, accountState)
+	var balance models.Balance
+	balance.Current = float64(accountState.Current / 100)
+	balance.Withdrawn = float64(accountState.Withdrawn / 100)
+	c.JSON(http.StatusOK, balance)
 }
 
 //=========================================================================
 func (h *Handler) withdraw(c *gin.Context) {
-	var withdraw models.Withdraw
+	var withdraw models.WithdrawalDTO
 	if err := c.ShouldBindJSON(&withdraw); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -143,8 +146,9 @@ func (h *Handler) withdraw(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
+	sum := uint64(withdraw.Sum * 100)
 	// if not enough bonuses
-	if accountState.Current < withdraw.Sum {
+	if accountState.Current < sum {
 		c.JSON(http.StatusPaymentRequired, gin.H{"error": "not enough bonuses"})
 		return
 	}
@@ -162,7 +166,7 @@ func (h *Handler) withdraw(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"withdraw": "done"})
+	c.JSON(http.StatusOK, gin.H{"withdrawal": "done"})
 	//add order to queue
 	h.service.Repository.AddToQueue(string(withdraw.Order))
 }

@@ -76,17 +76,17 @@ func (c *AccrualClient) AccrualMock() error {
 	cashbacks := []cashback{
 		{
 			Mutch:      "IPhone",
-			Reward:     10,
+			Reward:     7,
 			RewardType: "%",
 		},
 		{
 			Mutch:      "Samsung",
-			Reward:     5,
+			Reward:     17,
 			RewardType: "%",
 		},
 		{
 			Mutch:      "Huawei",
-			Reward:     20,
+			Reward:     12,
 			RewardType: "%",
 		},
 	}
@@ -96,7 +96,7 @@ func (c *AccrualClient) AccrualMock() error {
 			Goods: []goods{
 				{
 					Description: "IPhone 11",
-					Price:       75000.0,
+					Price:       75000.74,
 				},
 			},
 		},
@@ -105,7 +105,7 @@ func (c *AccrualClient) AccrualMock() error {
 			Goods: []goods{
 				{
 					Description: "Samsung A51",
-					Price:       33000.0,
+					Price:       33000.47,
 				},
 			},
 		},
@@ -114,7 +114,7 @@ func (c *AccrualClient) AccrualMock() error {
 			Goods: []goods{
 				{
 					Description: "Huawei P30Lite",
-					Price:       17598.5,
+					Price:       17598.53,
 				},
 			},
 		},
