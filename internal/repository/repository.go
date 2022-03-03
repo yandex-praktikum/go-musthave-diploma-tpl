@@ -63,8 +63,7 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 		r.logger.Error(err)
 		return ErrInt
 	}
-	r.logger.Info("loginfromdb: ", loginFromDB) //удалить
-	if timeCreated.Unix() != timeFromDB.Unix() {
+	if timeCreated.Format(time.StampMilli) != timeFromDB.Format(time.StampMilli) {
 		if loginFromDB != login {
 			return ErrOrdUsrConfl
 		}
