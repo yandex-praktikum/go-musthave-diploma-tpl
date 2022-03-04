@@ -83,8 +83,6 @@ func (s *Service) Withdraw(withdraw *models.WithdrawalDTO, login string) error {
 	if err := s.Repository.Withdraw(withdraw, login); err != nil {
 		return ErrInt
 	}
-	//add order to queue
-	s.Repository.AddToQueue(string(withdraw.Order))
 	return nil
 }
 

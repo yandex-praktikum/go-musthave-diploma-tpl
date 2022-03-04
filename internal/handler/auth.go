@@ -38,7 +38,7 @@ func (h *Handler) AuthMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	h.userLogin = login
+	h.UserLogin = login
 	c.Next()
 }
 

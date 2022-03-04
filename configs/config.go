@@ -44,3 +44,10 @@ func InitConfig() (*Config, error) {
 		AccrualAddress: accrualAdress,
 	}, nil
 }
+
+func NewConfigForTest() *Config {
+	return &Config{
+		ServerAddress:  "localhost:8080",
+		AccrualAddress: "http://localhost:8080",
+	}
+}
