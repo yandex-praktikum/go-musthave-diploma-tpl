@@ -74,8 +74,7 @@ func Test_Register(t *testing.T) {
 	//run tests
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var number uint64
-			number = 12451234234
+			var number uint64 = 12451234234
 			//set mock
 			idRow := mock.NewRows([]string{"id"}).AddRow(1)
 
@@ -162,8 +161,7 @@ func Test_Login(t *testing.T) {
 	//run tests
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var number uint64
-			number = 12451234234
+			var number uint64 = 12451234234
 			//set mock
 
 			userRow := mock.NewRows([]string{"number"}).AddRow(number)
