@@ -25,8 +25,6 @@ import (
 
 //====================================================================
 func Test_PostOrder(t *testing.T) {
-	type AnyTime struct{}
-
 	type want struct {
 		statusCode int
 	}
@@ -37,7 +35,7 @@ func Test_PostOrder(t *testing.T) {
 		want  want
 	}{
 		{
-			name:  "badRequest",
+			name:  "notValidNumber",
 			login: "Vasya",
 			order: models.Order{Number: "15232167"},
 			want:  want{statusCode: 422},

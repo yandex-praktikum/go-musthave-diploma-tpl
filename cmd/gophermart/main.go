@@ -76,8 +76,19 @@ func main() {
 
 	//shutdown
 	quit := make(chan os.Signal, 1)
+	emptyQueue := make(chan struct{})
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
+	go func() {
+		for {
+			order := r.TakeFirst()
+			if order == "" {
+				emptyQueue <- struct{}{}
+			}
+		}
+	}()
+	<-emptyQueue
 	<-time.After(time.Second * 5)
+
 	logrus.Info("Server stopped")
 }

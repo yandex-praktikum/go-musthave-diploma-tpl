@@ -116,7 +116,7 @@ func Test_PostWithdraw(t *testing.T) {
 			if err != nil {
 				return
 			}
-			req := httptest.NewRequest(http.MethodPost, "/api/user/balance/withdraw", bytes.NewBufferString(string(body)))
+			req := httptest.NewRequest(http.MethodPost, "/api/user/balance/withdraw", bytes.NewReader(body))
 			w := httptest.NewRecorder()
 
 			//init router

@@ -96,6 +96,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+//signUp
 func (h *Handler) SignUp(c *gin.Context) {
 	var user models.User
 	//parse request
