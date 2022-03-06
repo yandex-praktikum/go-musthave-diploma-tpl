@@ -83,11 +83,11 @@ func Test_GetBalance(t *testing.T) {
 			current = 50000
 			withdraw = 1200
 			//set mock
-			urlRows := mock.NewRows([]string{"current", "withdrawn"}).AddRow(current, withdraw)
+			Rows := mock.NewRows([]string{"current", "withdrawn"}).AddRow(current, withdraw)
 
 			mock.ExpectQuery("SELECT current, withdrawn FROM accounts WHERE").
 				WithArgs("Petya").
-				WillReturnRows(urlRows)
+				WillReturnRows(Rows)
 
 			h.UserLogin = tt.login
 
@@ -107,10 +107,12 @@ func Test_GetBalance(t *testing.T) {
 			b, err := io.ReadAll(result.Body)
 			if err != nil {
 				logger.Error(err)
+				return
 			}
 			var balance models.Balance
 			if err := json.Unmarshal(b, &balance); err != nil {
 				logger.Error(err)
+				return
 			}
 
 			assert.Equal(t, result.StatusCode, tt.want.statusCode)

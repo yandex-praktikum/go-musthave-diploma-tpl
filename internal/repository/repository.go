@@ -46,7 +46,6 @@ func (r *Repository) CreateLoyaltyAccount(number uint64) error {
 
 //save order ========================================================
 func (r *Repository) SaveOrder(order *models.Order, login string) error {
-	var i int
 	var loginFromDB string
 	var timeFromDB time.Time
 	timeCreated := time.Now()
@@ -55,11 +54,11 @@ func (r *Repository) SaveOrder(order *models.Order, login string) error {
 	VALUES ($1,(SELECT id FROM users WHERE login=$2),$3,$4,$5)
 	ON CONFLICT (number) DO UPDATE SET
 	number=EXCLUDED.number
-	RETURNING id,uploaded_at,(SELECT login FROM users WHERE id=orders.user_id);`
+	RETURNING uploaded_at,(SELECT login FROM users WHERE id=orders.user_id);`
 
 	row := r.db.QueryRow(context.Background(), q, order.Number, login, order.Status, order.Accrual, timeCreated)
 
-	if err := row.Scan(&i, &timeFromDB, &loginFromDB); err != nil {
+	if err := row.Scan(&timeFromDB, &loginFromDB); err != nil {
 		r.logger.Error(err)
 		return ErrInt
 	}
