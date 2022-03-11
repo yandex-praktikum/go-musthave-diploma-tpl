@@ -63,7 +63,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 		return
 	}
 
-	accountNumber, err := h.service.CreateLoyaltyAccount(&user)
+	accountNumber, err := h.service.CreateLoyaltyAccount()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

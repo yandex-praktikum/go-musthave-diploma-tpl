@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+const StatusNew = "NEW"
+
 type Order struct {
 	ID         uint   `gorm:"primary_key"`
 	Number     string `gorm:"unique; not null"`

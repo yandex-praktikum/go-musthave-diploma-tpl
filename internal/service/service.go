@@ -13,36 +13,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-const StatusNew = "NEW"
-
-type Repository interface {
-	//auth methods
-	SaveUser(*models.User, uint64) error
-	GetUser(*models.User) (uint64, error)
-	//user methods
-	CreateLoyaltyAccount(uint64) error
-	SaveOrder(order *models.Order, login string) error
-	GetOrders(login string) ([]models.OrderDTO, error)
-	UpdateOrder(*models.Order) error
-	GetBalance(login string) (*models.Account, error)
-	Withdraw(*models.WithdrawalDTO, string) error
-	GetWithdrawls(string) ([]models.WithdrawalDTO, error)
-	//orders queue
-	AddToQueue(order string)
-	TakeFirst() string
-	RemoveFromQueue()
-	//accrual cash
-	AddToCash(key string, value string)
-	GetFromCash(key string) (string, bool)
-	RemoveFromCash(key string)
-	PrintCash() string
-}
 type Client interface {
 	SentOrder(order string) (*models.Accrual, error)
-	AccrualMock() error
 }
+
 type Service struct {
-	Repository
+	Repository *repository.Repository
 	Auth
 	Client
 	logger *logrus.Logger
@@ -56,13 +32,62 @@ func NewService(r *repository.Repository, c *client.AccrualClient, logger *logru
 		logger:     logger,
 	}
 }
+
+//making withdrawal ============================================================
+func (s *Service) SaveOrder(number string, login string) error {
+
+	var order models.Order
+	order.Number = string(number)
+	order.Status = models.StatusNew
+	order.Accrual = 0
+
+	//save order in db
+	if err := s.Repository.Loyalty.SaveOrder(&order, login); err != nil {
+		return err
+	}
+	//add order to queue
+	s.Repository.AddToQueue(string(number))
+
+	return nil
+}
+
+//getting orders ============================================================
+func (s *Service) GetOrders(login string) ([]models.OrderDTO, error) {
+	ordersList, err := s.Repository.Loyalty.GetOrders(login)
+	if err != nil {
+		return nil, err
+	}
+	return ordersList, nil
+}
+
+//getting balance ============================================================
+func (s *Service) GetBalance(login string) (*models.Account, error) {
+	accountState, err := s.Repository.Loyalty.GetBalance(login)
+	if err != nil {
+		return nil, err
+	}
+
+	return accountState, nil
+}
+
+//getting withdrawals ============================================================
+func (s *Service) GetWithdrawals(login string) ([]models.WithdrawalDTO, error) {
+	withdrawls, err := s.Repository.Loyalty.GetWithdrawls(login)
+	if err != nil {
+		return nil, err
+	}
+
+	return withdrawls, nil
+}
+
+//making withdrawal ============================================================
 func (s *Service) Withdraw(withdraw *models.WithdrawalDTO, login string) error {
 	//validate order number
 	if ok := luhn.Validate(string(withdraw.Order)); !ok {
 		return ErrNotValid
 	}
 	//check bonuses
-	accountState, err := s.Repository.GetBalance(login)
+	accountState, err := s.Repository.Loyalty.GetBalance(login)
 	if err != nil {
 		return ErrInt
 	}
@@ -74,27 +99,27 @@ func (s *Service) Withdraw(withdraw *models.WithdrawalDTO, login string) error {
 	//save order in db
 	var order models.Order
 	order.Number = string(withdraw.Order)
-	order.Status = StatusNew
+	order.Status = models.StatusNew
 	order.Accrual = 0
-	if err := s.Repository.SaveOrder(&order, login); err != nil {
+	if err := s.Repository.Loyalty.SaveOrder(&order, login); err != nil {
 		return ErrInt
 	}
 	//save withdraw in db
-	if err := s.Repository.Withdraw(withdraw, login); err != nil {
+	if err := s.Repository.Loyalty.Withdraw(withdraw, login); err != nil {
 		return ErrInt
 	}
 	return nil
 }
 
-// creating account for user
-func (s *Service) CreateLoyaltyAccount(user *models.User) (uint64, error) {
+// creating account for user ============================================================
+func (s *Service) CreateLoyaltyAccount() (uint64, error) {
 	//create account number
 	number, err := numbergenerator.GenerateNumber(15)
 	if err != nil {
 		return 0, err
 	}
 	//save accoun in db
-	if err := s.Repository.CreateLoyaltyAccount(number); err != nil {
+	if err := s.Repository.Loyalty.CreateLoyaltyAccount(number); err != nil {
 		return 0, err
 	}
 	return number, nil
@@ -105,7 +130,7 @@ func (s *Service) UpdateOrdersQueue() {
 	timeOut := time.Millisecond * time.Duration(viper.GetInt("accrual.timeout"))
 	for {
 		//take first order from queue
-		number := s.Repository.TakeFirst()
+		number := s.Repository.Queue.TakeFirst()
 		if number == "" {
 			time.Sleep(timeOut)
 			continue
@@ -114,7 +139,7 @@ func (s *Service) UpdateOrdersQueue() {
 		accrual, err := s.Client.SentOrder(number)
 		if err != nil {
 			if errors.Is(err, errors.Unwrap(err)) {
-				s.Repository.RemoveFromQueue()
+				s.Repository.Queue.RemoveFromQueue()
 				continue
 			}
 			time.Sleep(timeOut)
@@ -130,23 +155,23 @@ func (s *Service) UpdateOrdersQueue() {
 		//if order status is final
 		if accrual.Status == client.StatusInvalid || accrual.Status == client.StatusProcessed {
 
-			if err := s.Repository.UpdateOrder(&order); err != nil {
+			if err := s.Repository.Loyalty.UpdateOrder(&order); err != nil {
 				time.Sleep(timeOut)
 				continue
 			}
-			s.Repository.RemoveFromCash(accrual.Order)
-			s.Repository.RemoveFromQueue()
+			s.Repository.Cache.RemoveFromCache(accrual.Order)
+			s.Repository.Queue.RemoveFromQueue()
 			//if order status is not final
 		} else {
-			status, _ := s.Repository.GetFromCash(accrual.Order)
+			status, _ := s.Repository.Cache.GetFromCache(accrual.Order)
 
 			if accrual.Status != status {
 				var order models.Order
 				order.Number = accrual.Order
 				order.Status = accrual.Status
 				order.Accrual = int(accrual.Accrual * 100)
-				s.Repository.UpdateOrder(&order)
-				s.Repository.AddToCash(accrual.Order, accrual.Status)
+				s.Repository.Loyalty.UpdateOrder(&order)
+				s.Repository.Cache.AddToCache(accrual.Order, accrual.Status)
 			}
 		}
 	}

@@ -15,8 +15,8 @@ import (
 )
 
 type Auth struct {
-	Repository
-	logger *logrus.Logger
+	Repository *repository.Repository
+	logger     *logrus.Logger
 }
 
 func NewAuth(repos *repository.Repository, logger *logrus.Logger) *Auth {

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -49,25 +50,13 @@ func main() {
 	s := service.NewService(r, c, logger)
 	h := handler.NewHandler(s, logger)
 
-	//run accrual server
-	// cmd := exec.Command("./cmd/accrual/accrual_linux_amd64")
-	//go cmd.Run()
-
-	//mock accrual server
-	// go func() {
-	// 	time.Sleep(time.Second * 2)
-	// 	if err := c.AccrualMock(); err != nil {
-	// 		logger.Error(err)
-	// 	}
-	// }()
-
 	//run worker for updating orders queue
 	go s.UpdateOrdersQueue()
 
 	//init server
 	server := &http.Server{
 		Addr:    config.ServerAddress,
-		Handler: h.Init(),
+		Handler: InitRoutes(h),
 	}
 	//run server
 	go server.ListenAndServe()
@@ -88,7 +77,39 @@ func main() {
 		}
 	}()
 	<-emptyQueue
-	<-time.After(time.Second * 5)
-
 	logrus.Info("Server stopped")
+}
+
+func InitRoutes(h *handler.Handler) *gin.Engine {
+
+	gin.SetMode(gin.ReleaseMode)
+
+	router := gin.New()
+	router.Use(gin.Logger())
+
+	//auth
+	//registration
+	router.POST("/api/user/register", h.SignIn)
+	//login
+	router.POST("/api/user/login", h.SignUp)
+	//update token
+	router.POST("/api/user/updatetoken", h.TokenRefreshing)
+
+	user := router.Group("/api/user", h.AuthMiddleware)
+
+	//orders from user
+	user.POST("/orders", h.SaveOrder)
+	//withdrawal request
+	user.POST("/balance/withdraw", h.Withdraw)
+	//getting a list of orders
+	user.GET("/orders", h.GetOrders)
+	//getting balance
+	user.GET("/balance", h.GetBalance)
+	//getting information of withdrawals
+	user.GET("/balance/withdrawals", h.GetWithdrawals)
+
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusBadRequest, gin.H{"Error": "Not correct URL"})
+	})
+	return router
 }
