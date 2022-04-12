@@ -4,6 +4,7 @@ import (
 	"github.com/EestiChameleon/GOphermart/internal/app/cfg"
 	h "github.com/EestiChameleon/GOphermart/internal/app/router/handlers"
 	"github.com/EestiChameleon/GOphermart/internal/app/router/mw"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"

@@ -4,6 +4,7 @@ import (
 	"errors"
 	db "github.com/EestiChameleon/GOphermart/internal/app/storage"
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 	"github.com/shopspring/decimal"
 	"time"
 )
