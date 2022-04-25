@@ -22,3 +22,12 @@ func (repo *AuthRepository) Exists(login string) (bool, error) {
 		return exists, nil
 	}
 }
+
+func (repo *AuthRepository) Create(login, password string) (int, error) {
+	db := repo.Storage.DB
+
+	var id int
+	err := db.QueryRow(context.Background(), "INSERT INTO USERS (LOGIN, PASSWORD) VALUES ($1, $2) RETURNING ID;", login, password).Scan(&id)
+
+	return id, err
+}

@@ -27,7 +27,7 @@ func (handler *Handler) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	err := handler.AuthUseCase.Register(request.Login, request.Password)
+	token, err := handler.AuthUseCase.Register(request.Login, request.Password)
 
 	if err != nil {
 		var userExistsError *custom_errors.AlreadyExistsUserError
@@ -40,5 +40,5 @@ func (handler *Handler) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusAccepted, "hello")
+	ctx.String(http.StatusAccepted, token)
 }
