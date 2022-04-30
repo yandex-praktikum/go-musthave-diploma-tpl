@@ -40,5 +40,7 @@ func (handler *Handler) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusAccepted, token)
+	ctx.SetCookie("token", token, 3600, "/", "localhost", false, true)
+
+	ctx.Status(http.StatusOK)
 }
