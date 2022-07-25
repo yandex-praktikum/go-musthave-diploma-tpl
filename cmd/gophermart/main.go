@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"github.com/botaevg/gophermart/internal/app"
+)
 
 func main() {
-	fmt.Println("Diplom")
+	app.StartApp()
 }
