@@ -39,7 +39,11 @@ func (h *handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	http.SetCookie(w, &http.Cookie{
+		Name:  "Bearer",
+		Value: token,
+	})
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("JWT " + token))
 }
 

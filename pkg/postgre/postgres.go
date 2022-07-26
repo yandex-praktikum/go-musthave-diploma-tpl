@@ -22,5 +22,15 @@ func NewClient(dsn string) (pool *pgxpool.Pool, err error) {
 		log.Print("ТАБЛИЦА НЕ СОЗДАНА")
 		log.Print(err)
 	}
+
+	q = `CREATE UNIQUE INDEX username_unique
+  ON users
+ USING btree(username);
+`
+	_, err = pool.Exec(context.Background(), q)
+	if err != nil {
+		log.Print("UNIQUE НЕ СОЗДАНА")
+		log.Print(err)
+	}
 	return pool, nil
 }

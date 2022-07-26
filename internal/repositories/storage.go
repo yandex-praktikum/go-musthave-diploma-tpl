@@ -32,6 +32,7 @@ func (d DBpgx) CreateUser(user models.User) (uint, error) {
 	}
 	var id uint
 	if rows.Next() {
+		log.Print("rows next")
 		err := rows.Scan(&id)
 		if err != nil {
 			log.Print(err)
@@ -39,6 +40,7 @@ func (d DBpgx) CreateUser(user models.User) (uint, error) {
 		}
 
 	}
+	log.Print(id)
 	return id, nil
 }
 

@@ -69,6 +69,7 @@ func (a Auth) AuthUser(userAPI models.UserAPI, salt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	
 	User.ID = ID
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserID: User.ID,
