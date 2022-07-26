@@ -28,3 +28,10 @@ type AccountBalance struct {
 	SumAccrual  int
 	Balance     int
 }
+
+type OrderAPI struct {
+	Number     uint   `json:"number"`
+	Status     string `json:"status"`
+	Accrual    uint   `json:"accrual"`
+	UploadedAt string `json:"uploaded_at"`
+}
