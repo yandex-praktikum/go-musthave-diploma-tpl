@@ -102,8 +102,8 @@ func (d DBpgx) CheckOrder(number string) (uint, error) {
 }
 
 func (d DBpgx) AddOrder(number string, userID uint) error {
-	q := `INSERT INTO orders (ordernumber, date, userid, status) VALUES ($1, $2, $3, $4);`
-	_, err := d.Conn.Exec(context.Background(), q, number, time.Now().Format(time.RFC3339), userID, "NEW")
+	q := `INSERT INTO orders (ordernumber, date, userid, status, accrual) VALUES ($1, $2, $3, $4, $5);`
+	_, err := d.Conn.Exec(context.Background(), q, number, time.Now().Format(time.RFC3339), userID, "NEW", 0)
 	if err != nil {
 		return err
 	}
@@ -151,6 +151,7 @@ func (d DBpgx) BalanceUser(userid uint) (float32, error) {
 			return 0, err
 		}
 	}
+	log.Print("storage BalanceUser")
 	log.Print(balance)
 	return balance, err
 }
@@ -173,6 +174,7 @@ func (d DBpgx) SumWithdrawn(userid uint) (float32, error) {
 			return 0, err
 		}
 	}
+	log.Print("storage SumWithdrawn")
 	log.Print(withdrawn)
 
 	return withdrawn, err
@@ -220,8 +222,10 @@ func (d DBpgx) UpdateOrders(order models.OrderES) error {
 	update orders 
 	set status = $1, accrual = $2
 	where ordernumber = $3;`
-
+	log.Print("storage UpdateOrders")
+	log.Print(order.Accrual)
 	_, err := d.Conn.Exec(context.Background(), q, order.Status, order.Accrual, order.Order)
+
 	if err != nil {
 		log.Print("Запись не обновлена")
 		log.Print(err)
