@@ -56,7 +56,7 @@ func StartApp() {
 
 	r.Get("/api/user/balance", h.BalanceUser)
 	r.Post("/api/user/balance/withdraw", h.WithdrawRequest)
-	r.Get("/api/user/balance/withdrawals", h.ListWithdraw)
+	r.Get("/api/user/withdrawals", h.ListWithdraw)
 
 	log.Fatal(http.ListenAndServe(cfg.RunAddress, r))
 }

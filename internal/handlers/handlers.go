@@ -163,6 +163,7 @@ func (h *handler) BalanceUser(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	log.Print(string(b))
 	w.Write(b)
 }
 
@@ -218,6 +219,7 @@ func (h *handler) ListWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	log.Print(string(b))
 	w.Write(b)
 }
 
