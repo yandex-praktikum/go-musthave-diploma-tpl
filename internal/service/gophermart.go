@@ -85,11 +85,12 @@ func (g Gophermart) ListWithdraw(userid uint) ([]models.Withdraw, error) {
 }
 
 func (g Gophermart) UpdateOrders(order models.OrderES) error {
-
+	log.Print("g UpdateOrders")
 	return g.storage.UpdateOrders(order)
 }
 
 func (g Gophermart) AccrualRequest(order models.OrderES) error {
+	log.Print("g AccrualRequest")
 	userID, err := g.storage.OwnerOrders(order.Order)
 	if err != nil {
 		log.Print(err)
