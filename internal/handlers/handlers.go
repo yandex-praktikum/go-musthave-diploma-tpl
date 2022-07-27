@@ -8,6 +8,7 @@ import (
 	"github.com/botaevg/gophermart/internal/models"
 	"github.com/botaevg/gophermart/internal/service"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -143,6 +144,7 @@ func (h *handler) GetListOrders(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	log.Print(b)
 	w.Write(b)
 
 }
@@ -198,6 +200,7 @@ func (h *handler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) ListWithdraw(w http.ResponseWriter, r *http.Request) {
+	log.Print("withdrawals")
 	userID := r.Context().Value(apperror.UserID("username")).(uint)
 
 	list, err := h.gophermart.ListWithdraw(userID)
