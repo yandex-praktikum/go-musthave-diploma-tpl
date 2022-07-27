@@ -49,7 +49,8 @@ func (a AuthMiddleware) AuthCookie(next http.Handler) http.Handler {
 			http.Error(w, errors.New("token disabled").Error(), http.StatusUnauthorized)
 			return
 		}
-		log.Print("userID " + string(tokenClaims.UserID))
+		log.Print("userID middle")
+		log.Print(tokenClaims.UserID)
 		ctx := context.WithValue(r.Context(), UserID("username"), tokenClaims.UserID)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
