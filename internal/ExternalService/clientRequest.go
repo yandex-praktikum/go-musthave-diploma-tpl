@@ -30,7 +30,7 @@ func NewES(storage repositories.Storage, accrualSystemAddress string) ExternalSe
 func (e ExternalService) AccrualPoints(orderID string) {
 	client := http.Client{}
 
-	URL := fmt.Sprintf("http://localhost%s/api/orders/%s", e.accrualSystemAddress, orderID)
+	URL := fmt.Sprintf("%s/api/orders/%s", e.accrualSystemAddress, orderID)
 	log.Print(URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {

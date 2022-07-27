@@ -77,7 +77,7 @@ func (g Gophermart) WithdrawRequest(withdrawnreq models.Withdraw, userID uint) (
 		log.Print(err)
 		return false, err
 	}
-	return true, err
+	return true, nil
 }
 
 func (g Gophermart) ListWithdraw(userid uint) ([]models.Withdraw, error) {

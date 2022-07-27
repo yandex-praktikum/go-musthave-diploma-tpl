@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/botaevg/gophermart/internal/apperror"
 	"github.com/botaevg/gophermart/internal/config"
 	"github.com/botaevg/gophermart/internal/models"
@@ -184,7 +185,7 @@ func (h *handler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !accept {
-		http.Error(w, err.Error(), http.StatusPaymentRequired)
+		http.Error(w, errors.New("low balance").Error(), http.StatusPaymentRequired)
 		return
 	}
 
