@@ -94,11 +94,6 @@ func (h *handler) LoadOrder(w http.ResponseWriter, r *http.Request) {
 
 	number := uint(n)*/
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	OrderUserID, err := h.gophermart.CheckOrder(string(b))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -181,8 +176,8 @@ func (h *handler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	accept, err := h.gophermart.WithdrawRequest(withdrawnreq, userID)
+	var accept bool
+	accept, err = h.gophermart.WithdrawRequest(withdrawnreq, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

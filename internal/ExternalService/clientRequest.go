@@ -1,4 +1,4 @@
-package ExternalService
+package externalservice
 
 import (
 	"encoding/json"
@@ -31,6 +31,7 @@ func (e ExternalService) AccrualPoints(orderID string) {
 	client := http.Client{}
 
 	URL := fmt.Sprintf("http://localhost%s/api/orders/%s", e.accrualSystemAddress, orderID)
+	log.Print(URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		log.Print(err)
@@ -45,6 +46,10 @@ func (e ExternalService) AccrualPoints(orderID string) {
 	log.Print(resp.Status)
 	if resp.Status == "200 OK" {
 		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Print(err)
+			return
+		}
 		defer resp.Body.Close()
 
 		var Order OrderES
