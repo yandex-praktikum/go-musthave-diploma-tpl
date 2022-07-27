@@ -32,6 +32,7 @@ func (g Gophermart) GetListOrders(userid uint) ([]models.OrderAPI, error) {
 		x.Number = v.OrderNumber
 		x.Status = v.Status
 		//x.Accrual = v.Accrual
+		x.UploadedAt = v.Date
 		ListOrdersAPI = append(ListOrdersAPI, x)
 	}
 	return ListOrdersAPI, err

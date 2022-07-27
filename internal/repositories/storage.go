@@ -5,6 +5,7 @@ import (
 	"github.com/botaevg/gophermart/internal/models"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
+	"time"
 )
 
 type DBpgx struct {
@@ -27,12 +28,13 @@ func (d DBpgx) CreateUser(user models.User) (uint, error) {
 	q := `INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id;`
 
 	rows, err := d.Conn.Query(context.Background(), q, user.Username, user.Password)
-	defer rows.Close()
 	if err != nil {
 		log.Print(err)
 		log.Print("user not created")
 		return 0, err
 	}
+	defer rows.Close()
+
 	var id uint
 	if rows.Next() {
 		log.Print("rows next")
@@ -50,12 +52,12 @@ func (d DBpgx) CreateUser(user models.User) (uint, error) {
 func (d DBpgx) GetUser(user models.User) (uint, error) {
 	q := `SELECT id FROM users WHERE username = $1 and password = $2;`
 	row, err := d.Conn.Query(context.Background(), q, user.Username, user.Password)
-	defer row.Close()
-
 	if err != nil {
 		log.Print(err)
 		return 0, err
 	}
+	defer row.Close()
+
 	var id uint
 	if row.Next() {
 		err := row.Scan(&id)
@@ -73,11 +75,12 @@ func (d DBpgx) GetUser(user models.User) (uint, error) {
 func (d DBpgx) CheckOrder(number uint) (uint, error) {
 	q := `select userid from orders where ordernumber = $1`
 	row, err := d.Conn.Query(context.Background(), q, number)
-	defer row.Close()
 	if err != nil {
 		log.Print(err)
 		return 0, err
 	}
+	defer row.Close()
+
 	var id uint
 	if row.Next() {
 		err := row.Scan(&id)
@@ -93,8 +96,8 @@ func (d DBpgx) CheckOrder(number uint) (uint, error) {
 }
 
 func (d DBpgx) AddOrder(number uint, userID uint) error {
-	q := `INSERT INTO orders (ordernumber, userid, status) VALUES ($1, $2, $3);`
-	_, err := d.Conn.Exec(context.Background(), q, number, userID, "NEW")
+	q := `INSERT INTO orders (ordernumber, date, userid, status) VALUES ($1, $2, $3, $4);`
+	_, err := d.Conn.Exec(context.Background(), q, number, time.Now().Format(time.RFC3339), userID, "NEW")
 	if err != nil {
 		return err
 	}
@@ -102,7 +105,7 @@ func (d DBpgx) AddOrder(number uint, userID uint) error {
 }
 
 func (d DBpgx) GetListOrders(userid uint) ([]models.Order, error) {
-	q := `select ordernumber, status from orders where userid=$1;`
+	q := `select ordernumber, status, date from orders where userid=$1;`
 	rows, err := d.Conn.Query(context.Background(), q, userid)
 	if err != nil {
 		return []models.Order{}, err
@@ -112,7 +115,7 @@ func (d DBpgx) GetListOrders(userid uint) ([]models.Order, error) {
 	var ListOrders []models.Order
 	for rows.Next() {
 		x := models.Order{}
-		err := rows.Scan(&x.OrderNumber, &x.Status)
+		err := rows.Scan(&x.OrderNumber, &x.Status, &x.Date)
 		if err != nil {
 			return []models.Order{}, err
 		}

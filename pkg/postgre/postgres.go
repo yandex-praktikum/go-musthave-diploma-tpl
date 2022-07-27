@@ -36,6 +36,7 @@ func NewClient(dsn string) (pool *pgxpool.Pool, err error) {
 	q = `CREATE TABLE orders(
 	id serial primary key,
     ordernumber integer,
+	date VARCHAR(50),
 	userid integer references users(id),
 	status VARCHAR(30),
 	accrual integer

@@ -12,16 +12,18 @@ import (
 )
 
 type handler struct {
-	config     config.Config
-	auth       service.Auth
-	gophermart service.Gophermart
+	config         config.Config
+	auth           service.Auth
+	gophermart     service.Gophermart
+	asyncExecution chan uint
 }
 
-func NewHandler(config config.Config, auth service.Auth, gophermart service.Gophermart) *handler {
+func NewHandler(config config.Config, auth service.Auth, gophermart service.Gophermart, asyncExecution chan uint) *handler {
 	return &handler{
-		config:     config,
-		auth:       auth,
-		gophermart: gophermart,
+		config:         config,
+		auth:           auth,
+		gophermart:     gophermart,
+		asyncExecution: asyncExecution,
 	}
 }
 
@@ -111,6 +113,9 @@ func (h *handler) LoadOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	h.asyncExecution <- number
+
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("accept new order"))
 }
@@ -130,6 +135,8 @@ func (h *handler) GetListOrders(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+
+	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 

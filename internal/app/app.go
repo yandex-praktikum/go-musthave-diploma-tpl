@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/botaevg/gophermart/internal/ExternalService"
 	"github.com/botaevg/gophermart/internal/apperror"
 	"github.com/botaevg/gophermart/internal/config"
 	"github.com/botaevg/gophermart/internal/handlers"
@@ -32,7 +33,14 @@ func StartApp() {
 	gophermart := service.NewGophermart(storage)
 	r := chi.NewRouter()
 
-	h := handlers.NewHandler(cfg, auth, gophermart)
+	asyncChannel := make(chan uint)
+	externalService := ExternalService.NewES(storage, cfg.AccrualSystemAddress)
+	h := handlers.NewHandler(cfg, auth, gophermart, asyncChannel)
+	go func() {
+		for job := range asyncChannel {
+			externalService.AccrualPoints(job)
+		}
+	}()
 
 	authcookie := apperror.NewAuthMiddleware(cfg.SecretKey)
 	r.Use(authcookie.AuthCookie)
