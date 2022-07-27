@@ -49,7 +49,7 @@ func (a Auth) RegisterUser(userAPI models.UserAPI, salt string) (string, error) 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserID: User.ID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: jwt.At(time.Now().Add(60 * time.Minute)),
+			ExpiresAt: jwt.At(time.Now().Add(600 * time.Minute)),
 			IssuedAt:  jwt.At(time.Now()),
 		},
 	})
@@ -69,12 +69,12 @@ func (a Auth) AuthUser(userAPI models.UserAPI, salt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	User.ID = ID
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserID: User.ID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: jwt.At(time.Now().Add(60 * time.Minute)),
+			ExpiresAt: jwt.At(time.Now().Add(600 * time.Minute)),
 			IssuedAt:  jwt.At(time.Now()),
 		},
 	})

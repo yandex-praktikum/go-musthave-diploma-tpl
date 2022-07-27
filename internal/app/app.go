@@ -33,7 +33,7 @@ func StartApp() {
 	gophermart := service.NewGophermart(storage)
 	r := chi.NewRouter()
 
-	asyncChannel := make(chan uint)
+	asyncChannel := make(chan string)
 	externalService := ExternalService.NewES(storage, cfg.AccrualSystemAddress)
 	h := handlers.NewHandler(cfg, auth, gophermart, asyncChannel)
 	go func() {
@@ -53,9 +53,9 @@ func StartApp() {
 	r.Post("/api/user/orders", h.LoadOrder)
 	r.Get("/api/user/orders", h.GetListOrders)
 
-	//r.Get("/api/user/balance", h.Login)
-	//r.Post("/api/user/balance/withdraw", h.Login)
-	//r.Get("/api/user/balance/withdrawals", h.Login)
+	r.Get("/api/user/balance", h.BalanceUser)
+	r.Post("/api/user/balance/withdraw", h.WithdrawRequest)
+	r.Get("/api/user/balance/withdrawals", h.ListWithdraw)
 
 	log.Fatal(http.ListenAndServe(cfg.RunAddress, r))
 }

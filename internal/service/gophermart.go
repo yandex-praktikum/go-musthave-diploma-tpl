@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/botaevg/gophermart/internal/models"
 	"github.com/botaevg/gophermart/internal/repositories"
+	"log"
 )
 
 type Gophermart struct {
@@ -13,11 +14,11 @@ func NewGophermart(storage repositories.Storage) Gophermart {
 	return Gophermart{storage: storage}
 }
 
-func (g Gophermart) CheckOrder(number uint) (uint, error) {
+func (g Gophermart) CheckOrder(number string) (uint, error) {
 	return g.storage.CheckOrder(number)
 }
 
-func (g Gophermart) AddOrder(number uint, userID uint) error {
+func (g Gophermart) AddOrder(number string, userID uint) error {
 	return g.storage.AddOrder(number, userID)
 }
 
@@ -36,4 +37,49 @@ func (g Gophermart) GetListOrders(userid uint) ([]models.OrderAPI, error) {
 		ListOrdersAPI = append(ListOrdersAPI, x)
 	}
 	return ListOrdersAPI, err
+}
+
+func (g Gophermart) BalanceUser(userID uint) (models.AccountBalanceAPI, error) {
+	current, err := g.storage.BalanceUser(userID)
+	if err != nil {
+		return models.AccountBalanceAPI{}, err
+	}
+	withdrawn, err := g.storage.SumWithdrawn(userID)
+	if err != nil {
+		return models.AccountBalanceAPI{}, err
+	}
+	return models.AccountBalanceAPI{
+		Current:   current,
+		Withdrawn: withdrawn,
+	}, err
+}
+
+func (g Gophermart) WithdrawRequest(withdrawnreq models.Withdraw, userID uint) (bool, error) {
+
+	balance, err := g.storage.BalanceUser(userID)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	if withdrawnreq.Sum > balance {
+		log.Print("sum > balance")
+		return false, err
+	}
+
+	err = g.storage.ChangeBalance(models.AccountBalance{
+		UserID:      userID,
+		OrderNumber: withdrawnreq.Order,
+		TypeMove:    "withdraw",
+		SumAccrual:  withdrawnreq.Sum,
+		Balance:     balance - withdrawnreq.Sum,
+	})
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	return true, err
+}
+
+func (g Gophermart) ListWithdraw(userid uint) ([]models.Withdraw, error) {
+	return g.storage.ListWithdraw(userid)
 }

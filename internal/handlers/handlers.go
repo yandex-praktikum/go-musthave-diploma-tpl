@@ -8,17 +8,16 @@ import (
 	"github.com/botaevg/gophermart/internal/service"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 type handler struct {
 	config         config.Config
 	auth           service.Auth
 	gophermart     service.Gophermart
-	asyncExecution chan uint
+	asyncExecution chan string
 }
 
-func NewHandler(config config.Config, auth service.Auth, gophermart service.Gophermart, asyncExecution chan uint) *handler {
+func NewHandler(config config.Config, auth service.Auth, gophermart service.Gophermart, asyncExecution chan string) *handler {
 	return &handler{
 		config:         config,
 		auth:           auth,
@@ -87,15 +86,20 @@ func (h *handler) LoadOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	n, err := strconv.Atoi(string(b))
-	number := uint(n)
+	/*_, err := strconv.Atoi(string(b))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	number := uint(n)*/
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	OrderUserID, err := h.gophermart.CheckOrder(number)
+	OrderUserID, err := h.gophermart.CheckOrder(string(b))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,13 +112,13 @@ func (h *handler) LoadOrder(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("already load another user"))
 	}
 
-	err = h.gophermart.AddOrder(number, userID)
+	err = h.gophermart.AddOrder(string(b), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.asyncExecution <- number
+	h.asyncExecution <- string(b)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("accept new order"))
@@ -126,6 +130,7 @@ func (h *handler) GetListOrders(w http.ResponseWriter, r *http.Request) {
 	ListOrdersAPI, err := h.gophermart.GetListOrders(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	if len(ListOrdersAPI) == 0 {
 		w.WriteHeader(http.StatusNoContent)
@@ -134,10 +139,82 @@ func (h *handler) GetListOrders(w http.ResponseWriter, r *http.Request) {
 	b, err := json.Marshal(&ListOrdersAPI)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 
+}
+
+func (h *handler) BalanceUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(apperror.UserID("username")).(uint)
+
+	balance, err := h.gophermart.BalanceUser(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	b, err := json.Marshal(&balance)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
+}
+
+func (h *handler) WithdrawRequest(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(apperror.UserID("username")).(uint)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var withdrawnreq models.Withdraw
+
+	if err := json.Unmarshal(b, &withdrawnreq); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accept, err := h.gophermart.WithdrawRequest(withdrawnreq, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !accept {
+		http.Error(w, err.Error(), http.StatusPaymentRequired)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("withdrawn accept"))
+
+}
+
+func (h *handler) ListWithdraw(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(apperror.UserID("username")).(uint)
+
+	list, err := h.gophermart.ListWithdraw(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if len(list) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("no withdraw"))
+	}
+	b, err := json.Marshal(&list)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
 }

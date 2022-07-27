@@ -14,24 +14,35 @@ type UserAPI struct {
 type Order struct {
 	ID          uint
 	Date        string
-	OrderNumber uint
+	OrderNumber string
 	UserID      uint
 	Status      string
-	Accrual     uint
+	Accrual     float32
 }
 
 type AccountBalance struct {
 	Date        string
 	UserID      uint
-	OrderNumber uint
+	OrderNumber string
 	TypeMove    string
-	SumAccrual  int
-	Balance     int
+	SumAccrual  float32
+	Balance     float32
+}
+
+type AccountBalanceAPI struct {
+	Current   float32 `json:"current"`
+	Withdrawn float32 `json:"withdrawn"`
 }
 
 type OrderAPI struct {
-	Number     uint   `json:"number"`
-	Status     string `json:"status"`
-	Accrual    uint   `json:"accrual"`
-	UploadedAt string `json:"uploaded_at"`
+	Number     string  `json:"number"`
+	Status     string  `json:"status"`
+	Accrual    float32 `json:"accrual"`
+	UploadedAt string  `json:"uploaded_at"`
+}
+
+type Withdraw struct {
+	Order       string  `json:"order"`
+	Sum         float32 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
 }

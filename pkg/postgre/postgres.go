@@ -35,11 +35,11 @@ func NewClient(dsn string) (pool *pgxpool.Pool, err error) {
 
 	q = `CREATE TABLE orders(
 	id serial primary key,
-    ordernumber integer,
+    ordernumber VARCHAR(30),
 	date VARCHAR(50),
 	userid integer references users(id),
 	status VARCHAR(30),
-	accrual integer
+	accrual double precision
 	);`
 	_, err = pool.Exec(context.Background(), q)
 	if err != nil {
@@ -57,11 +57,13 @@ func NewClient(dsn string) (pool *pgxpool.Pool, err error) {
 	}
 
 	q = `CREATE TABLE accountbalance(
+	id serial primary key,
 	userid integer references users(id),
-	ordernumber integer,
+	ordernumber VARCHAR(30),
 	typemove VARCHAR(30),
-	sumaccrual integer,
-	balance integer
+	sumaccrual double precision,
+	date VARCHAR(50),
+	balance double precision
 	);`
 	_, err = pool.Exec(context.Background(), q)
 	if err != nil {
