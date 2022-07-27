@@ -22,6 +22,8 @@ type Storage interface {
 	SumWithdrawn(userid uint) (float32, error)
 	ChangeBalance(change models.AccountBalance) error
 	ListWithdraw(userid uint) ([]models.Withdraw, error)
+	UpdateOrders(order models.OrderES) error
+	OwnerOrders(numberOrder string) (uint, error)
 }
 
 func NewDB(pool *pgxpool.Pool) *DBpgx {
@@ -211,4 +213,40 @@ func (d DBpgx) ListWithdraw(userid uint) ([]models.Withdraw, error) {
 		return []models.Withdraw{}, err
 	}
 	return ListWithdraw, err
+}
+
+func (d DBpgx) UpdateOrders(order models.OrderES) error {
+	q := `
+	update orders 
+	set status = $1, accrual = $2
+	where ordernumber = $3;`
+
+	_, err := d.Conn.Exec(context.Background(), q, order.Status, order.Accrual, order.Order)
+	if err != nil {
+		log.Print("Запись не обновлена")
+		log.Print(err)
+		return err
+	}
+	return nil
+}
+
+func (d DBpgx) OwnerOrders(numberOrder string) (uint, error) {
+	q := `select userid from orders where ordernumber = $1`
+	rows, err := d.Conn.Query(context.Background(), q, numberOrder)
+	if err != nil {
+		log.Print(err)
+		return 0, err
+	}
+	defer rows.Close()
+
+	var userID uint
+	if rows.Next() {
+		err := rows.Scan(&userID)
+		if err != nil {
+			log.Print(err)
+			return 0, err
+		}
+
+	}
+	return userID, err
 }

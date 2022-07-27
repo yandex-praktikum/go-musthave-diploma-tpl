@@ -34,7 +34,7 @@ func StartApp() {
 	r := chi.NewRouter()
 
 	asyncChannel := make(chan string)
-	externalService := externalservice.NewES(storage, cfg.AccrualSystemAddress)
+	externalService := externalservice.NewES(cfg.AccrualSystemAddress, gophermart, asyncChannel)
 	h := handlers.NewHandler(cfg, auth, gophermart, asyncChannel)
 	go func() {
 		for job := range asyncChannel {

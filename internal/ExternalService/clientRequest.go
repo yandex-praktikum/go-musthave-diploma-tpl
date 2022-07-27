@@ -3,27 +3,24 @@ package externalservice
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/botaevg/gophermart/internal/repositories"
+	"github.com/botaevg/gophermart/internal/models"
+	"github.com/botaevg/gophermart/internal/service"
 	"io"
 	"log"
 	"net/http"
 )
 
 type ExternalService struct {
-	storage              repositories.Storage
+	gophermart           service.Gophermart
+	asyncExecution       chan string
 	accrualSystemAddress string
 }
 
-type OrderES struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accrual uint   `json:"accrual"`
-}
-
-func NewES(storage repositories.Storage, accrualSystemAddress string) ExternalService {
+func NewES(accrualSystemAddress string, gophermart service.Gophermart, asyncExecution chan string) ExternalService {
 	return ExternalService{
-		storage:              storage,
 		accrualSystemAddress: accrualSystemAddress,
+		gophermart:           gophermart,
+		asyncExecution:       asyncExecution,
 	}
 }
 
@@ -52,11 +49,25 @@ func (e ExternalService) AccrualPoints(orderID string) {
 		}
 		defer resp.Body.Close()
 
-		var Order OrderES
+		var Order models.OrderES
 		err = json.Unmarshal(respBody, &Order)
 		if err != nil {
 			log.Print(err)
 		}
 		log.Print(Order)
+
+		e.gophermart.UpdateOrders(Order)
+
+		if Order.Status == "PROCESSED" {
+			e.gophermart.AccrualRequest(Order)
+		}
+
+		if Order.Status == "REGISTERED" || Order.Status == "PROCESSING" {
+			e.asyncExecution <- orderID
+			return
+		}
+
+	} else {
+		e.asyncExecution <- orderID
 	}
 }

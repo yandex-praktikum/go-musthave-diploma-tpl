@@ -9,6 +9,7 @@ import (
 	"github.com/botaevg/gophermart/internal/service"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 type handler struct {
@@ -87,13 +88,15 @@ func (h *handler) LoadOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	/*_, err := strconv.Atoi(string(b))
+	n, err := strconv.Atoi(string(b))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	number := uint(n)*/
+	if !ValidLuna(n) {
+		http.Error(w, errors.New("no valid orders").Error(), http.StatusUnprocessableEntity)
+		return
+	}
 
 	OrderUserID, err := h.gophermart.CheckOrder(string(b))
 	if err != nil {
@@ -213,4 +216,28 @@ func (h *handler) ListWithdraw(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
+}
+
+// Valid check number is valid or not based on Luhn algorithm
+func ValidLuna(number int) bool {
+	return (number%10+checksum(number/10))%10 == 0
+}
+
+func checksum(number int) int {
+	var luhn int
+
+	for i := 0; number > 0; i++ {
+		cur := number % 10
+
+		if i%2 == 0 { // even
+			cur = cur * 2
+			if cur > 9 {
+				cur = cur%10 + cur/10
+			}
+		}
+
+		luhn += cur
+		number = number / 10
+	}
+	return luhn % 10
 }

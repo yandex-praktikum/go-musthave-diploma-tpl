@@ -83,3 +83,31 @@ func (g Gophermart) WithdrawRequest(withdrawnreq models.Withdraw, userID uint) (
 func (g Gophermart) ListWithdraw(userid uint) ([]models.Withdraw, error) {
 	return g.storage.ListWithdraw(userid)
 }
+
+func (g Gophermart) UpdateOrders(order models.OrderES) error {
+
+	return g.storage.UpdateOrders(order)
+}
+
+func (g Gophermart) AccrualRequest(order models.OrderES) error {
+	userID, err := g.storage.OwnerOrders(order.Order)
+
+	balance, err := g.storage.BalanceUser(userID)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	err = g.storage.ChangeBalance(models.AccountBalance{
+		UserID:      userID,
+		OrderNumber: order.Order,
+		TypeMove:    "accrual",
+		SumAccrual:  order.Accrual,
+		Balance:     balance + order.Accrual,
+	})
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	return err
+}
