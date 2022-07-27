@@ -91,7 +91,10 @@ func (g Gophermart) UpdateOrders(order models.OrderES) error {
 
 func (g Gophermart) AccrualRequest(order models.OrderES) error {
 	userID, err := g.storage.OwnerOrders(order.Order)
-
+	if err != nil {
+		log.Print(err)
+		return err
+	}
 	balance, err := g.storage.BalanceUser(userID)
 	if err != nil {
 		log.Print(err)
