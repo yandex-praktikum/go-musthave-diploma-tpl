@@ -15,9 +15,9 @@ type ExternalService struct {
 }
 
 type OrderES struct {
-	order   string `json:"order"`
-	status  string `json:"status"`
-	accrual uint   `json:"accrual"`
+	Order   string `json:"order"`
+	Status  string `json:"status"`
+	Accrual uint   `json:"accrual"`
 }
 
 func NewES(storage repositories.Storage, accrualSystemAddress string) ExternalService {

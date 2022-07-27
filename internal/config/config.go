@@ -15,9 +15,9 @@ type Config struct {
 func GetConfig() (Config, error) {
 	cfg := Config{}
 
-	flag.StringVar(&cfg.RunAddress, "a", ":80", "port start listen")
-	flag.StringVar(&cfg.DataBaseDsn, "d", "postgresql://postgres:sqllife@localhost:5434/gophermart", "database dsn")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", ":8080", "AccrualSystemAddress")
+	flag.StringVar(&cfg.RunAddress, "a", "", "port start listen")
+	flag.StringVar(&cfg.DataBaseDsn, "d", "", "database dsn")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", "", "AccrualSystemAddress")
 	flag.StringVar(&cfg.SecretKey, "s", "", "salt")
 	flag.Parse()
 	//postgresql://postgres:sqllife@localhost:5434/gophermart
