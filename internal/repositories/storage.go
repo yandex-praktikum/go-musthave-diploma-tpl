@@ -111,7 +111,7 @@ func (d DBpgx) AddOrder(number string, userID uint) error {
 }
 
 func (d DBpgx) GetListOrders(userid uint) ([]models.Order, error) {
-	q := `select ordernumber, status, date from orders where userid=$1;`
+	q := `select ordernumber, status, date, accrual from orders where userid=$1;`
 	rows, err := d.Conn.Query(context.Background(), q, userid)
 	if err != nil {
 		return []models.Order{}, err
@@ -121,7 +121,7 @@ func (d DBpgx) GetListOrders(userid uint) ([]models.Order, error) {
 	var ListOrders []models.Order
 	for rows.Next() {
 		x := models.Order{}
-		err := rows.Scan(&x.OrderNumber, &x.Status, &x.Date)
+		err := rows.Scan(&x.OrderNumber, &x.Status, &x.Date, &x.Accrual)
 		if err != nil {
 			return []models.Order{}, err
 		}
