@@ -1,0 +1,29 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+title
+Загрузка номера заказа
+end title
+User -> Handler: POST /api/user/orders
+note right
+12345678903
+end note
+Handler --> User: StatusCode: 400, bad request)
+Handler --> User: StatusCode: 500, internal error)
+
+Handler -> Usecases: checkCookie(cookie)
+Usecases --> Handler: ErrUserOrPasswordBad
+Handler --> User: StatusCode: 401
+
+Usecases -> Usecases: checkOrder(number)
+Usecases -> Handler: ErrWrongOrderFormat
+Handler --> User: StatusCode: 422
+Usecases -> Repository: loadOrder(num)
+Repository -> Repository: checkExistOrderNum(num)
+Repository -> Usecases: ErrOrderAlreadyLoaded
+Usecases --> Handler: ErrOrderAlreadyLoaded
+Handler --> User: StatusCode: 200
+Usecases --> External_Service: putOrder(num)
+Usecases --> User: StatusCode: 202
+
+@enduml

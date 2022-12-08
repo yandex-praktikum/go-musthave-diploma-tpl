@@ -1,0 +1,24 @@
+@startuml
+title
+Авторизация пользователя
+end title
+User -> Handler: POST /api/user/login
+note right
+{
+    "login": "<login>",
+    "password": "<password>"
+}
+end note
+Handler --> User: StatusCode: 400, bad request)
+Handler --> User: StatusCode: 500, internal error)
+Handler -> Usecases: login(username,password)
+
+Usecases -> Repository: login(username, password)
+Repository -> Repository: getPasswordByUser(username)
+Repository -> Usecases: password
+Usecases -> Usecases: comparePasswords(pass1, pass2)
+Usecases --> User: StatusCode: 401
+Usecases -> Usecases: setCookie
+Usecases --> User: StatusCode: 200, session: cookie
+
+@enduml
