@@ -1,8 +1,10 @@
 package apiserver
 
 import (
+	"github.com/iRootPro/gophermart/internal/store"
 	"github.com/labstack/echo"
 	"github.com/sirupsen/logrus"
+	"log"
 	"net/http"
 )
 
@@ -10,6 +12,7 @@ type APIServer struct {
 	config *Config
 	logger *logrus.Logger
 	router *echo.Echo
+	store  *store.Store
 }
 
 func NewAPIServer(config *Config) *APIServer {
@@ -25,8 +28,22 @@ func (s *APIServer) Start() error {
 
 	s.configureRouter()
 
-	s.router.Start(s.config.RunAddress)
+	if err := s.configureStore(); err != nil {
+		log.Fatal(err)
+	}
 
+	if err := s.router.Start(s.config.RunAddress); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func (s *APIServer) configureStore() error {
+	s.store = store.New()
+	if err := s.store.Open(s.config.DatabaseURI); err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
