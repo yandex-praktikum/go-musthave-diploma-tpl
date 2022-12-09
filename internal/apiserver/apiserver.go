@@ -99,6 +99,16 @@ func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
+		session, err := s.sessionStore.Get(c.Request(), sessionName)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		session.Values["user_id"] = u.ID
+		if err = s.sessionStore.Save(c.Request(), c.Response(), session); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
 		u.Sanitize()
 		return c.JSON(http.StatusCreated, u)
 	}
