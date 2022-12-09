@@ -1,25 +1,36 @@
 package apiserver
 
 import (
-	"github.com/iRootPro/gophermart/internal/store"
+	"errors"
+	"github.com/gorilla/sessions"
+	"github.com/iRootPro/gophermart/internal/entity"
+	"github.com/iRootPro/gophermart/internal/store/sqlstore"
 	"github.com/labstack/echo"
 	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 )
 
+const sessionName = "gophermart_session"
+
+var (
+	errIncorrectUsernameOrPassword = errors.New("incorrect username or password")
+)
+
 type APIServer struct {
-	config *Config
-	logger *logrus.Logger
-	router *echo.Echo
-	store  *store.Store
+	config       *Config
+	logger       *logrus.Logger
+	router       *echo.Echo
+	store        *sqlstore.Store
+	sessionStore sessions.Store
 }
 
-func NewAPIServer(config *Config) *APIServer {
+func NewAPIServer(config *Config, sessionsStore sessions.Store) *APIServer {
 	return &APIServer{
-		config: config,
-		logger: logrus.New(),
-		router: echo.New(),
+		config:       config,
+		logger:       logrus.New(),
+		router:       echo.New(),
+		sessionStore: sessionsStore,
 	}
 }
 
@@ -40,15 +51,21 @@ func (s *APIServer) Start() error {
 }
 
 func (s *APIServer) configureStore() error {
-	s.store = store.New()
+	s.store = sqlstore.New()
 	if err := s.store.Open(s.config.DatabaseURI); err != nil {
 		log.Fatal(err)
 	}
+
+	if err := s.store.CreateTables(); err != nil {
+		log.Fatal(err)
+	}
+
 	return nil
 }
 
 func (s *APIServer) configureRouter() {
-	s.router.GET("/hello", s.handleHello)
+	s.router.POST("/api/user/register", s.handleUserCreate())
+	s.router.POST("/api/user/login", s.handleUserLogin())
 }
 
 func (s *APIServer) configureLogger() error {
@@ -62,6 +79,62 @@ func (s *APIServer) configureLogger() error {
 	return nil
 }
 
-func (s *APIServer) handleHello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!!!")
+func (s *APIServer) handleUserCreate() echo.HandlerFunc {
+	type request struct {
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required"`
+	}
+	return func(c echo.Context) error {
+		req := &request{}
+
+		if err := c.Bind(req); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		u := &entity.User{
+			Username: req.Username,
+			Password: req.Password,
+		}
+
+		if err := s.store.User().Create(u); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		u.Sanitize()
+		return c.JSON(http.StatusCreated, u)
+	}
+}
+
+func (s *APIServer) handleUserLogin() echo.HandlerFunc {
+	type request struct {
+		Username string `json:"username" validate:"required"`
+		Password string `json:"password" validate:"required"`
+	}
+	return func(c echo.Context) error {
+		req := &request{}
+
+		if err := c.Bind(req); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		u, err := s.store.User().FindByUsername(req.Username)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectUsernameOrPassword)
+		}
+
+		if !u.ComparePassword(req.Password) {
+			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectUsernameOrPassword)
+		}
+
+		session, err := s.sessionStore.Get(c.Request(), sessionName)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		session.Values["user_id"] = u.ID
+		if err = s.sessionStore.Save(c.Request(), c.Response(), session); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, nil)
+	}
 }
