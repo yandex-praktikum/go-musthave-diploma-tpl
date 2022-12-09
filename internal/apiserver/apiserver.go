@@ -110,7 +110,7 @@ func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 		}
 
 		u.Sanitize()
-		return c.JSON(http.StatusCreated, u)
+		return c.JSON(http.StatusOK, u)
 	}
 }
 
