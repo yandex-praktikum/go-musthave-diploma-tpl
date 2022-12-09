@@ -2,6 +2,7 @@ module github.com/iRootPro/gophermart
 
 go 1.19
 
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible // indirect
@@ -24,3 +25,4 @@ require (
 	golang.org/x/text v0.5.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
