@@ -31,7 +31,7 @@ func (s *Store) Open(databaseURI string) error {
 func (s *Store) CreateTables() error {
 
 	_, err := s.db.Exec(
-		"CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username VARCHAR(255) NOT NULL UNIQUE, encrypted_password VARCHAR(255) NOT NULL)",
+		"CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, login VARCHAR(255) NOT NULL UNIQUE, encrypted_password VARCHAR(255) NOT NULL)",
 	)
 	if err != nil {
 		log.Fatal(err)

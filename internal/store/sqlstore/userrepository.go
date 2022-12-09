@@ -20,8 +20,8 @@ func (r *UserRepository) Create(u *entity.User) error {
 	}
 
 	if err := r.store.db.QueryRow(""+
-		"INSERT INTO users (username, encrypted_password) VALUES ($1, $2) RETURNING id",
-		u.Username,
+		"INSERT INTO users (login, encrypted_password) VALUES ($1, $2) RETURNING id",
+		u.Login,
 		u.EncryptedPassword).Scan(&u.ID); err != nil {
 		return err
 	}
@@ -29,10 +29,10 @@ func (r *UserRepository) Create(u *entity.User) error {
 	return nil
 }
 
-func (r *UserRepository) FindByUsername(username string) (*entity.User, error) {
+func (r *UserRepository) FindByLogin(login string) (*entity.User, error) {
 	u := &entity.User{}
-	if err := r.store.db.QueryRow("SELECT id, username, encrypted_password FROM users WHERE username = $1",
-		username).Scan(&u.ID, &u.Username, &u.EncryptedPassword); err != nil {
+	if err := r.store.db.QueryRow("SELECT id, login, encrypted_password FROM users WHERE login = $1",
+		login).Scan(&u.ID, &u.Login, &u.EncryptedPassword); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrRecordNotFound
 		}

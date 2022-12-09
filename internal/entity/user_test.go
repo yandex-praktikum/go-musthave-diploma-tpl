@@ -19,10 +19,10 @@ func TestUser_Validate(t *testing.T) {
 			isValid: true,
 		},
 		{
-			name: "empty username",
+			name: "empty login",
 			user: func() *User {
 				u := TestUser(t)
-				u.Username = ""
+				u.Login = ""
 				return u
 			},
 			isValid: false,

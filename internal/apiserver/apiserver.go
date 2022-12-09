@@ -14,7 +14,7 @@ import (
 const sessionName = "gophermart_session"
 
 var (
-	errIncorrectUsernameOrPassword = errors.New("incorrect username or password")
+	errIncorrectLoginOrPassword = errors.New("incorrect login or password")
 )
 
 type APIServer struct {
@@ -81,7 +81,7 @@ func (s *APIServer) configureLogger() error {
 
 func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 	type request struct {
-		Username string `json:"username" validate:"required"`
+		Login    string `json:"login" validate:"required"`
 		Password string `json:"password" validate:"required"`
 	}
 	return func(c echo.Context) error {
@@ -91,7 +91,7 @@ func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		u := &entity.User{
-			Username: req.Username,
+			Login:    req.Login,
 			Password: req.Password,
 		}
 
@@ -116,7 +116,7 @@ func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 
 func (s *APIServer) handleUserLogin() echo.HandlerFunc {
 	type request struct {
-		Username string `json:"username" validate:"required"`
+		Login    string `json:"login" validate:"required"`
 		Password string `json:"password" validate:"required"`
 	}
 	return func(c echo.Context) error {
@@ -126,13 +126,13 @@ func (s *APIServer) handleUserLogin() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		u, err := s.store.User().FindByUsername(req.Username)
+		u, err := s.store.User().FindByLogin(req.Login)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectUsernameOrPassword)
+			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectLoginOrPassword)
 		}
 
 		if !u.ComparePassword(req.Password) {
-			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectUsernameOrPassword)
+			return echo.NewHTTPError(http.StatusUnauthorized, errIncorrectLoginOrPassword)
 		}
 
 		session, err := s.sessionStore.Get(c.Request(), sessionName)

@@ -3,7 +3,7 @@ POST http://localhost:8080/api/user/register
 Content-Type: application/json
 
 {
-  "username": "user1",
+  "login": "user1",
   "password": "password1"
 }
 
@@ -12,7 +12,7 @@ POST http://localhost:8080/api/user/login
 Content-Type: application/json
 
 {
-  "username": "user",
+  "login": "user",
   "password": "password"
 }
 
@@ -21,6 +21,6 @@ POST http://localhost:8080/api/user/login
 Content-Type: application/json
 
 {
-  "username": "user",
+  "login": "user1",
   "password": "password1"
 }
