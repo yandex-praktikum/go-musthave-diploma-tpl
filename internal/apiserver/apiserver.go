@@ -63,5 +63,5 @@ func (s *APIServer) configureLogger() error {
 }
 
 func (s *APIServer) handleHello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!")
+	return c.String(http.StatusOK, "Hello, World!!!")
 }
