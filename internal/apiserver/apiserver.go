@@ -4,9 +4,12 @@ import (
 	"errors"
 	"github.com/gorilla/sessions"
 	"github.com/iRootPro/gophermart/internal/entity"
+	"github.com/iRootPro/gophermart/internal/store"
 	"github.com/iRootPro/gophermart/internal/store/sqlstore"
+	"github.com/iRootPro/gophermart/internal/utils"
 	"github.com/labstack/echo"
 	"github.com/sirupsen/logrus"
+	"io"
 	"log"
 	"net/http"
 )
@@ -15,6 +18,7 @@ const sessionName = "gophermart_session"
 
 var (
 	errIncorrectLoginOrPassword = errors.New("incorrect login or password")
+	errUserIsNotAuthorized      = errors.New("user is not authorized")
 )
 
 type APIServer struct {
@@ -66,6 +70,9 @@ func (s *APIServer) configureStore() error {
 func (s *APIServer) configureRouter() {
 	s.router.POST("/api/user/register", s.handleUserCreate())
 	s.router.POST("/api/user/login", s.handleUserLogin())
+
+	//private
+	s.router.POST("/api/user/orders", s.authUserMiddleware(s.handleLoadOrders()))
 }
 
 func (s *APIServer) configureLogger() error {
@@ -146,5 +153,63 @@ func (s *APIServer) handleUserLogin() echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, nil)
+	}
+}
+
+func (s *APIServer) handleLoadOrders() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		body, err := io.ReadAll(c.Request().Body)
+		if err != nil || string(body) == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		ok := utils.LuhnCheck(string(body))
+		if !ok {
+			return echo.NewHTTPError(http.StatusUnprocessableEntity, "invalid card number")
+		}
+
+		userID := c.Get("user").(*entity.User).ID
+		order := &entity.Order{
+			UserID:      userID,
+			OrderNumber: string(body),
+		}
+		if err := s.store.Order().Create(order); err != nil {
+			if err == store.ErrOrderNumberAlreadyExistInThisUser {
+				return echo.NewHTTPError(http.StatusOK, err.Error())
+			}
+
+			if err == store.ErrOrderNumberAlreadyExistAnotherUser {
+				return echo.NewHTTPError(http.StatusConflict, err.Error())
+			}
+
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(http.StatusAccepted, nil)
+
+	}
+}
+
+// Middlwewares
+func (s *APIServer) authUserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		session, err := s.sessionStore.Get(c.Request(), sessionName)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		userID, ok := session.Values["user_id"]
+		if !ok {
+			return echo.NewHTTPError(http.StatusUnauthorized, errUserIsNotAuthorized)
+		}
+
+		u, err := s.store.User().FindById(userID.(int))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, errUserIsNotAuthorized)
+
+		}
+
+		c.Set("user", u)
+		return next(c)
 	}
 }

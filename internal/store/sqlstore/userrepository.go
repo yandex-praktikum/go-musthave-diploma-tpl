@@ -41,3 +41,16 @@ func (r *UserRepository) FindByLogin(login string) (*entity.User, error) {
 
 	return u, nil
 }
+
+func (r *UserRepository) FindById(id int) (*entity.User, error) {
+	u := &entity.User{}
+	if err := r.store.db.QueryRow("SELECT id, login, encrypted_password FROM users WHERE id = $1",
+		id).Scan(&u.ID, &u.Login, &u.EncryptedPassword); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrRecordNotFound
+		}
+		return nil, err
+	}
+
+	return u, nil
+}

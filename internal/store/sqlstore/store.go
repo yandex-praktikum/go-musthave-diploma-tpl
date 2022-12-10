@@ -7,8 +7,9 @@ import (
 )
 
 type Store struct {
-	db             *sql.DB
-	userRepository *UserRepository
+	db              *sql.DB
+	userRepository  *UserRepository
+	orderRepository *OrderRepository
 }
 
 func New() *Store {
@@ -29,13 +30,21 @@ func (s *Store) Open(databaseURI string) error {
 }
 
 func (s *Store) CreateTables() error {
-
 	_, err := s.db.Exec(
 		"CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, login VARCHAR(255) NOT NULL UNIQUE, encrypted_password VARCHAR(255) NOT NULL)",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	_, err = s.db.Exec(
+		"CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, status VARCHAR(255) NOT NULL , order_num VARCHAR(255) NOT NULL UNIQUE, amount FLOAT, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)",
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return nil
 }
 
@@ -52,4 +61,15 @@ func (s *Store) User() *UserRepository {
 		store: s,
 	}
 	return s.userRepository
+}
+
+func (s *Store) Order() *OrderRepository {
+	if s.orderRepository != nil {
+		return s.orderRepository
+	}
+
+	s.orderRepository = &OrderRepository{
+		store: s,
+	}
+	return s.orderRepository
 }
