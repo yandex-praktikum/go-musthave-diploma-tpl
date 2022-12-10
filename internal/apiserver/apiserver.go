@@ -203,7 +203,7 @@ func (s *APIServer) authUserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusUnauthorized, errUserIsNotAuthorized)
 		}
 
-		u, err := s.store.User().FindById(userID.(int))
+		u, err := s.store.User().FindByID(userID.(int))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, errUserIsNotAuthorized)
 
