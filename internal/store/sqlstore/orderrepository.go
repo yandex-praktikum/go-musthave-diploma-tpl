@@ -17,11 +17,13 @@ func (o *OrderRepository) Create(order *entity.Order) error {
 		fmt.Println(err)
 	}
 
-	if foundOrder.ID != 0 && foundOrder.UserID == order.UserID {
+	fmt.Println("foundOrder", foundOrder)
+
+	if foundOrder != nil && foundOrder.UserID == order.UserID {
 		return store.ErrOrderNumberAlreadyExistInThisUser
 	}
 
-	if foundOrder.ID != 0 {
+	if foundOrder != nil {
 		return store.ErrOrderNumberAlreadyExistAnotherUser
 	}
 
