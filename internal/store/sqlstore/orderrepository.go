@@ -60,5 +60,9 @@ func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 		}
 		orders = append(orders, order)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return orders, nil
 }
