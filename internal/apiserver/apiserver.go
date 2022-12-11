@@ -209,7 +209,7 @@ func (s *APIServer) handleListOrders() echo.HandlerFunc {
 		}
 
 		if len(orders) == 0 {
-			return echo.NewHTTPError(http.StatusNotFound, "orders not found")
+			return echo.NewHTTPError(http.StatusNoContent, "orders not found")
 		}
 
 		result := response{}
