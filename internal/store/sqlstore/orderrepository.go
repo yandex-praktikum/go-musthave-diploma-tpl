@@ -17,8 +17,6 @@ func (o *OrderRepository) Create(order *entity.Order) error {
 		fmt.Println(err)
 	}
 
-	fmt.Println("foundOrder", foundOrder)
-
 	if foundOrder != nil && foundOrder.UserID == order.UserID {
 		return store.ErrOrderNumberAlreadyExistInThisUser
 	}
