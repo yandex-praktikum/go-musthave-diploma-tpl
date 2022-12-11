@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/gorilla/sessions"
 	"github.com/iRootPro/gophermart/internal/entity"
@@ -75,6 +76,7 @@ func (s *APIServer) configureRouter() {
 	//private
 	s.router.POST("/api/user/orders", s.authUserMiddleware(s.handleLoadOrders()))
 	s.router.GET("/api/user/orders", s.authUserMiddleware(s.handleListOrders()))
+	s.router.GET("/api/user/balance", s.authUserMiddleware(s.handleGetBalance()))
 }
 
 func (s *APIServer) configureLogger() error {
@@ -248,5 +250,28 @@ func (s *APIServer) authUserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		c.Set("user", u)
 		return next(c)
+	}
+}
+
+func (s *APIServer) handleGetBalance() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		userID := c.Get("user").(*entity.User).ID
+		balance, err := s.store.Balance().Get(userID)
+		type response struct {
+			Current   float64 `json:"current"`
+			Withdrawn float64 `json:"withdrawn"`
+		}
+		if err != nil {
+			if err == sql.ErrNoRows {
+				emptyBalance := &response{
+					Current:   0,
+					Withdrawn: 0,
+				}
+				return c.JSON(http.StatusOK, emptyBalance)
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, balance)
 	}
 }

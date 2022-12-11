@@ -7,9 +7,10 @@ import (
 )
 
 type Store struct {
-	db              *sql.DB
-	userRepository  *UserRepository
-	orderRepository *OrderRepository
+	db                *sql.DB
+	userRepository    *UserRepository
+	orderRepository   *OrderRepository
+	balanceRepository *BalanceRepository
 }
 
 func New() *Store {
@@ -39,6 +40,10 @@ func (s *Store) CreateTables() error {
 
 	_, err = s.db.Exec(
 		"CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, status VARCHAR(255) NOT NULL , number VARCHAR(255) NOT NULL UNIQUE, accrual FLOAT, uploaded_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)",
+	)
+
+	_, err = s.db.Exec(
+		"CREATE TABLE IF NOT EXISTS balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, current FLOAT NOT NULL, withdrawn FLOAT NOT NULL, updated_at TIMESTAMP NOT NULL)",
 	)
 
 	if err != nil {
@@ -72,4 +77,15 @@ func (s *Store) Order() *OrderRepository {
 		store: s,
 	}
 	return s.orderRepository
+}
+
+func (s *Store) Balance() *BalanceRepository {
+	if s.balanceRepository != nil {
+		return s.balanceRepository
+	}
+
+	s.balanceRepository = &BalanceRepository{
+		store: s,
+	}
+	return s.balanceRepository
 }
