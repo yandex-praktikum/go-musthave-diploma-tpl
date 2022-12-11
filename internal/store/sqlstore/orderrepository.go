@@ -1,7 +1,6 @@
 package sqlstore
 
 import (
-	"fmt"
 	"github.com/iRootPro/gophermart/internal/entity"
 	"github.com/iRootPro/gophermart/internal/store"
 	"time"
@@ -14,7 +13,7 @@ type OrderRepository struct {
 func (o *OrderRepository) Create(order *entity.Order) error {
 	foundOrder, err := o.FindByOrderNumber(order.Number)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	if foundOrder != nil && foundOrder.UserID == order.UserID {
