@@ -37,7 +37,7 @@ func (o *OrderRepository) Create(order *entity.Order) error {
 
 func (o *OrderRepository) FindByOrderNumber(id string) (*entity.Order, error) {
 	order := &entity.Order{}
-	err := o.store.db.QueryRow("SELECT id, user_id, number, status, uploaded_at, updated_at FROM orders WHERE order_num = $1", id).Scan(&order.ID, &order.UserID, &order.Number, &order.Status, &order.UploadedAt, &order.UpdatedAt)
+	err := o.store.db.QueryRow("SELECT id, user_id, number, status, uploaded_at, updated_at FROM orders WHERE number = $1", id).Scan(&order.ID, &order.UserID, &order.Number, &order.Status, &order.UploadedAt, &order.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
