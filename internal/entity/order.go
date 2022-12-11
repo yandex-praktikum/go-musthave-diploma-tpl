@@ -6,11 +6,13 @@ import (
 )
 
 type Order struct {
-	ID          int
-	UserID      int
-	Status      string
-	OrderNumber string
-	Amount      decimal.Decimal
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID         int
+	UserID     int
+	Status     string
+	Number     string
+	Accrual    decimal.Decimal
+	UploadedAt time.Time
+	UpdatedAt  time.Time
 }
+
+type Orders []*Order

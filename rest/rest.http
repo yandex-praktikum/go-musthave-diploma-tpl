@@ -27,8 +27,12 @@ Content-Type: application/json
 
 ### POST Order num
 POST http://localhost:8080/api/user/orders
-Cookie: gophermart_session=MTY3MDcwMDcyMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fMn_z1ZYjMp56XPiofehatgrRTHDSQpgCm4mXyXzr0p_
+Cookie: gophermart_session=MTY3MDc4MDAxMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fDN6m6THH18gChzUmgXtyMSB2ZetbTuDdvODK2IhWC80
 Content-Type: text/plain
 
 372478458238126
 
+
+### GET list of orders
+GET http://localhost:8080/api/user/orders
+Cookie: gophermart_session=MTY3MDc4MDAxMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fDN6m6THH18gChzUmgXtyMSB2ZetbTuDdvODK2IhWC80

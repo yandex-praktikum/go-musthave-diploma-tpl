@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 const sessionName = "gophermart_session"
@@ -73,6 +74,7 @@ func (s *APIServer) configureRouter() {
 
 	//private
 	s.router.POST("/api/user/orders", s.authUserMiddleware(s.handleLoadOrders()))
+	s.router.GET("/api/user/orders", s.authUserMiddleware(s.handleListOrders()))
 }
 
 func (s *APIServer) configureLogger() error {
@@ -170,8 +172,8 @@ func (s *APIServer) handleLoadOrders() echo.HandlerFunc {
 
 		userID := c.Get("user").(*entity.User).ID
 		order := &entity.Order{
-			UserID:      userID,
-			OrderNumber: string(body),
+			UserID: userID,
+			Number: string(body),
 		}
 		if err := s.store.Order().Create(order); err != nil {
 			if err == store.ErrOrderNumberAlreadyExistInThisUser {
@@ -187,6 +189,41 @@ func (s *APIServer) handleLoadOrders() echo.HandlerFunc {
 
 		return c.JSON(http.StatusAccepted, nil)
 
+	}
+}
+
+func (s *APIServer) handleListOrders() echo.HandlerFunc {
+	type reposnseItem struct {
+		Number     string    `json:"number"`
+		Status     string    `json:"status"`
+		Accrual    float64   `json:"accrual"`
+		UploadedAt time.Time `json:"uploaded_at"`
+	}
+	type response []reposnseItem
+
+	return func(c echo.Context) error {
+		userID := c.Get("user").(*entity.User).ID
+		orders, err := s.store.Order().FindByUserID(userID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		if len(orders) == 0 {
+			return echo.NewHTTPError(http.StatusNotFound, "orders not found")
+		}
+
+		result := response{}
+		for _, order := range orders {
+			accrual, _ := order.Accrual.Float64()
+			result = append(result, reposnseItem{
+				Number:     order.Number,
+				Status:     order.Status,
+				Accrual:    accrual,
+				UploadedAt: order.UploadedAt,
+			})
+		}
+
+		return c.JSON(http.StatusOK, result)
 	}
 }
 
