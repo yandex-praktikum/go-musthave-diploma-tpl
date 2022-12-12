@@ -256,6 +256,14 @@ func (s *APIServer) handleGetBalance() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
-		return c.JSON(http.StatusOK, balance)
+		current, _ := balance.Current.Float64()
+		withdrawn, _ := balance.Withdrawn.Float64()
+
+		responseBalance := response{
+			Current:   current,
+			Withdrawn: withdrawn,
+		}
+
+		return c.JSON(http.StatusOK, responseBalance)
 	}
 }

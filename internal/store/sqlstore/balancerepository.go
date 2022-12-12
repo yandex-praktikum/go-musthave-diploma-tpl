@@ -14,3 +14,11 @@ func (b *BalanceRepository) Get(userID int) (*entity.Balance, error) {
 
 	return balance, nil
 }
+
+func (b *BalanceRepository) UpdateCurrentByUserID(userID int, accrual float64) error {
+	_, err := b.store.db.Exec("UPDATE balance SET current = current + $1 WHERE user_id = $2", accrual, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}

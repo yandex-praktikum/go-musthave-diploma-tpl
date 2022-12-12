@@ -51,20 +51,17 @@ func (a *Accrual) Run() {
 				a.logger.Error("update status", err)
 			}
 
-			userID, err := a.store.Order().FindUserIDByOrder(response.Order)
-			if err != nil {
-				a.logger.Error("find user_id by order number", err)
+			if response.Status == "PROCESSED" {
+				userID, err := a.store.Order().FindUserIDByOrder(response.Order)
+				if err != nil {
+					a.logger.Error("find user_id by order number", err)
+				}
+
+				err = a.store.Balance().UpdateCurrentByUserID(userID, response.Accrual)
+				if err != nil {
+					a.logger.Error("update balance", err)
+				}
 			}
-
-			fmt.Printf("user: %d", userID)
-			fmt.Printf("BALANCE %f", response.Accrual)
-
-			//if user != nil {
-			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
-			//	if err != nil {
-			//		a.logger.Error(err)
-			//	}
-			//}
 
 		}
 		time.Sleep(a.Config.PoolingTimeout)
