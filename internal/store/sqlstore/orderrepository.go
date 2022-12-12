@@ -80,7 +80,7 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 	}(rows)
 
 	if err := rows.Err(); err != nil {
-		fmt.Println(err)
+		fmt.Println("rows err", err)
 		return []string{}
 	}
 
