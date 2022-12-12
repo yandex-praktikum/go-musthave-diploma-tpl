@@ -80,6 +80,7 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 		a.logger.Errorln("get /api/orders/{number}", err)
 	}
 
+	fmt.Printf("resp: %+v\n", resp.Body)
 	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		a.logger.Errorln("read from body", err)
