@@ -96,9 +96,6 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 }
 
 func (o *OrderRepository) UpdateStatus(order string, accrual float64, status string) error {
-	fmt.Println("order", order)
-	fmt.Println("accrual", accrual)
-	fmt.Println("status", status)
 	_, err := o.store.db.Exec("UPDATE orders SET status = $1, accrual = $2 WHERE number = $3", status, accrual, order)
 	if err != nil {
 		return err
