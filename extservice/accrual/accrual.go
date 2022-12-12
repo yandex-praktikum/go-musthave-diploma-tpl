@@ -76,7 +76,14 @@ func (a *Accrual) Run() {
 		if err != nil {
 			a.logger.Errorln("get all orders", err)
 		}
-		fmt.Printf("ALL ORDERS: %+v\n", allOrders)
+
+		for _, order := range allOrders {
+			fmt.Println("ORDER", order.Number)
+			fmt.Println("STATUS", order.Status)
+			fmt.Println("ACCURAL", order.Accrual)
+			fmt.Printf("\n\n\n")
+		}
+
 		time.Sleep(a.Config.PoolingTimeout)
 	}
 }
