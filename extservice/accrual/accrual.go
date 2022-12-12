@@ -2,7 +2,6 @@ package accrual
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/iRootPro/gophermart/internal/store/sqlstore"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -40,7 +39,7 @@ func (a *Accrual) configureLogger() error {
 }
 
 func (a *Accrual) Run() {
-	a.logger.Info("starting accrual service on address: ", a.Config.RunAddress)
+	a.logger.Infoln("starting accrual service on address: ", a.Config.RunAddress)
 	for {
 		orders := a.store.Order().GetOrdersForUpgradeStatus()
 		if len(orders) == 0 {
@@ -50,21 +49,21 @@ func (a *Accrual) Run() {
 			response := a.GetOrder(order)
 			err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
 			if err != nil {
-				a.logger.Error("update status", err)
+				a.logger.Errorln("update status", err)
 			}
 
 			if response.Status == "PROCESSED" {
-				a.logger.Info("order: ", response.Order, " status: ", response.Status, " accrual: ", response.Accrual)
+				a.logger.Infoln("order: ", response.Order, " status: ", response.Status, " accrual: ", response.Accrual)
 				userID, err := a.store.Order().FindUserIDByOrder(response.Order)
 				if err != nil {
-					a.logger.Error("find user_id by order number", err)
+					a.logger.Errorln("find user_id by order number", err)
 				}
 
 				err = a.store.Balance().UpdateCurrentByUserID(userID, response.Accrual)
 				if err != nil {
-					a.logger.Error("update balance", err)
+					a.logger.Errorln("update balance", err)
 				}
-				a.logger.Info("update current balance for user_id: ", userID, " accrual: ", response.Accrual)
+				a.logger.Infoln("update current balance for user_id: ", userID, " accrual: ", response.Accrual)
 			}
 
 		}
@@ -90,8 +89,6 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	if err != nil {
 		a.logger.Error(err)
 	}
-
-	fmt.Printf("response: %+v", response)
 
 	return response
 }
