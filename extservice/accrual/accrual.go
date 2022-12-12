@@ -48,12 +48,12 @@ func (a *Accrual) Run() {
 			response := a.GetOrder(order)
 			err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
 			if err != nil {
-				a.logger.Error(err)
+				a.logger.Error("update status", err)
 			}
 
-			userID, err := a.store.User().FindUserIDByOrder(response.Order)
+			userID, err := a.store.Order().FindUserIDByOrder(response.Order)
 			if err != nil {
-				a.logger.Error(err)
+				a.logger.Error("find user_id by order number", err)
 			}
 
 			fmt.Printf("user: %+v", userID)

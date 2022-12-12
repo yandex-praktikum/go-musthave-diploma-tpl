@@ -54,15 +54,3 @@ func (r *UserRepository) FindByID(id int) (*entity.User, error) {
 
 	return u, nil
 }
-
-func (r *UserRepository) FindUserIDByOrder(orderNumber string) (int, error) {
-	var userId int
-	if err := r.store.db.QueryRow("SELECT user_id FROM orders WHERE number = $1",
-		orderNumber).Scan(&userId); err != nil {
-		if err == sql.ErrNoRows {
-			return 0, store.ErrRecordNotFound
-		}
-		return 0, err
-	}
-	return userId, nil
-}
