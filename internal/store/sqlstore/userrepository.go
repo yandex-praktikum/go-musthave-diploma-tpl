@@ -54,3 +54,16 @@ func (r *UserRepository) FindByID(id int) (*entity.User, error) {
 
 	return u, nil
 }
+
+func (r *UserRepository) FindUserByOrder(orderNumber string) (*entity.User, error) {
+	u := &entity.User{}
+	if err := r.store.db.QueryRow("SELECT users.id, users.login, users.encrypted_password FROM users INNER JOIN orders ON users.id = orders.user_id WHERE orders.number = $1",
+		orderNumber).Scan(&u.ID, &u.Login); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrRecordNotFound
+		}
+		return nil, err
+
+	}
+	return u, nil
+}

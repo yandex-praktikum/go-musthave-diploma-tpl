@@ -51,7 +51,19 @@ func (a *Accrual) Run() {
 				a.logger.Error(err)
 			}
 
-			fmt.Println("updated")
+			user, err := a.store.User().FindUserByOrder(response.Order)
+			if err != nil {
+				a.logger.Error(err)
+			}
+
+			fmt.Printf("user: %+v", user)
+
+			//if user != nil {
+			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
+			//	if err != nil {
+			//		a.logger.Error(err)
+			//	}
+			//}
 
 		}
 		time.Sleep(a.Config.PoolingTimeout)
