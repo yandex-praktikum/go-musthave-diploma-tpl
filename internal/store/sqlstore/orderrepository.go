@@ -104,6 +104,7 @@ func (o *OrderRepository) UpdateStatus(order string, accrual float64, status str
 }
 
 func (o *OrderRepository) FindUserIDByOrder(orderNumber string) (int, error) {
+	fmt.Println("ORDER!!!", orderNumber)
 	var userID int
 	if err := o.store.db.QueryRow("SELECT user_id FROM orders WHERE number = $1",
 		orderNumber).Scan(&userID); err != nil {
