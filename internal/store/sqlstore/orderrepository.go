@@ -79,6 +79,10 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 		}
 	}(rows)
 
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
 	var orders []string
 	for rows.Next() {
 		var number string
@@ -87,10 +91,6 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 			fmt.Println(err)
 		}
 		orders = append(orders, number)
-	}
-
-	if err := rows.Err(); err != nil {
-		fmt.Println(err)
 	}
 
 	return orders
