@@ -117,3 +117,27 @@ func (o *OrderRepository) FindUserIDByOrder(orderNumber string) (int, error) {
 
 	return userID, nil
 }
+
+func (o *OrderRepository) GetAll() (entity.Orders, error) {
+	orders := entity.Orders{}
+	rows, err := o.store.db.Query("SELECT id, user_id, number, status, uploaded_at, updated_at FROM orders")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		order := &entity.Order{}
+		err := rows.Scan(&order.ID, &order.UserID, &order.Number, &order.Status, &order.UploadedAt, &order.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}

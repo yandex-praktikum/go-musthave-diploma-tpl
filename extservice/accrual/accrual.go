@@ -72,6 +72,11 @@ func (a *Accrual) Run() {
 			}
 
 		}
+		allOrders, err := a.store.Order().GetAll()
+		if err != nil {
+			a.logger.Errorln("get all orders", err)
+		}
+		fmt.Printf("ALL ORDERS: %+v\n", allOrders)
 		time.Sleep(a.Config.PoolingTimeout)
 	}
 }
