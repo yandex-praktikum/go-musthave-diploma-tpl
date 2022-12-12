@@ -46,11 +46,14 @@ func (o *OrderRepository) FindByOrderNumber(id string) (*entity.Order, error) {
 func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 	orders := entity.Orders{}
 	rows, err := o.store.db.Query("SELECT id, user_id, number, status, uploaded_at, updated_at FROM orders WHERE user_id = $1", userID)
-	fmt.Printf("rows: %+v", rows)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	for rows.Next() {
 		order := &entity.Order{}
@@ -59,9 +62,6 @@ func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 			return nil, err
 		}
 		orders = append(orders, order)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return orders, nil
