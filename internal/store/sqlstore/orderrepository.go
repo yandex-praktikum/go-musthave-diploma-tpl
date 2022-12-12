@@ -112,6 +112,6 @@ func (o *OrderRepository) FindUserIDByOrder(orderNumber string) (int, error) {
 		}
 		return 0, err
 	}
-	fmt.Println("USER ID: ", userID)
+
 	return userID, nil
 }

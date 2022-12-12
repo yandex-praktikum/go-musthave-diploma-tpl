@@ -56,7 +56,7 @@ func (a *Accrual) Run() {
 				a.logger.Error("find user_id by order number", err)
 			}
 
-			fmt.Printf("user: %+v", userID)
+			fmt.Printf("user: %d", userID)
 
 			//if user != nil {
 			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
