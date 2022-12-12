@@ -64,6 +64,7 @@ func (a *Accrual) Run() {
 				if err != nil {
 					a.logger.Error("update balance", err)
 				}
+				a.logger.Info("user_id: ", userID, " accrual: ", response.Accrual)
 			}
 
 		}
