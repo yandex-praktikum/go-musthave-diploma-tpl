@@ -77,12 +77,12 @@ func (a *Accrual) Run() {
 func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	resp, err := http.Get(a.Config.RunAddress + "/api/orders/" + orderNum)
 	if err != nil {
-		a.logger.Error(err)
+		a.logger.Errorln("get /api/orders/{number}", err)
 	}
 
 	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		a.logger.Error(err)
+		a.logger.Errorln("read from body", err)
 	}
 
 	defer resp.Body.Close()
@@ -90,7 +90,7 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	response := ResponseAccrual{}
 	err = json.Unmarshal(resBody, &response)
 	if err != nil {
-		a.logger.Error(err)
+		a.logger.Errorln("unmarshaling response from accrual", err)
 	}
 
 	return response
