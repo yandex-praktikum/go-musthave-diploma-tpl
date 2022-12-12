@@ -55,5 +55,7 @@ func (a *Accrual) GetOrder(orderNum string) {
 		a.logger.Error(err)
 	}
 
-	fmt.Println(resBody)
+	defer resp.Body.Close()
+
+	fmt.Println(string(resBody))
 }
