@@ -57,7 +57,7 @@ func (a *Accrual) Run() {
 			}
 
 			fmt.Printf("user: %d", userID)
-			fmt.Printf("BALANCE", response.Accrual)
+			fmt.Printf("BALANCE %f", response.Accrual)
 
 			//if user != nil {
 			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
