@@ -46,6 +46,7 @@ func (a *Accrual) Run() {
 		if len(orders) == 0 {
 			continue
 		}
+		fmt.Println("orders: ", orders)
 		for _, order := range orders {
 			response := a.GetOrder(order)
 			fmt.Printf("order: %s, status: %s, accrual: %f\n", response.Order, response.Status, response.Accrual)
