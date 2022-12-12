@@ -45,7 +45,14 @@ func (a *Accrual) Run() {
 		orders := a.store.Order().GetOrdersForUpgradeStatus()
 		fmt.Printf("orders: %+v", orders)
 		for _, order := range orders {
-			a.GetOrder(order)
+			response := a.GetOrder(order)
+			userID, err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
+			if err != nil {
+				a.logger.Error(err)
+			}
+
+			fmt.Println("USER ID", userID)
+
 		}
 		time.Sleep(a.Config.PoolingTimeout)
 	}

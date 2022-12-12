@@ -94,3 +94,12 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 
 	return orders
 }
+
+func (o *OrderRepository) UpdateStatus(order string, accrual float64, status string) (int, error) {
+	var userID int
+	err := o.store.db.QueryRow("UPDATE orders SET status = $1, accrual = accrual + $2, updated_at = $3 WHERE number = $3 RETURNING user_id", status, accrual, time.Now(), order).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
