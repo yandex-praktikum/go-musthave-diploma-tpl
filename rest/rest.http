@@ -3,7 +3,7 @@ POST http://localhost:8080/api/user/register
 Content-Type: application/json
 
 {
-  "login": "user6",
+  "login": "user5",
   "password": "password3"
 }
 
@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ### POST Order num
 POST http://localhost:8080/api/user/orders
-Cookie: gophermart_session=MTY3MDc4MDAxMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fDN6m6THH18gChzUmgXtyMSB2ZetbTuDdvODK2IhWC80
+Cookie: gophermart_session=MTY3MDg3MzA2NXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFCZz09fBcrRm7-wUH0iGe5ATnezllQmn3L7VCpBMStp90LGzYz
 Content-Type: text/plain
 
 372478458238126
