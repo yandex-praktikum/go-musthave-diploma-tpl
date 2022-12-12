@@ -57,6 +57,7 @@ func (a *Accrual) Run() {
 			}
 
 			fmt.Printf("user: %d", userID)
+			fmt.Printf("accr", response.Accrual)
 
 			//if user != nil {
 			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
