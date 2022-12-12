@@ -46,7 +46,7 @@ func (a *Accrual) Run() {
 		if len(orders) == 0 {
 			continue
 		}
-		fmt.Println("orders: ", orders)
+
 		for _, order := range orders {
 			response := a.GetOrder(order)
 			fmt.Printf("order: %s, status: %s, accrual: %f\n", response.Order, response.Status, response.Accrual)
@@ -80,7 +80,6 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 		a.logger.Errorln("get /api/orders/{number}", err)
 	}
 
-	fmt.Printf("resp: %+v\n", resp.Body)
 	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		a.logger.Errorln("read from body", err)
@@ -89,7 +88,6 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	defer resp.Body.Close()
 
 	response := ResponseAccrual{}
-	fmt.Printf("respBody: %s\n", resBody)
 	err = json.Unmarshal(resBody, &response)
 	if err != nil {
 		a.logger.Errorln("unmarshaling response from accrual", err)
