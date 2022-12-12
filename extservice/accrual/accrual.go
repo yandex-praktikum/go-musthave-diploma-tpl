@@ -51,12 +51,12 @@ func (a *Accrual) Run() {
 				a.logger.Error(err)
 			}
 
-			user, err := a.store.User().FindUserByOrder(response.Order)
+			userID, err := a.store.User().FindUserIDByOrder(response.Order)
 			if err != nil {
 				a.logger.Error(err)
 			}
 
-			fmt.Printf("user: %+v", user)
+			fmt.Printf("user: %+v", userID)
 
 			//if user != nil {
 			//	err = a.store.User().UpdateBalance(user.ID, response.Accrual)
