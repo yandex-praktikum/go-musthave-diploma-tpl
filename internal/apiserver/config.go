@@ -26,7 +26,7 @@ func NewConfig() *Config {
 		runAddress = envRunAddress
 	}
 
-	envAccrualSystemAddress := os.Getenv("ACC_SYSTEM_ADDRESS")
+	envAccrualSystemAddress := os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
 	if envAccrualSystemAddress != "" {
 		accrualSystemAddress = envAccrualSystemAddress
 	}

@@ -1,6 +1,7 @@
 package sqlstore
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/iRootPro/gophermart/internal/entity"
 	"github.com/iRootPro/gophermart/internal/store"
@@ -63,4 +64,33 @@ func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 	}
 
 	return orders, nil
+}
+
+func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
+	rows, err := o.store.db.Query("SELECT number FROM orders WHERE status != $1 AND status != $2", "PROCESSED", "INVALID")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(rows)
+
+	var orders []string
+	for rows.Next() {
+		var number string
+		err := rows.Scan(&number)
+		if err != nil {
+			fmt.Println(err)
+		}
+		orders = append(orders, number)
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return orders
 }

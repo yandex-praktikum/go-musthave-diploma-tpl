@@ -31,11 +31,12 @@ type APIServer struct {
 	sessionStore sessions.Store
 }
 
-func NewAPIServer(config *Config, sessionsStore sessions.Store) *APIServer {
+func NewAPIServer(config *Config, store *sqlstore.Store, sessionsStore sessions.Store) *APIServer {
 	return &APIServer{
 		config:       config,
 		logger:       logrus.New(),
 		router:       echo.New(),
+		store:        store,
 		sessionStore: sessionsStore,
 	}
 }
@@ -45,24 +46,7 @@ func (s *APIServer) Start() error {
 
 	s.configureRouter()
 
-	if err := s.configureStore(); err != nil {
-		log.Fatal(err)
-	}
-
 	if err := s.router.Start(s.config.RunAddress); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
-}
-
-func (s *APIServer) configureStore() error {
-	s.store = sqlstore.New()
-	if err := s.store.Open(s.config.DatabaseURI); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := s.store.CreateTables(); err != nil {
 		log.Fatal(err)
 	}
 
