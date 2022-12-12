@@ -95,11 +95,10 @@ func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
 	return orders
 }
 
-func (o *OrderRepository) UpdateStatus(order string, accrual float64, status string) (int, error) {
-	var userID int
-	err := o.store.db.QueryRow("UPDATE orders SET status = $1, accrual = accrual + $2, updated_at = $3 WHERE number = $3 RETURNING user_id", status, accrual, time.Now(), order).Scan(&userID)
+func (o *OrderRepository) UpdateStatus(order string, accrual float64, status string) error {
+	_, err := o.store.db.Exec("UPDATE orders SET status = $1, accrual = $2, updated_at = $3 WHERE number = $3 RETURNING user_id", status, accrual, time.Now(), order)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return userID, nil
+	return nil
 }
