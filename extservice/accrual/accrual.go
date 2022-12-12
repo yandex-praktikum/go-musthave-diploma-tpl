@@ -43,7 +43,9 @@ func (a *Accrual) Run() {
 	a.logger.Info("starting accrual service on address: ", a.Config.RunAddress)
 	for {
 		orders := a.store.Order().GetOrdersForUpgradeStatus()
-		fmt.Printf("orders: %+v", orders)
+		if len(orders) == 0 {
+			continue
+		}
 		for _, order := range orders {
 			response := a.GetOrder(order)
 			err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
