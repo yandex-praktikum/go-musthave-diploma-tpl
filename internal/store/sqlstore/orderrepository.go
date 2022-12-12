@@ -67,7 +67,7 @@ func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 }
 
 func (o *OrderRepository) GetOrdersForUpgradeStatus() []string {
-	rows, err := o.store.db.Query("SELECT number FROM orders WHERE status != $1 AND status != $2", "PROCESSED", "INVALID")
+	rows, err := o.store.db.Query("SELECT number FROM orders WHERE status != $1 OR status != $2", "PROCESSED", "INVALID")
 	if err != nil {
 		fmt.Println(err)
 	}
