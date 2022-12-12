@@ -46,7 +46,7 @@ func (s *Store) CreateTables() error {
 	}
 
 	_, err = s.db.Exec(
-		"CREATE TABLE IF NOT EXISTS balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, current FLOAT NOT NULL, withdrawn FLOAT NOT NULL, updated_at TIMESTAMP NOT NULL)",
+		"CREATE TABLE IF NOT EXISTS balance (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, current FLOAT NOT NULL, withdrawn FLOAT NOT NULL)",
 	)
 
 	if err != nil {

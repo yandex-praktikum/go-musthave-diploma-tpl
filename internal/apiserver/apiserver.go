@@ -94,6 +94,10 @@ func (s *APIServer) handleUserCreate() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
+		if err := s.store.Balance().Create(u.ID); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
 		session, err := s.sessionStore.Get(c.Request(), sessionName)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

@@ -1,9 +1,21 @@
 package sqlstore
 
-import "github.com/iRootPro/gophermart/internal/entity"
+import (
+	"github.com/iRootPro/gophermart/internal/entity"
+	"time"
+)
 
 type BalanceRepository struct {
 	store *Store
+}
+
+func (b *BalanceRepository) Create(userID int) error {
+	time := time.Now()
+	_, err := b.store.db.Exec("INSERT INTO balance (user_id, current, withdrawn, updated_at) VALUES ($1, $2, $3, $4)", userID, 0, 0, time)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *BalanceRepository) Get(userID int) (*entity.Balance, error) {
