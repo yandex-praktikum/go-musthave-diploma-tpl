@@ -52,6 +52,7 @@ func (a *Accrual) Run() {
 			}
 
 			if response.Status == "PROCESSED" {
+				a.logger.Info("order: ", response.Order, " status: ", response.Status, " accrual: ", response.Accrual)
 				userID, err := a.store.Order().FindUserIDByOrder(response.Order)
 				if err != nil {
 					a.logger.Error("find user_id by order number", err)
