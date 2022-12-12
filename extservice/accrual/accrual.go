@@ -88,6 +88,7 @@ func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	defer resp.Body.Close()
 
 	response := ResponseAccrual{}
+	fmt.Printf("respBody: %s\n", resBody)
 	err = json.Unmarshal(resBody, &response)
 	if err != nil {
 		a.logger.Errorln("unmarshaling response from accrual", err)
