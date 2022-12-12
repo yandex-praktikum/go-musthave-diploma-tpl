@@ -80,7 +80,7 @@ func (a *Accrual) Run() {
 		for _, order := range allOrders {
 			fmt.Println("ORDER", order.Number)
 			fmt.Println("STATUS", order.Status)
-			fmt.Println("ACCURAL", order.Accrual)
+			fmt.Println("Accrual", order.Accrual)
 			fmt.Printf("\n\n\n")
 		}
 
