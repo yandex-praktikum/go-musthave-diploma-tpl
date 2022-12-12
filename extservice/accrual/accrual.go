@@ -1,6 +1,7 @@
 package accrual
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/iRootPro/gophermart/internal/store/sqlstore"
 	"github.com/sirupsen/logrus"
@@ -13,6 +14,12 @@ type Accrual struct {
 	Config *Config
 	logger *logrus.Logger
 	store  *sqlstore.Store
+}
+
+type ResponseAccrual struct {
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual"`
 }
 
 func NewAccrual(config *Config, store *sqlstore.Store) *Accrual {
@@ -44,7 +51,7 @@ func (a *Accrual) Run() {
 	}
 }
 
-func (a *Accrual) GetOrder(orderNum string) {
+func (a *Accrual) GetOrder(orderNum string) ResponseAccrual {
 	resp, err := http.Get(a.Config.RunAddress + "/api/orders/" + orderNum)
 	if err != nil {
 		a.logger.Error(err)
@@ -57,5 +64,13 @@ func (a *Accrual) GetOrder(orderNum string) {
 
 	defer resp.Body.Close()
 
-	fmt.Println(string(resBody))
+	response := ResponseAccrual{}
+	err = json.Unmarshal(resBody, &response)
+	if err != nil {
+		a.logger.Error(err)
+	}
+
+	fmt.Printf("response: %+v", response)
+
+	return response
 }
