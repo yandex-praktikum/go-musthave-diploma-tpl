@@ -51,13 +51,13 @@ func (a *Accrual) Run() {
 
 		for _, order := range orders {
 			response := a.GetOrder(order)
-			fmt.Printf("order: %s, status: %s, accrual: %f\n", response.Order, response.Status, response.Accrual)
+			err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
+			if err != nil {
+				a.logger.Errorln("update status", err)
+			}
 
 			if response.Status == "PROCESSED" {
-				err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
-				if err != nil {
-					a.logger.Errorln("update status", err)
-				}
+
 				a.logger.Infoln("order: ", response.Order, " status: ", response.Status, " accrual: ", response.Accrual)
 				userID, err := a.store.Order().FindUserIDByOrder(response.Order)
 				if err != nil {

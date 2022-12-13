@@ -16,6 +16,6 @@ func NewAccrualConfig(address string, loglevel string) *Config {
 	return &Config{
 		RunAddress:     address,
 		LogLevel:       loglevel,
-		PoolingTimeout: 500 * time.Millisecond,
+		PoolingTimeout: 5 * time.Second,
 	}
 }

@@ -183,13 +183,13 @@ func (s *APIServer) handleLoadOrders() echo.HandlerFunc {
 }
 
 func (s *APIServer) handleListOrders() echo.HandlerFunc {
-	type reposnseItem struct {
+	type responseItem struct {
 		Number     string    `json:"number"`
 		Status     string    `json:"status"`
 		Accrual    float64   `json:"accrual"`
 		UploadedAt time.Time `json:"uploaded_at"`
 	}
-	type response []reposnseItem
+	type response []responseItem
 
 	return func(c echo.Context) error {
 		userID := c.Get("user").(*entity.User).ID
@@ -205,7 +205,7 @@ func (s *APIServer) handleListOrders() echo.HandlerFunc {
 		result := response{}
 		for _, order := range orders {
 			accrual, _ := order.Accrual.Float64()
-			result = append(result, reposnseItem{
+			result = append(result, responseItem{
 				Number:     order.Number,
 				Status:     order.Status,
 				Accrual:    accrual,
