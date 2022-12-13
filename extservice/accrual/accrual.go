@@ -51,6 +51,7 @@ func (a *Accrual) Run() {
 
 		for _, order := range orders {
 			response := a.GetOrder(order)
+			fmt.Printf("TYPE: %T\n", response.Accrual)
 			err := a.store.Order().UpdateStatus(response.Order, response.Accrual, response.Status)
 			if err != nil {
 				a.logger.Errorln("update status", err)
