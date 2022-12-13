@@ -45,7 +45,7 @@ func (o *OrderRepository) FindByOrderNumber(id string) (*entity.Order, error) {
 
 func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 	orders := entity.Orders{}
-	rows, err := o.store.db.Query("SELECT id, user_id, number, accrual, status, uploaded_at, updated_at FROM orders WHERE user_id = $1", userID)
+	rows, err := o.store.db.Query("SELECT id, number, accrual, status, uploaded_at, updated_at FROM orders WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (o *OrderRepository) FindByUserID(userID int) (entity.Orders, error) {
 
 	for rows.Next() {
 		order := &entity.Order{}
-		err := rows.Scan(&order.ID, &order.UserID, &order.Number, &order.Accrual, &order.Status, &order.UploadedAt, &order.UpdatedAt)
+		err := rows.Scan(&order.ID, &order.Number, &order.Accrual, &order.Status, &order.UploadedAt, &order.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
