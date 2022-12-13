@@ -61,6 +61,7 @@ func (s *APIServer) configureRouter() {
 	s.router.POST("/api/user/orders", s.authUserMiddleware(s.handleLoadOrders()))
 	s.router.GET("/api/user/orders", s.authUserMiddleware(s.handleListOrders()))
 	s.router.GET("/api/user/balance", s.authUserMiddleware(s.handleGetBalance()))
+	s.router.POST("/api/user/balance/withdraw", s.authUserMiddleware(s.handleWithdraw()))
 }
 
 func (s *APIServer) configureLogger() error {
@@ -269,5 +270,42 @@ func (s *APIServer) handleGetBalance() echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, responseBalance)
+	}
+}
+
+func (s *APIServer) handleWithdraw() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		type response struct {
+			Order string  `json:"order"`
+			Sum   float64 `json:"sum"`
+		}
+		res := &response{}
+		err := c.Bind(&res)
+
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		userID := c.Get("user").(*entity.User).ID
+		balance, err := s.store.Balance().Get(userID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return echo.NewHTTPError(http.StatusUnprocessableEntity, "balance is empty")
+			}
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		current, _ := balance.Current.Float64()
+		if current < res.Sum {
+			return echo.NewHTTPError(http.StatusPaymentRequired, "insufficient funds")
+		}
+
+		newWithdrawn := current - res.Sum
+
+		if err := s.store.Balance().UpdateWithdrawnByUserID(userID, newWithdrawn); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(http.StatusOK, nil)
 	}
 }

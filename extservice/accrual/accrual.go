@@ -72,18 +72,6 @@ func (a *Accrual) Run() {
 			}
 
 		}
-		allOrders, err := a.store.Order().GetAll()
-		if err != nil {
-			a.logger.Errorln("get all orders", err)
-		}
-
-		for _, order := range allOrders {
-			fmt.Println("ORDER", order.Number)
-			fmt.Println("STATUS", order.Status)
-			fmt.Println("Accrual", order.Accrual)
-			fmt.Printf("\n\n\n")
-		}
-
 		time.Sleep(a.Config.PoolingTimeout)
 	}
 }

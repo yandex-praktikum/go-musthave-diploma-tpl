@@ -34,3 +34,11 @@ func (b *BalanceRepository) UpdateCurrentByUserID(userID int, accrual float64) e
 	}
 	return nil
 }
+
+func (b *BalanceRepository) UpdateWithdrawnByUserID(userID int, withdrawn float64) error {
+	_, err := b.store.db.Exec("UPDATE balance SET withdrawn = $1 WHERE user_id = $2", withdrawn, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
