@@ -40,7 +40,7 @@ func (s *Store) CreateTables() error {
 	}
 
 	_, err = s.db.Exec(
-		"CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, status VARCHAR(255) NOT NULL , number VARCHAR(255) NOT NULL UNIQUE, accrual FLOAT, uploaded_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)",
+		"CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL, status VARCHAR(255) NOT NULL , number VARCHAR(255) NOT NULL UNIQUE, accrual FLOAT DEFAULT 0, uploaded_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)",
 	)
 	if err != nil {
 		log.Fatal(err)
