@@ -302,7 +302,7 @@ func (s *APIServer) handleWithdraw() echo.HandlerFunc {
 
 		withdrawn, _ := balance.Withdrawn.Float64()
 		newCurrent := current - res.Sum
-		newWithDrawn := withdrawn + res.Sum
+		newWithdrawn := withdrawn + res.Sum
 
 		if err := s.store.Balance().UpdateWithdrawnAndCurrentByUserID(userID, newCurrent, newWithdrawn); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
