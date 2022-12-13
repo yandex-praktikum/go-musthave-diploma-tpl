@@ -300,9 +300,11 @@ func (s *APIServer) handleWithdraw() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusPaymentRequired, "insufficient funds")
 		}
 
-		newWithdrawn := current - res.Sum
+		withdrawn, _ := balance.Withdrawn.Float64()
+		newCurrent := current - res.Sum
+		newWithDrawn := withdrawn + res.Sum
 
-		if err := s.store.Balance().UpdateWithdrawnByUserID(userID, newWithdrawn); err != nil {
+		if err := s.store.Balance().UpdateWithdrawnAndCurrentByUserID(userID, newCurrent, newWithdrawn); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
