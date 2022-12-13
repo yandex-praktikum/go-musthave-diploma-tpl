@@ -197,6 +197,7 @@ func (s *APIServer) handleListOrders() echo.HandlerFunc {
 		userID := c.Get("user").(*entity.User).ID
 		orders, err := s.store.Order().FindByUserID(userID)
 		if err != nil {
+			s.logger.Errorln("error while getting orders from db", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
