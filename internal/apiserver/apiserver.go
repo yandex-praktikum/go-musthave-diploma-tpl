@@ -62,6 +62,7 @@ func (s *APIServer) configureRouter() {
 	s.router.GET("/api/user/orders", s.authUserMiddleware(s.handleListOrders()))
 	s.router.GET("/api/user/balance", s.authUserMiddleware(s.handleGetBalance()))
 	s.router.POST("/api/user/balance/withdraw", s.authUserMiddleware(s.handleWithdraw()))
+	s.router.GET("/api/user/withdrawals", s.authUserMiddleware(s.handleWithdrawals()))
 }
 
 func (s *APIServer) configureLogger() error {
@@ -308,6 +309,42 @@ func (s *APIServer) handleWithdraw() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
+		if err := s.store.Withdrawal().Create(userID, res.Order, res.Sum); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
 		return c.JSON(http.StatusOK, nil)
+	}
+}
+
+func (s *APIServer) handleWithdrawals() echo.HandlerFunc {
+	type responseItem struct {
+		Order       string    `json:"order"`
+		Sum         float64   `json:"sum"`
+		ProcessedAt time.Time `json:"processed_at"`
+	}
+	type response []responseItem
+
+	return func(c echo.Context) error {
+		userID := c.Get("user").(*entity.User).ID
+		withdrawals, err := s.store.Withdrawal().GetByUserID(userID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+
+		if len(withdrawals) == 0 {
+			return echo.NewHTTPError(http.StatusNoContent, "withdrawals not found")
+		}
+
+		result := response{}
+		for _, withdrawal := range withdrawals {
+			result = append(result, responseItem{
+				Order:       withdrawal.OrderID,
+				Sum:         withdrawal.Sum,
+				ProcessedAt: withdrawal.ProcessedAt,
+			})
+		}
+
+		return c.JSON(http.StatusOK, result)
 	}
 }

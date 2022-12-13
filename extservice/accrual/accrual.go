@@ -57,7 +57,6 @@ func (a *Accrual) Run() {
 			}
 
 			if response.Status == "PROCESSED" {
-
 				a.logger.Infoln("order: ", response.Order, " status: ", response.Status, " accrual: ", response.Accrual)
 				userID, err := a.store.Order().FindUserIDByOrder(response.Order)
 				if err != nil {
