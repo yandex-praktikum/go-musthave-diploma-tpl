@@ -68,11 +68,12 @@ func (s *APIServer) configureRouter() {
 	s.router.POST("/api/user/login", s.handleUserLogin())
 
 	//private
-	s.router.POST("/api/user/orders", s.authUserMiddleware(s.handleLoadOrders()))
-	s.router.GET("/api/user/orders", s.authUserMiddleware(s.handleListOrders()))
-	s.router.GET("/api/user/balance", s.authUserMiddleware(s.handleGetBalance()))
-	s.router.POST("/api/user/balance/withdraw", s.authUserMiddleware(s.handleWithdraw()))
-	s.router.GET("/api/user/withdrawals", s.authUserMiddleware(s.handleWithdrawals()))
+	user := s.router.Group("/api/user/", s.authUserMiddleware)
+	user.POST("orders", s.authUserMiddleware(s.handleLoadOrders()))
+	user.GET("orders", s.authUserMiddleware(s.handleListOrders()))
+	user.GET("balance", s.authUserMiddleware(s.handleGetBalance()))
+	user.POST("balance/withdraw", s.authUserMiddleware(s.handleWithdraw()))
+	user.GET("/withdrawals", s.authUserMiddleware(s.handleWithdrawals()))
 }
 
 func (s *APIServer) configureLogger() error {
