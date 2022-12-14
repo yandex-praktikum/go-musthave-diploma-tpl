@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"github.com/gorilla/sessions"
@@ -51,6 +52,15 @@ func (s *APIServer) Start() error {
 	}
 
 	return nil
+}
+
+func (s *APIServer) Shutdown(ctx context.Context) error {
+	s.logger.Info("shutdown api server")
+	err := s.router.Shutdown(ctx)
+	if err != nil {
+		s.logger.Fatal(err)
+	}
+	return s.router.Close()
 }
 
 func (s *APIServer) configureRouter() {

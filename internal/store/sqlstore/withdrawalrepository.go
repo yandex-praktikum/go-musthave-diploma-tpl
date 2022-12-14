@@ -18,7 +18,7 @@ func (r *WithdrawalRepository) Create(userID int, order string, sum float64) err
 }
 
 func (r *WithdrawalRepository) GetByUserID(userID int) ([]*entity.Withdrawal, error) {
-	withdrawals := []*entity.Withdrawal{}
+	var withdrawals []*entity.Withdrawal
 	rows, err := r.store.db.Query("SELECT id, user_id, order_id, sum, processed_at FROM withdrawal WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, err

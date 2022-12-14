@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"github.com/gorilla/sessions"
 	"github.com/iRootPro/gophermart/extservice/accrual"
 	"github.com/iRootPro/gophermart/internal/apiserver"
 	"github.com/iRootPro/gophermart/internal/store/sqlstore"
 	"log"
+	"os"
+	"os/signal"
+	"time"
 )
 
 const sessionKey = "SECRET_KEY"
@@ -30,7 +34,18 @@ func main() {
 	sessionsStore := sessions.NewCookieStore([]byte(sessionKey))
 	s := apiserver.NewAPIServer(config, store, sessionsStore)
 
-	if err := s.Start(); err != nil {
+	go func() {
+		if err := s.Start(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
 }
