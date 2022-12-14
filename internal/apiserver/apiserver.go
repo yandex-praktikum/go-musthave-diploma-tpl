@@ -73,7 +73,7 @@ func (s *APIServer) configureRouter() {
 	user.GET("orders", s.authUserMiddleware(s.handleListOrders()))
 	user.GET("balance", s.authUserMiddleware(s.handleGetBalance()))
 	user.POST("balance/withdraw", s.authUserMiddleware(s.handleWithdraw()))
-	user.GET("/withdrawals", s.authUserMiddleware(s.handleWithdrawals()))
+	user.GET("withdrawals", s.authUserMiddleware(s.handleWithdrawals()))
 }
 
 func (s *APIServer) configureLogger() error {
