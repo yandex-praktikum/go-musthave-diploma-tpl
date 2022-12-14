@@ -64,8 +64,9 @@ func (s *APIServer) Shutdown(ctx context.Context) error {
 }
 
 func (s *APIServer) configureRouter() {
-	s.router.POST("/api/user/register", s.handleUserCreate())
-	s.router.POST("/api/user/login", s.handleUserLogin())
+	userPublic := s.router.Group("/api/user/")
+	userPublic.POST("register", s.handleUserCreate())
+	s.router.POST("login", s.handleUserLogin())
 
 	//private
 	user := s.router.Group("/api/user/", s.authUserMiddleware)
