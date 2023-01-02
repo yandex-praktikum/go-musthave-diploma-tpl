@@ -1,0 +1,78 @@
+@apil=http://localhost:8080
+
+
+###
+# @name auth
+POST {{apil}}/api/user/register
+Content-Type: application/json
+
+{
+    "login": "user01",
+    "password": "Pass1234"
+}
+
+
+###
+# @name auth
+POST {{apil}}/api/user/login
+Content-Type: application/json
+
+{
+    "login": "user01",
+    "password": "Pass1234"
+}
+
+@token = {{auth.response.headers.Authorization}}
+
+###
+GET {{apil}}/api/user/withdrawals
+Authorization: {{token}}
+
+
+###
+POST {{apil}}/api/user/orders
+Authorization: {{token}}
+Content-Type: text/plain
+
+12345678903
+
+
+###
+GET {{apil}}/api/user/orders
+Authorization: {{token}}
+Content-Type: text/plain
+
+
+###
+GET {{apil}}/api/user/balance
+Authorization: {{token}}
+Content-Type: text/plain
+
+
+
+
+###
+POST {{apil}}/api/user/orders
+Authorization: {{token}}
+Content-Type: text/plain
+
+9278923470
+
+
+###
+POST {{apil}}/api/user/orders
+Authorization: {{token}}
+Content-Type: text/plain
+
+346436439
+
+
+###
+POST {{apil}}/api/user/balance/withdraw
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "order": "2377225624",
+    "sum": 751
+}

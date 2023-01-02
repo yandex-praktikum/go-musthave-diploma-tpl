@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:13.3
+    environment:
+      POSTGRES_DB: "gofemartdb"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "GofeMartPg"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ../migrations:/docker-entrypoint-initdb.d
+      - /tmp/pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gofemartdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
