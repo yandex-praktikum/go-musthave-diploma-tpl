@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"flag"
@@ -23,7 +23,7 @@ func InitServer() *serverMart {
 	return &serverMart{}
 }
 
-func (s serverMart) router() error {
+func (s serverMart) Router() error {
 	if err := s.parseFlagCfg(); err != nil {
 		return err
 	}
@@ -33,10 +33,11 @@ func (s serverMart) router() error {
 
 	e := echo.New()
 
+	e.Use(s.gzip)
+	//
 	//e.POST("/api/user/register", s.postAPIUserRegister)
 	//e.POST("/api/user/login", s.postAPIUserLogin)
 	//
-	//e.Use(s.gzip)
 	//e.Use(s.CheakCookies)
 	//
 	//e.GET("/api/user/orders", s.getAPIUserOrders)
