@@ -1,4 +1,4 @@
-package router
+package events
 
 import (
 	"encoding/json"
@@ -10,11 +10,18 @@ import (
 	"GopherMart/cmd/errorsGM"
 )
 
+type requestAccrualFloat struct {
+	Number     string  `json:"number"`
+	Status     string  `json:"Status"`
+	Point      float64 `json:"accrual"`
+	UploadedAt string  `json:"uploaded_at"`
+}
+
 type requestAccrual struct {
-	Number     string     `json:"number"`
-	Status     string     `json:"Status"`
-	Point      uint       `json:"accrual"`
-	UploadedAt *time.Time `json:"uploaded_at"`
+	Number     string `json:"number"`
+	Status     string `json:"Status"`
+	Point      uint   `json:"accrual"`
+	UploadedAt string `json:"uploaded_at"`
 }
 
 func accrualOrderStatus(storageAccrual string, order string) (bodyRequest requestAccrual, err error) {
@@ -39,14 +46,19 @@ func accrualGet(storage string, order string) (bodyRequest requestAccrual, durat
 	switch resp.StatusCode {
 
 	case 200:
+		var bodyFloat requestAccrualFloat
 		body, err := io.ReadAll(resp.Request.Body)
 		if err != nil {
 			return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.ReadAllError, err}
 		}
-		err = json.Unmarshal(body, &bodyRequest)
+		err = json.Unmarshal(body, &bodyFloat)
 		if err != nil {
 			return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.UnmarshalError, err}
 		}
+		bodyRequest.Status = bodyFloat.Status
+		bodyRequest.Point = uint(bodyFloat.Point * 100)
+		bodyRequest.UploadedAt = bodyFloat.UploadedAt
+		bodyRequest.Number = bodyFloat.Number
 		return bodyRequest, 0, nil
 
 	case 429:
@@ -56,7 +68,7 @@ func accrualGet(storage string, order string) (bodyRequest requestAccrual, durat
 		if err != nil {
 			return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.StatusTooManyRequests, err}
 		}
-		return requestAccrual{}, sec, &errorsGM.ErrorGopherMart{errorsGM.StatusTooManyRequests, err} //
+		return requestAccrual{}, sec, nil //
 
 	case 500:
 		return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.StatusInternalServerError, err} //

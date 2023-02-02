@@ -1,4 +1,4 @@
-package authentication
+package events
 
 import (
 	"crypto/aes"
