@@ -1,29 +1,31 @@
-package main
+package router
 
 import (
 	"flag"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
+
+	"GopherMart/internal/events"
 )
 
-type ConfigURL struct {
+type Config struct {
 	ServerAddress  string `env:"RUN_ADDRESS"`
 	BDAddress      string `env:"DATABASE_URI"`
 	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 }
 
 type serverMart struct {
-	cfg  ConfigURL
+	cfg  Config
 	serv *echo.Echo
-	db   DBI
+	db   events.DBI
 }
 
 func InitServer() *serverMart {
 	return &serverMart{}
 }
 
-func (s serverMart) router() error {
+func (s serverMart) Router() error {
 	if err := s.parseFlagCfg(); err != nil {
 		return err
 	}
@@ -33,18 +35,21 @@ func (s serverMart) router() error {
 
 	e := echo.New()
 
-	//e.POST("/api/user/register", s.postAPIUserRegister)
-	//e.POST("/api/user/login", s.postAPIUserLogin)
-	//
-	//e.Use(s.gzip)
-	//e.Use(s.CheakCookies)
-	//
-	//e.GET("/api/user/orders", s.getAPIUserOrders)
-	//e.GET("/api/user/balance", s.getAPIUserBalance)
-	//e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals)
-	//
-	//e.POST("/api/user/orders", s.postAPIUserOrders)
-	//e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw)
+	go s.updateAccrual()
+
+	e.Use(s.gzip)
+
+	e.POST("/api/user/registration", s.postAPIUserRegistration)
+	e.POST("/api/user/login", s.postAPIUserLogin)
+
+	e.Use(s.mwUserAuthentication)
+
+	e.GET("/api/user/orders", s.getAPIUserOrders)           // Получение списка загруженных заказов
+	e.GET("/api/user/balance", s.getAPIUserBalance)         // Получение текущего баланса пользователя
+	e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals) // Получение информации о выводе средств
+
+	e.POST("/api/user/orders", s.postAPIUserOrders)                    // Загрузка номера заказа
+	e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw) // Запрос на списание средств
 
 	return nil
 }
@@ -70,7 +75,7 @@ func (s *serverMart) parseFlagCfg() error {
 
 func (s serverMart) connectDB() error {
 	var err error
-	if s.db, err = InitDB(); err != nil {
+	if s.db, err = events.InitDB(); err != nil {
 		return err
 	}
 	if err = s.db.Connect(s.cfg.BDAddress); err != nil {
