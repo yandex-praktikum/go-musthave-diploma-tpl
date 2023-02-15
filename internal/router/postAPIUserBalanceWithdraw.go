@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 
-	"GopherMart/internal/errorsGM"
+	"GopherMart/internal/errorsgm"
 	"GopherMart/internal/events"
 )
 
@@ -46,7 +46,7 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 	err = s.db.WithdrawnUserPoints(get.(string), bodyOrder.Order, bodyOrder.Sum)
 
 	if err != nil {
-		if errors.Is(err, errorsGM.ErrDontHavePoints) {
+		if errors.Is(err, errorsgm.ErrDontHavePoints) {
 			c.Response().WriteHeader(http.StatusPaymentRequired)
 			return nil
 		}

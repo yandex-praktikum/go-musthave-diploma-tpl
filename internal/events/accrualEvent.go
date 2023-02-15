@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"GopherMart/internal/errorsGM"
+	"GopherMart/internal/errorsgm"
 )
 
 type requestAccrualFloat struct {
@@ -24,8 +24,9 @@ type requestAccrual struct {
 func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration int64, err error) {
 	get := storage + "/api/orders/" + order
 	resp, err := http.Get(get)
+
 	if err != nil {
-		return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.UnmarshalError, err}
+		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 	}
 	switch resp.StatusCode {
 
@@ -33,11 +34,11 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 		var bodyFloat requestAccrualFloat
 		body, err := io.ReadAll(resp.Request.Body)
 		if err != nil {
-			return requestAccrual{}, 0, errorsGM.ErrAccrualGetError
+			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		err = json.Unmarshal(body, &bodyFloat)
 		if err != nil {
-			return requestAccrual{}, 0, errorsGM.ErrAccrualGetError
+			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		bodyUint.Status = bodyFloat.Status
 		bodyUint.Accrual = uint(bodyFloat.Accrual * 100)
@@ -49,13 +50,13 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 		a := header["Retry-After"][0]
 		sec, err := strconv.ParseInt(a, 10, 0)
 		if err != nil {
-			return requestAccrual{}, 0, &errorsGM.ErrorGopherMart{errorsGM.StatusTooManyRequests, err}
+			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		return requestAccrual{}, sec, nil //
 
 	case 500:
-		return requestAccrual{}, 0, errorsGM.ErrAccrualGetError //
+		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError //
 	}
 
-	return requestAccrual{}, 0, errorsGM.ErrAccrualGetError
+	return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 }

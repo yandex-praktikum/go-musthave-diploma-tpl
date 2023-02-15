@@ -1,4 +1,4 @@
-package errorsGM
+package errorsgm
 
 import (
 	"fmt"

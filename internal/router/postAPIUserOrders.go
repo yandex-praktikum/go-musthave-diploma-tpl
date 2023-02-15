@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 
-	"GopherMart/internal/errorsGM"
+	"GopherMart/internal/errorsgm"
 	"GopherMart/internal/events"
 )
 
@@ -34,7 +34,7 @@ func (s *serverMart) postAPIUserOrders(c echo.Context) error {
 	get := c.Get("user")
 	err = s.db.WriteOrderAccrual(bodyOrder, get.(string))
 	if err != nil {
-		if errors.Is(err, errorsGM.ErrLoadedEarlierThisUser) {
+		if errors.Is(err, errorsgm.ErrLoadedEarlierThisUser) {
 			c.Response().WriteHeader(http.StatusOK)
 			return nil
 		}

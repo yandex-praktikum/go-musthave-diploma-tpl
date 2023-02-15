@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	"GopherMart/internal/errorsGM"
+	"GopherMart/internal/errorsgm"
 )
 
 var CreateTableOperations = `CREATE TABLE OperationsGopherMart(
@@ -28,10 +28,10 @@ cookie 				varchar(32),
 )`
 
 type Operation struct {
-	Order_number string  `json:"order"`
-	Status       string  `json:"status"`
-	Points       float64 `json:"accrual"`
-	Uploaded_at  string  `json:"uploaded_at"`
+	OrderNumber string  `json:"order"`
+	Status      string  `json:"status"`
+	Points      float64 `json:"accrual"`
+	UploadedAt  string  `json:"uploaded_at"`
 }
 
 const (
@@ -131,9 +131,9 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 	}
 	if loginOrder != "" {
 		if loginOrder == user {
-			return errorsGM.ErrLoadedEarlierThisUser // надо что то вернуть
+			return errorsgm.ErrLoadedEarlierThisUser // надо что то вернуть
 		}
-		return errorsGM.ErrLoadedEarlierAnotherUser
+		return errorsgm.ErrLoadedEarlierAnotherUser
 	}
 	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, Login, operation, uploaded_at) values ($1,$2,$3,$4)", order, user, accrual, timeNow)
 	if err != nil {
@@ -151,12 +151,16 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&op.Order_number, &op.Status, &op.Uploaded_at, &op.Points)
+		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
 		if err != nil {
 			return nil, err
 		}
 		op.Points = op.Points / 100
 		ops = append(ops, op)
+
+	}
+	if rows.Err != nil {
+
 	}
 	return ops, nil
 }
@@ -187,7 +191,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 		return err
 	}
 	if u.CurrentPoints < sum {
-		return errorsGM.ErrDontHavePoints
+		return errorsgm.ErrDontHavePoints
 	}
 
 	err = db.WriteOrderWithdrawn(user, order, sum)
@@ -222,7 +226,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []Operation, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&op.Order_number, &op.Status, &op.Uploaded_at, &op.Points)
+		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
 		if err != nil {
 			return nil, err
 		}
