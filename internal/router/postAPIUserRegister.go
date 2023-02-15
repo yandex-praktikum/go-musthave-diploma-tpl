@@ -9,29 +9,30 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
+
+	"GopherMart/internal/events"
 )
 
-type register struct {
+type registration struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-func (s *serverMart) postAPIUserRegister(c echo.Context) error {
-	var userLog register
+func (s *serverMart) postAPIUserRegistration(c echo.Context) error {
+	var userLog registration
 	defer c.Request().Body.Close()
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
-		return nil //400
+		return nil
 	}
 	if err = json.Unmarshal(body, &userLog); err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
-		return nil // 400
+		return nil
 	}
-
 	var pgErr *pgconn.PgError
 
-	hexCookie, err := s.db.RegisterUser(userLog.Login, userLog.Password)
+	tokenJWT, err := s.db.RegisterUser(userLog.Login, userLog.Password)
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation: // дубликат
@@ -42,13 +43,12 @@ func (s *serverMart) postAPIUserRegister(c echo.Context) error {
 			return nil
 		}
 	}
+	if err != nil {
+		c.Response().WriteHeader(http.StatusInternalServerError)
+		return nil
+	}
 
-	cookie := new(http.Cookie)
-	cookie.Name = "GopherMart"
-	cookie.Value = hexCookie
-	cookie.Domain = userLog.Login
-	c.SetCookie(cookie)
-
+	c.Response().Header().Set(events.Authorization, events.Bearer+" "+tokenJWT)
 	c.Response().WriteHeader(http.StatusOK)
 	return nil
 }

@@ -1,5 +1,9 @@
 package errorsGM
 
+import (
+	"fmt"
+)
+
 type ErrorGopherMart struct {
 	Code string
 	Err  error
@@ -30,4 +34,11 @@ const (
 
 	//WTF??
 	RespStatusCodeNotMatch = "WTF"
+)
+
+var (
+	ErrLoadedEarlierThisUser    = fmt.Errorf("order was loaded earlier by this user")
+	ErrLoadedEarlierAnotherUser = fmt.Errorf("order was loaded earlier by another user")
+	ErrDontHavePoints           = fmt.Errorf("not enough points")
+	ErrAccrualGetError          = fmt.Errorf("error get in accular")
 )

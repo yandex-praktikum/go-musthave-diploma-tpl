@@ -6,7 +6,7 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
 
-	"GopherMart/cmd/events"
+	"GopherMart/internal/events"
 )
 
 type Config struct {
@@ -35,19 +35,21 @@ func (s serverMart) Router() error {
 
 	e := echo.New()
 
+	go s.updateAccrual()
+
 	e.Use(s.gzip)
 
-	e.POST("/api/user/register", s.postAPIUserRegister)
+	e.POST("/api/user/registration", s.postAPIUserRegistration)
 	e.POST("/api/user/login", s.postAPIUserLogin)
 
-	e.Use(s.CheakCookies)
+	e.Use(s.mwUserAuthentication)
 
-	//e.GET("/api/user/orders", s.getAPIUserOrders)
-	//e.GET("/api/user/balance", s.getAPIUserBalance)
-	//e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals)
-	//
-	//e.POST("/api/user/orders", s.postAPIUserOrders)
-	//e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw)
+	e.GET("/api/user/orders", s.getAPIUserOrders)           // Получение списка загруженных заказов
+	e.GET("/api/user/balance", s.getAPIUserBalance)         // Получение текущего баланса пользователя
+	e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals) // Получение информации о выводе средств
+
+	e.POST("/api/user/orders", s.postAPIUserOrders)                    // Загрузка номера заказа
+	e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw) // Запрос на списание средств
 
 	return nil
 }

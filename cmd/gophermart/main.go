@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"GopherMart/cmd/router"
+	"GopherMart/internal/router"
 )
 
 func main() {
