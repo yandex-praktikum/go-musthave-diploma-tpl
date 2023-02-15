@@ -15,12 +15,10 @@ func (s serverMart) updateAccrual() {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-
 		if len(orders) != 0 {
 			for _, order := range orders {
 				wg.Add(1)
 				go s.worker(order.Order, order.Login, &wg, &wgTimer)
-
 			}
 		} else {
 			time.Sleep(5 * time.Second)
