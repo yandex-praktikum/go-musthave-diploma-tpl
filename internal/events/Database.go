@@ -75,8 +75,8 @@ func InitDB() (*Database, error) {
 
 func (db *Database) Connect(connStr string) (err error) {
 
-	//db.connection, err = sql.Open("pgx", connStr)
-	db.connection, err = sql.Open("pgx", "postgres://postgres:0000@localhost:5432/postgres")
+	db.connection, err = sql.Open("pgx", connStr)
+	//db.connection, err = sql.Open("pgx", "postgres://postgres:0000@localhost:5432/postgres")    //
 	if err != nil {
 		return err
 	}
