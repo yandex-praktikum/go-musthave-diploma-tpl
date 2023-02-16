@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"GopherMart/internal/errorsgm"
 )
 
@@ -24,7 +26,6 @@ login				varchar(32),
 password          	varchar(64),
 current_points    	integer,
 withdrawn_points  	integer,
-cookie 				varchar(32),
 )`
 
 type Operation struct {
@@ -41,7 +42,7 @@ const (
 	newOrder   = "NEW"
 	processing = "PROCESSING"
 	registered = "REGISTERED"
-	invalid    = "INVALID"
+	//invalid    = "INVALID"
 )
 
 type DBI interface {
@@ -73,6 +74,7 @@ func InitDB() (*Database, error) {
 }
 
 func (db *Database) Connect(connStr string) (err error) {
+
 	db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
 		return err
@@ -89,22 +91,26 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	if _, err := db.connection.Exec("Drop TABLE OperationsGopherMart"); err != nil {
-		return err
-	}
-	if _, err := db.connection.Exec("Drop TABLE UsersGopherMart"); err != nil {
-		return err
-	}
+	//if _, err := db.connection.Exec("Drop TABLE OperationsGopherMart"); err != nil {
+	//	return err
+	//}
+	//if _, err := db.connection.Exec("Drop TABLE UsersGopherMart"); err != nil {
+	//	return err
+	//}
+
 	if _, err := db.connection.Exec(CreateTableOperations); err != nil {
 		return err
 	}
-	if _, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)"); err != nil {
+
+	_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
+	if err != nil {
 		return err
 	}
-	if _, err := db.connection.Exec(CreateTableUsers); err != nil {
+
+	if _, err = db.connection.Exec(CreateTableUsers); err != nil {
 		return err
 	}
-	_, err := db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (Login,users)")
+	_, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)")
 	return err
 }
 
@@ -135,7 +141,7 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 		}
 		return errorsgm.ErrLoadedEarlierAnotherUser
 	}
-	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, Login, operation, uploaded_at) values ($1,$2,$3,$4)", order, user, accrual, timeNow)
+	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at) values ($1,$2,$3,$4)", order, user, accrual, timeNow)
 	if err != nil {
 		return err
 	}
@@ -159,9 +165,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 		ops = append(ops, op)
 
 	}
-	if rows.Err != nil {
 
-	}
 	return ops, nil
 }
 
@@ -308,7 +312,7 @@ func (db *Database) UpdateOrderAccrual(login string, orderAccrual requestAccrual
 	}
 	//зачислить балы пользователю
 	if orderAccrual.Status == registered {
-		_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE Login=$2",
+		_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE login=$2",
 			orderAccrual.Accrual, login)
 		if err != nil {
 			return err

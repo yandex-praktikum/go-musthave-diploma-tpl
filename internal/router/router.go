@@ -63,7 +63,7 @@ func (s *serverMart) parseFlagCfg() error {
 		flag.StringVar(&s.Cfg.ServerAddress, "a", "", "New RUN_ADDRESS")
 	}
 	if s.Cfg.BDAddress == "" {
-		flag.StringVar(&s.Cfg.BDAddress, "d", "", "New DATABASE_URI")
+		flag.StringVar(&s.Cfg.BDAddress, "d", "postgres://postgres:0000@localhost:5432/postgres", "New DATABASE_URI")
 	}
 	if s.Cfg.AccrualAddress == "" {
 		flag.StringVar(&s.Cfg.AccrualAddress, "r", "", "New ACCRUAL_SYSTEM_ADDRESS")
