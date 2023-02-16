@@ -23,7 +23,7 @@ func (s *serverMart) postAPIUserLogin(c echo.Context) error {
 		return nil
 	}
 
-	tokenJWT, err := s.db.LoginUser(userLog.Login, userLog.Password)
+	tokenJWT, err := s.DB.LoginUser(userLog.Login, userLog.Password)
 	if (tokenJWT == "") && (err == nil) {
 		c.Response().WriteHeader(http.StatusUnauthorized)
 		return nil

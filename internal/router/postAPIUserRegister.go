@@ -32,7 +32,7 @@ func (s *serverMart) postAPIUserRegistration(c echo.Context) error {
 	}
 	var pgErr *pgconn.PgError
 
-	tokenJWT, err := s.db.RegisterUser(userLog.Login, userLog.Password)
+	tokenJWT, err := s.DB.RegisterUser(userLog.Login, userLog.Password)
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation: // дубликат

@@ -43,7 +43,7 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 	}
 
 	get := c.Get("user")
-	err = s.db.WithdrawnUserPoints(get.(string), bodyOrder.Order, bodyOrder.Sum)
+	err = s.DB.WithdrawnUserPoints(get.(string), bodyOrder.Order, bodyOrder.Sum)
 
 	if err != nil {
 		if errors.Is(err, errorsgm.ErrDontHavePoints) {

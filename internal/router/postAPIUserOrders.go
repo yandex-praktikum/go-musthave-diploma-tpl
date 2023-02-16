@@ -32,7 +32,7 @@ func (s *serverMart) postAPIUserOrders(c echo.Context) error {
 	}
 
 	get := c.Get("user")
-	err = s.db.WriteOrderAccrual(bodyOrder, get.(string))
+	err = s.DB.WriteOrderAccrual(bodyOrder, get.(string))
 	if err != nil {
 		if errors.Is(err, errorsgm.ErrLoadedEarlierThisUser) {
 			c.Response().WriteHeader(http.StatusOK)

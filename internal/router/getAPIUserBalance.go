@@ -9,7 +9,7 @@ import (
 
 func (s *serverMart) getAPIUserBalance(c echo.Context) error {
 	get := c.Get("user")
-	points, err := s.db.ReadUserPoints(get.(string))
+	points, err := s.DB.ReadUserPoints(get.(string))
 	if err != nil {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil

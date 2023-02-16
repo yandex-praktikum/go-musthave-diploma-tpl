@@ -16,9 +16,9 @@ type Config struct {
 }
 
 type serverMart struct {
-	cfg  Config
-	serv *echo.Echo
-	db   events.DBI
+	Cfg  Config
+	Serv *echo.Echo
+	DB   events.DBI
 }
 
 func InitServer() *serverMart {
@@ -55,18 +55,18 @@ func (s serverMart) Router() error {
 }
 
 func (s *serverMart) parseFlagCfg() error {
-	errConfig := env.Parse(&s.cfg)
+	errConfig := env.Parse(&s.Cfg)
 	if errConfig != nil {
 		return errConfig
 	}
-	if s.cfg.ServerAddress == "" {
-		flag.StringVar(&s.cfg.ServerAddress, "a", "", "New RUN_ADDRESS")
+	if s.Cfg.ServerAddress == "" {
+		flag.StringVar(&s.Cfg.ServerAddress, "a", "", "New RUN_ADDRESS")
 	}
-	if s.cfg.BDAddress == "" {
-		flag.StringVar(&s.cfg.BDAddress, "d", "", "New DATABASE_URI")
+	if s.Cfg.BDAddress == "" {
+		flag.StringVar(&s.Cfg.BDAddress, "d", "", "New DATABASE_URI")
 	}
-	if s.cfg.AccrualAddress == "" {
-		flag.StringVar(&s.cfg.AccrualAddress, "r", "", "New ACCRUAL_SYSTEM_ADDRESS")
+	if s.Cfg.AccrualAddress == "" {
+		flag.StringVar(&s.Cfg.AccrualAddress, "r", "", "New ACCRUAL_SYSTEM_ADDRESS")
 	}
 
 	flag.Parse()
@@ -75,10 +75,10 @@ func (s *serverMart) parseFlagCfg() error {
 
 func (s serverMart) connectDB() error {
 	var err error
-	if s.db, err = events.InitDB(); err != nil {
+	if s.DB, err = events.InitDB(); err != nil {
 		return err
 	}
-	if err = s.db.Connect(s.cfg.BDAddress); err != nil {
+	if err = s.DB.Connect(s.Cfg.BDAddress); err != nil {
 		return err
 	}
 	return nil

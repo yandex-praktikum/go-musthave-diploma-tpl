@@ -9,7 +9,7 @@ import (
 
 func (s *serverMart) getAPIUserWithdrawals(c echo.Context) error {
 	get := c.Get("user")
-	allOrder, err := s.db.ReadAllOrderWithdrawnUser(get.(string))
+	allOrder, err := s.DB.ReadAllOrderWithdrawnUser(get.(string))
 	if err != nil {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil

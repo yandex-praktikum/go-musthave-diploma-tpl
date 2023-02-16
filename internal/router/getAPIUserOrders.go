@@ -9,7 +9,7 @@ import (
 
 func (s *serverMart) getAPIUserOrders(c echo.Context) error {
 	get := c.Get("user")
-	allOrder, err := s.db.ReadAllOrderAccrualUser(get.(string))
+	allOrder, err := s.DB.ReadAllOrderAccrualUser(get.(string))
 	if err != nil {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
