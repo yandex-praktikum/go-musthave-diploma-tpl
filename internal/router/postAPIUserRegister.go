@@ -18,7 +18,7 @@ type registration struct {
 	Password string `json:"password"`
 }
 
-func (s *serverMart) postAPIUserRegistration(c echo.Context) error {
+func (s *serverMart) postAPIUserRegister(c echo.Context) error {
 	var userLog registration
 	defer c.Request().Body.Close()
 	body, err := io.ReadAll(c.Request().Body)

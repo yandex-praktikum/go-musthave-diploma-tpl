@@ -9,7 +9,8 @@ import (
 
 const Authorization = "Authorization"
 const Bearer = "Bearer"
-const keyJWT = "pqla3zxjonfgwouhf"
+
+var keyJWT = []byte("pqla3zxjonfgwouhf")
 
 type ClaimsUser struct {
 	Login string `json:"Login"`

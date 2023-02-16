@@ -10,7 +10,7 @@ import (
 )
 
 func (s *serverMart) gzip(next echo.HandlerFunc) echo.HandlerFunc {
-	fmt.Println("=> gzip run")
+	fmt.Println("===> mwgzip")
 
 	return func(c echo.Context) error {
 		if c.Request().Header.Get("Content-Encoding") != "gzip" {

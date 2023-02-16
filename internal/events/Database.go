@@ -243,7 +243,7 @@ func (db *Database) RegisterUser(login string, pass string) (tokenJWT string, er
 	h.Write([]byte(pass))
 	passHex := hex.EncodeToString(h.Sum(nil))
 
-	_, err = db.connection.Exec("insert into UsersGopherMart (login, password, current_points, withdrawn_points ) values ($1,$2,$3,$3)", login, passHex, 0)
+	_, err = db.connection.Exec("insert into UsersGopherMart (login, password, current_points, withdrawn_points ) values ($1,$2,$3,$4)", login, passHex, 0, 0)
 	if err != nil {
 		return "", err
 	}

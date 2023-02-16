@@ -39,17 +39,17 @@ func (s *serverMart) Router() error {
 
 	e.Use(s.gzip)
 
-	e.POST("/api/user/register", s.postAPIUserRegistration)
+	e.POST("/api/user/register", s.postAPIUserRegister)
 	e.POST("/api/user/login", s.postAPIUserLogin)
 
-	e.Use(s.mwUserAuthentication)
+	//e.Use(s.mwUserAuthentication)
 
-	e.GET("/api/user/orders", s.getAPIUserOrders)           // Получение списка загруженных заказов
-	e.GET("/api/user/balance", s.getAPIUserBalance)         // Получение текущего баланса пользователя
-	e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals) // Получение информации о выводе средств
+	e.GET("/api/user/orders", s.getAPIUserOrders, s.mwUserAuthentication)           // Получение списка загруженных заказов
+	e.GET("/api/user/balance", s.getAPIUserBalance, s.mwUserAuthentication)         // Получение текущего баланса пользователя
+	e.GET("/api/user/withdrawals", s.getAPIUserWithdrawals, s.mwUserAuthentication) // Получение информации о выводе средств
 
-	e.POST("/api/user/orders", s.postAPIUserOrders)                    // Загрузка номера заказа
-	e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw) // Запрос на списание средств
+	e.POST("/api/user/orders", s.postAPIUserOrders, s.mwUserAuthentication)                    // Загрузка номера заказа
+	e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw, s.mwUserAuthentication) // Запрос на списание средств
 
 	errStart := e.Start(s.Cfg.ServerAddress)
 
@@ -65,7 +65,7 @@ func (s *serverMart) parseFlagCfg() error {
 		return errConfig
 	}
 	if s.Cfg.ServerAddress == "" {
-		flag.StringVar(&s.Cfg.ServerAddress, "a", "", "New RUN_ADDRESS")
+		flag.StringVar(&s.Cfg.ServerAddress, "a", "localhost:8080", "New RUN_ADDRESS")
 	}
 	if s.Cfg.BDAddress == "" {
 		flag.StringVar(&s.Cfg.BDAddress, "d", "postgres://postgres:0000@localhost:5432/postgres", "New DATABASE_URI")

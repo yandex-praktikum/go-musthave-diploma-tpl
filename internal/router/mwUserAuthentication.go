@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 
 func (s *serverMart) mwUserAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		fmt.Println("===> mwUserAuthentication")
 		headerAuth := c.Request().Header.Get(events.Authorization)
 		if headerAuth == "" {
 			c.Response().WriteHeader(http.StatusInternalServerError)
