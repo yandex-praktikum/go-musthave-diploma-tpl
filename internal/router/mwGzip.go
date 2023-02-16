@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-func (s serverMart) gzip(next echo.HandlerFunc) echo.HandlerFunc {
+func (s *serverMart) gzip(next echo.HandlerFunc) echo.HandlerFunc {
 	fmt.Println("=> gzip run")
 
 	return func(c echo.Context) error {

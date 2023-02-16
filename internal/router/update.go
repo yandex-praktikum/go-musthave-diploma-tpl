@@ -7,7 +7,7 @@ import (
 	"GopherMart/internal/events"
 )
 
-func (s serverMart) updateAccrual() {
+func (s *serverMart) updateAccrual() {
 	var wg, wgTimer sync.WaitGroup
 	for {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
@@ -29,7 +29,7 @@ func (s serverMart) updateAccrual() {
 
 }
 
-func (s serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGroup) {
+func (s *serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGroup) {
 	wgTimer.Wait()
 	accrual, sec, err := events.AccrualGet(s.Cfg.AccrualAddress, order)
 	for sec != 0 {

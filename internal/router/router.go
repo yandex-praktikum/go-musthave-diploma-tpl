@@ -25,7 +25,7 @@ func InitServer() *serverMart {
 	return &serverMart{}
 }
 
-func (s serverMart) Router() error {
+func (s *serverMart) Router() error {
 	if err := s.parseFlagCfg(); err != nil {
 		return err
 	}
@@ -51,6 +51,11 @@ func (s serverMart) Router() error {
 	e.POST("/api/user/orders", s.postAPIUserOrders)                    // Загрузка номера заказа
 	e.POST("/api/user/balance/withdraw", s.postAPIUserBalanceWithdraw) // Запрос на списание средств
 
+	errStart := e.Start(s.Cfg.ServerAddress)
+
+	if errStart != nil {
+		return errStart
+	}
 	return nil
 }
 
@@ -73,7 +78,7 @@ func (s *serverMart) parseFlagCfg() error {
 	return nil
 }
 
-func (s serverMart) connectDB() error {
+func (s *serverMart) connectDB() error {
 	var err error
 	if s.DB, err = events.InitDB(); err != nil {
 		return err
@@ -81,5 +86,6 @@ func (s serverMart) connectDB() error {
 	if err = s.DB.Connect(s.Cfg.BDAddress); err != nil {
 		return err
 	}
+
 	return nil
 }

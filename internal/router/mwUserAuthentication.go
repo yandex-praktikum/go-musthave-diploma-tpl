@@ -9,7 +9,7 @@ import (
 	"GopherMart/internal/events"
 )
 
-func (s serverMart) mwUserAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
+func (s *serverMart) mwUserAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		headerAuth := c.Request().Header.Get(events.Authorization)
 		if headerAuth == "" {

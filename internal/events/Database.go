@@ -12,20 +12,20 @@ import (
 	"GopherMart/internal/errorsgm"
 )
 
-var CreateTableOperations = `CREATE TABLE OperationsGopherMart(
+var createTableOperations = `CREATE TABLE OperationsGopherMart(
 order_number     	varchar(32),   
-login          		varchar(64),
+login          		varchar(32),
 uploaded_at       	varchar(32),
 status				varchar(32),
 operation 			varchar(32),
-points      		integer,
+points      		integer
 )`
 
-var CreateTableUsers = `CREATE TABLE UsersGopherMart(
+var createTableUsers = `CREATE TABLE UsersGopherMart(
 login				varchar(32),
-password          	varchar(64),
+password          	varchar(32),
 current_points    	integer,
-withdrawn_points  	integer,
+withdrawn_points  	integer
 )`
 
 type Operation struct {
@@ -75,7 +75,8 @@ func InitDB() (*Database, error) {
 
 func (db *Database) Connect(connStr string) (err error) {
 
-	db.connection, err = sql.Open("pgx", connStr)
+	//db.connection, err = sql.Open("pgx", connStr)
+	db.connection, err = sql.Open("pgx", "postgres://postgres:0000@localhost:5432/postgres")
 	if err != nil {
 		return err
 	}
@@ -91,27 +92,23 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	//if _, err := db.connection.Exec("Drop TABLE OperationsGopherMart"); err != nil {
-	//	return err
-	//}
-	//if _, err := db.connection.Exec("Drop TABLE UsersGopherMart"); err != nil {
-	//	return err
-	//}
-
-	if _, err := db.connection.Exec(CreateTableOperations); err != nil {
+	db.connection.Exec("Drop TABLE OperationsGopherMart")
+	db.connection.Exec("Drop TABLE UsersGopherMart")
+	if _, err := db.connection.Exec(createTableOperations); err != nil {
 		return err
 	}
-
 	_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
 	if err != nil {
 		return err
 	}
 
-	if _, err = db.connection.Exec(CreateTableUsers); err != nil {
+	if _, err = db.connection.Exec(createTableUsers); err != nil {
 		return err
 	}
-	_, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)")
-	return err
+	if _, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *Database) Ping(ctx context.Context) error {
