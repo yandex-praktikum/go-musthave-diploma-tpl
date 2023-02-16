@@ -34,6 +34,11 @@ func (s serverMart) Router() error {
 		return err
 	}
 
+	fmt.Println("=========!========")
+	fmt.Println(s.cfg.AccrualAddress)
+	fmt.Println(s.cfg.BDAddress)
+	fmt.Println(s.cfg.ServerAddress)
+
 	e := echo.New()
 
 	go s.updateAccrual()
@@ -71,10 +76,6 @@ func (s *serverMart) parseFlagCfg() error {
 	}
 
 	flag.Parse()
-	fmt.Println("=========!========")
-	fmt.Println(s.cfg.AccrualAddress)
-	fmt.Println(s.cfg.BDAddress)
-	fmt.Println(s.cfg.ServerAddress)
 	return nil
 }
 
