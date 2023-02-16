@@ -2,6 +2,7 @@ package router
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
@@ -70,6 +71,10 @@ func (s *serverMart) parseFlagCfg() error {
 	}
 
 	flag.Parse()
+	fmt.Println("=========!========")
+	fmt.Println(s.cfg.AccrualAddress)
+	fmt.Println(s.cfg.BDAddress)
+	fmt.Println(s.cfg.ServerAddress)
 	return nil
 }
 
