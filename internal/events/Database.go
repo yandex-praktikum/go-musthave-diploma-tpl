@@ -127,11 +127,24 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
 
 	var loginOrder string
-	row := db.connection.QueryRow("select login from OperationsGopherMart where order_number = $1",
-		order)
-	if err = row.Scan(&loginOrder); err != nil {
+
+	rows, err := db.connection.Query("select login from OperationsGopherMart where order_number = $1", order)
+	if err != nil {
 		return err
 	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&loginOrder)
+		if err != nil {
+			return err
+		}
+	}
+
+	//row := db.connection.QueryRow("select login from OperationsGopherMart where order_number = $1", order)
+	//
+	//if err = row.Scan(&loginOrder); err != nil {
+	//	return err
+	//}
 	if loginOrder != "" {
 		if loginOrder == user {
 			return errorsgm.ErrLoadedEarlierThisUser // надо что то вернуть
