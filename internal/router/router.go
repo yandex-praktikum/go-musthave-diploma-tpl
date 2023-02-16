@@ -2,7 +2,6 @@ package router
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
@@ -34,11 +33,6 @@ func (s serverMart) Router() error {
 		return err
 	}
 
-	fmt.Println("=========!========")
-	fmt.Println(s.cfg.AccrualAddress)
-	fmt.Println(s.cfg.BDAddress)
-	fmt.Println(s.cfg.ServerAddress)
-
 	e := echo.New()
 
 	go s.updateAccrual()
@@ -66,13 +60,13 @@ func (s *serverMart) parseFlagCfg() error {
 		return errConfig
 	}
 	if s.cfg.ServerAddress == "" {
-		flag.StringVar(&s.cfg.ServerAddress, "a", "http://localhost:8080", "New RUN_ADDRESS")
+		flag.StringVar(&s.cfg.ServerAddress, "a", "", "New RUN_ADDRESS")
 	}
 	if s.cfg.BDAddress == "" {
-		flag.StringVar(&s.cfg.BDAddress, "d", "http://localhost:5432", "New DATABASE_URI")
+		flag.StringVar(&s.cfg.BDAddress, "d", "", "New DATABASE_URI")
 	}
 	if s.cfg.AccrualAddress == "" {
-		flag.StringVar(&s.cfg.AccrualAddress, "r", "http://localhost:5433", "New ACCRUAL_SYSTEM_ADDRESS")
+		flag.StringVar(&s.cfg.AccrualAddress, "r", "", "New ACCRUAL_SYSTEM_ADDRESS")
 	}
 
 	flag.Parse()
