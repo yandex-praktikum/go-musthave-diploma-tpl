@@ -39,7 +39,7 @@ func (s *serverMart) Router() error {
 
 	e.Use(s.gzip)
 
-	e.POST("/api/user/registration", s.postAPIUserRegistration)
+	e.POST("/api/user/register", s.postAPIUserRegistration)
 	e.POST("/api/user/login", s.postAPIUserLogin)
 
 	e.Use(s.mwUserAuthentication)
