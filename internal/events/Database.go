@@ -93,22 +93,22 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	//db.connection.Exec("Drop TABLE OperationsGopherMart")
-	//db.connection.Exec("Drop TABLE UsersGopherMart")
-	//if _, err := db.connection.Exec(createTableOperations); err != nil {
-	//	return err
-	//}
-	//_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if _, err = db.connection.Exec(createTableUsers); err != nil {
-	//	return err
-	//}
-	//if _, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
-	//	return err
-	//}
+	db.connection.Exec("Drop TABLE OperationsGopherMart")
+	db.connection.Exec("Drop TABLE UsersGopherMart")
+	if _, err := db.connection.Exec(createTableOperations); err != nil {
+		return err
+	}
+	_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
+	if err != nil {
+		return err
+	}
+
+	if _, err = db.connection.Exec(createTableUsers); err != nil {
+		return err
+	}
+	if _, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
+		return err
+	}
 	return nil
 }
 
