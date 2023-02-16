@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -92,22 +93,22 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	db.connection.Exec("Drop TABLE OperationsGopherMart")
-	db.connection.Exec("Drop TABLE UsersGopherMart")
-	if _, err := db.connection.Exec(createTableOperations); err != nil {
-		return err
-	}
-	_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
-	if err != nil {
-		return err
-	}
-
-	if _, err = db.connection.Exec(createTableUsers); err != nil {
-		return err
-	}
-	if _, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
-		return err
-	}
+	//db.connection.Exec("Drop TABLE OperationsGopherMart")
+	//db.connection.Exec("Drop TABLE UsersGopherMart")
+	//if _, err := db.connection.Exec(createTableOperations); err != nil {
+	//	return err
+	//}
+	//_, err := db.connection.Exec("CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if _, err = db.connection.Exec(createTableUsers); err != nil {
+	//	return err
+	//}
+	//if _, err = db.connection.Exec("CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
+	//	return err
+	//}
 	return nil
 }
 
@@ -151,7 +152,8 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 		}
 		return errorsgm.ErrLoadedEarlierAnotherUser
 	}
-	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at) values ($1,$2,$3,$4)", order, user, accrual, timeNow)
+	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status, points) values ($1,$2,$3,$4,$5,$6)",
+		order, user, accrual, timeNow, newOrder, 0)
 	if err != nil {
 		return err
 	}
@@ -161,10 +163,11 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 // вывод всех заказов пользователя
 func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err error) {
 	var op Operation
-	rows, err := db.connection.Query("select order_number, status, uploaded_at, points  from OperationsGopherMart where login = $1 and operation != $2", user, accrual)
+	rows, err := db.connection.Query("select order_number, status, uploaded_at, points  from OperationsGopherMart where login = $1 ", user)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(rows)
 	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
@@ -224,8 +227,9 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 func (db *Database) WriteOrderWithdrawn(user string, order string, point float64) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
-	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, users, operation, points, uploaded_at) values ($1,$2,$3,$4,$5)",
-		order, user, withdraw, point*100, timeNow)
+
+	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
+		order, user, withdraw, timeNow, registered, point*100)
 	if err != nil {
 		return err
 	}
@@ -238,6 +242,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []Operation, err
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
