@@ -180,8 +180,9 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 			return nil, err
 		}
 		fmt.Println("=====1===", op.Points)
-		op.Points = math.Round(op.Points) / 100
+		op.Points = math.Round(op.Points*100) / 10000
 		fmt.Println("=====2===", op.Points)
+		//big.NewFloat(10.3).
 		ops = append(ops, op)
 	}
 
@@ -258,7 +259,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			return nil, err
 		}
 		if op.Operation == withdraw {
-			op.Points = math.Round(op.Points*100) / 100
+			op.Points = math.Round(op.Points*100) / 10000
 			ops = append(ops, op)
 		}
 	}
