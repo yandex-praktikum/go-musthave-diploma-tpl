@@ -263,6 +263,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			ops = append(ops, op)
 		}
 	}
+	fmt.Println("=====OPS====", ops)
 	return ops, nil
 }
 
