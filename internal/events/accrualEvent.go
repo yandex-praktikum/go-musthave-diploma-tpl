@@ -33,9 +33,9 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 	case 200:
 		var bodyFloat requestAccrualFloat
 		fmt.Println("=====AccrualGet==1=== ")
-		fmt.Println(resp)
+		//fmt.Println(resp)
 		fmt.Println("=====AccrualGet==1=1== ")
-		fmt.Println(resp.Body)
+		//fmt.Println(resp.Body)
 		body, err := io.ReadAll(resp.Body)
 		defer resp.Body.Close()
 		fmt.Println("=====AccrualGet==2=== ")
