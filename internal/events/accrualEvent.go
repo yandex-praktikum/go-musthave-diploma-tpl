@@ -23,6 +23,7 @@ type requestAccrual struct {
 }
 
 func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration int64, err error) {
+
 	get := storage + "/api/orders/" + order
 	resp, err := http.Get(get)
 	if err != nil {
