@@ -29,7 +29,7 @@ withdrawn_points  	integer
 )`
 
 type Operation struct {
-	OrderNumber string  `json:"order"`
+	OrderNumber string  `json:"number"`
 	Status      string  `json:"status"`
 	Points      float64 `json:"accrual,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
