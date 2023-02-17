@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -32,13 +33,14 @@ func (s *serverMart) updateAccrual() {
 func (s *serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGroup) {
 	wgTimer.Wait()
 	accrual, sec, err := events.AccrualGet(s.Cfg.AccrualAddress, order)
+	fmt.Println("=====1===== ", accrual, sec, err)
 	for sec != 0 {
 		wgTimer.Add(1)
 		time.Sleep(time.Duration(sec) * time.Second)
 		wgTimer.Done()
 		accrual, sec, err = events.AccrualGet(s.Cfg.AccrualAddress, order)
 	}
-
+	fmt.Println("=====2===== ", accrual, sec, err)
 	if err != nil {
 		return
 	}
