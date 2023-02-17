@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -32,7 +31,7 @@ withdrawn_points  	integer
 type Operation struct {
 	OrderNumber string  `json:"order"`
 	Status      string  `json:"status"`
-	Points      float64 `json:"accrual"`
+	Points      float64 `json:"accrual,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
 }
 
@@ -93,8 +92,8 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	//db.connection.Exec("Drop TABLE OperationsGopherMart")
-	//db.connection.Exec("Drop TABLE UsersGopherMart")
+	db.connection.Exec("Drop TABLE OperationsGopherMart")
+	db.connection.Exec("Drop TABLE UsersGopherMart")
 
 	if _, err := db.connection.Exec(createTableOperations); err != nil {
 		return err
@@ -163,7 +162,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(rows)
+
 	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
