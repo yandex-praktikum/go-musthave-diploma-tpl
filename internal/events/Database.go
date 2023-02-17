@@ -36,6 +36,13 @@ type Operation struct {
 	UploadedAt  string  `json:"uploaded_at"`
 }
 
+type OperationO struct {
+	OrderNumber string  `json:"order"`
+	Status      string  `json:"-"`
+	Points      float64 `json:"accrual,omitempty"`
+	UploadedAt  string  `json:"uploaded_at"`
+}
+
 const (
 	accrual  = "accrual"
 	withdraw = "withdraw"
@@ -232,8 +239,8 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 	return nil
 }
 
-func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []Operation, err error) {
-	var op Operation
+func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error) {
+	var op OperationO
 	rows, err := db.connection.Query("select order_number, status, uploaded_at, points from OperationsGopherMart where login = $1 and operation != $2", user, withdraw)
 	if err != nil {
 		return nil, err
