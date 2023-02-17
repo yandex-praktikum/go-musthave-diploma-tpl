@@ -41,6 +41,7 @@ type OperationO struct {
 	Status      string  `json:"-"`
 	Points      float64 `json:"accrual,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
+	Operation   string  `json:"-"`
 }
 
 const (
@@ -242,19 +243,21 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 
 func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error) {
 	var op OperationO
-	rows, err := db.connection.Query("select order_number, status, uploaded_at, points from OperationsGopherMart where login = $1 and operation != $2", user, withdraw)
+	rows, err := db.connection.Query("select order_number, status, uploaded_at, points from OperationsGopherMart where login = $1", user)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
+		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points, &op.Operation)
 		if err != nil {
 			return nil, err
 		}
-		op.Points = op.Points / 100
-		ops = append(ops, op)
+		if op.Operation == withdraw {
+			op.Points = op.Points / 100
+			ops = append(ops, op)
+		}
 	}
 	return ops, nil
 }
