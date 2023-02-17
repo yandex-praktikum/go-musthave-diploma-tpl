@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -255,7 +256,8 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			return nil, err
 		}
 		if op.Operation == withdraw {
-			op.Points = op.Points / 100
+			math.Pow(10, float64(2))
+			op.Points = math.Round(op.Points*100) / 100
 			ops = append(ops, op)
 		}
 	}
