@@ -9,6 +9,7 @@ import (
 )
 
 func (s *serverMart) updateAccrual() {
+	fmt.Println("=====updateAccrual===== ")
 	var wg, wgTimer sync.WaitGroup
 	for {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
