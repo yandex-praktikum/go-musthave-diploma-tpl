@@ -211,7 +211,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 		return err
 	}
 
-	_, err = db.connection.Exec("UPDATE UsersGopherMart SET (current_points = current_points - $1) and (withdrawn_points = withdrawn_points + $2) WHERE login=$3",
+	_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points - $1,withdrawn_points = withdrawn_points + $2 WHERE login=$3",
 		sum*100, sum*100, user)
 	if err != nil {
 		fmt.Println("===postAPIUserBalanceWithdraw=6=", err)
