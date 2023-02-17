@@ -314,12 +314,14 @@ func (db *Database) ReadAllOrderAccrualNoComplite() (orders []orderstruct, err e
 }
 
 func (db *Database) UpdateOrderAccrual(login string, orderAccrual requestAccrual) (err error) {
-	fmt.Println("=====3===== ", login, orderAccrual)
+	fmt.Println("=====UpdateOrderAccrual===== ", login, orderAccrual)
 	_, err = db.connection.Exec("UPDATE OperationsGopherMart SET status = $1,point = $2 WHERE order_number=$3",
 		orderAccrual.Status, orderAccrual.Accrual, orderAccrual.Order)
 	if err != nil {
+		fmt.Println("=====UpdateOrderAccrual===err== ", err)
 		return err
 	}
+	fmt.Println("=====UpdateOrderAccrual==Status=== ", orderAccrual.Status)
 	//зачислить балы пользователю
 	if orderAccrual.Status == registered {
 		_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE login=$2",
