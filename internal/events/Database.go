@@ -41,7 +41,7 @@ const (
 
 	newOrder   = "NEW"
 	processing = "PROCESSING"
-	registered = "REGISTERED"
+	processed  = "PROCESSED"
 	//invalid    = "INVALID"
 )
 
@@ -223,7 +223,7 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 	timeNow := time.Now().Format(time.RFC3339)
 
 	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
-		order, user, withdraw, timeNow, registered, point*100)
+		order, user, withdraw, timeNow, processed, point*100)
 	if err != nil {
 		return err
 	}
@@ -319,7 +319,7 @@ func (db *Database) UpdateOrderAccrual(login string, orderAccrual requestAccrual
 		return err
 	}
 	//зачислить балы пользователю
-	if orderAccrual.Status == registered {
+	if orderAccrual.Status == processed {
 		_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE login=$2",
 			orderAccrual.Accrual, login)
 		if err != nil {
