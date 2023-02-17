@@ -16,18 +16,20 @@ func (s *serverMart) getAPIUserOrders(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
-	fmt.Println(allOrder)
+	fmt.Println("===============test0 ", allOrder)
 	if len(allOrder) == 0 {
+		fmt.Println("===============test1")
 		c.Response().WriteHeader(http.StatusNoContent)
 		return nil
 	}
 
 	allOrderJSON, err := json.Marshal(allOrder)
 	if err != nil {
+		fmt.Println("===============test2")
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
-	fmt.Println(allOrderJSON)
+	fmt.Println("===============test3 ", allOrderJSON)
 	c.Response().Header().Set("content-type", "application/json")
 	c.Response().WriteHeader(http.StatusOK)
 	c.Response().Write(allOrderJSON)
