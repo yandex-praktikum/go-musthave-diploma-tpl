@@ -201,8 +201,8 @@ func (db *Database) ReadUserPoints(user string) (up UserPoints, err error) {
 	if err = row.Scan(&up.CurrentPoints, &up.WithdrawnPoints); err != nil {
 		return UserPoints{}, err
 	}
-	up.WithdrawnPoints = up.WithdrawnPoints / 100
-	up.CurrentPoints = up.CurrentPoints / 100
+	up.WithdrawnPoints = math.Round(up.WithdrawnPoints*100) / 10000
+	up.CurrentPoints = math.Round(up.CurrentPoints*100) / 10000
 	return up, nil
 }
 
