@@ -2,7 +2,6 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -23,7 +22,6 @@ type requestAccrual struct {
 }
 
 func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration int64, err error) {
-
 	get := storage + "/api/orders/" + order
 	resp, err := http.Get(get)
 	if err != nil {
@@ -33,15 +31,9 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 
 	case 200:
 		var bodyFloat requestAccrualFloat
-		fmt.Println("=====AccrualGet==1=== ")
-		//fmt.Println(resp)
-		fmt.Println("=====AccrualGet==1=1== ")
-		//fmt.Println(resp.Body)
 		body, err := io.ReadAll(resp.Body)
 		defer resp.Body.Close()
-		fmt.Println("=====AccrualGet==2=== ")
 		if err != nil {
-			fmt.Println("=====AccrualGet==3=== ")
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		err = json.Unmarshal(body, &bodyFloat)
