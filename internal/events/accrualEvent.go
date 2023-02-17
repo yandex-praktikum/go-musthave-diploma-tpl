@@ -33,17 +33,18 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 	case 200:
 		var bodyFloat requestAccrualFloat
 		fmt.Println("=====AccrualGet==1=== ")
+		fmt.Println(resp)
+		fmt.Println("=====AccrualGet==1=1== ")
+		fmt.Println(resp.Body)
 		body, err := io.ReadAll(resp.Body)
-		defer resp.Request.Body.Close()
+		defer resp.Body.Close()
 		fmt.Println("=====AccrualGet==2=== ")
 		if err != nil {
 			fmt.Println("=====AccrualGet==3=== ")
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
-
 		err = json.Unmarshal(body, &bodyFloat)
 		if err != nil {
-
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		bodyUint.Status = bodyFloat.Status
