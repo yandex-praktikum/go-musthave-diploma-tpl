@@ -21,7 +21,7 @@ func (s *serverMart) getAPIUserBalance(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
-	fmt.Println("====getAPIUserBalance===", allPointsJSON)
+	fmt.Println("====getAPIUserBalance===", string(allPointsJSON))
 	c.Response().Header().Set("content-type", "application/json")
 	c.Response().WriteHeader(http.StatusOK)
 	c.Response().Write(allPointsJSON)
