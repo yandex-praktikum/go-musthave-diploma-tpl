@@ -243,7 +243,7 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 
 func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error) {
 	var op OperationO
-	rows, err := db.connection.Query("select order_number, status, uploaded_at, points from OperationsGopherMart where login = $1", user)
+	rows, err := db.connection.Query("select order_number, status, uploaded_at, points, operation from OperationsGopherMart where login = $1", user)
 	if err != nil {
 		return nil, err
 	}

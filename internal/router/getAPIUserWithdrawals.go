@@ -12,6 +12,7 @@ func (s *serverMart) getAPIUserWithdrawals(c echo.Context) error {
 	get := c.Get("user")
 	allOrder, err := s.DB.ReadAllOrderWithdrawnUser(get.(string))
 	if err != nil {
+		fmt.Println("====getAPIUserWithdrawals==2== ", err, " ", allOrder)
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
