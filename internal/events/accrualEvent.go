@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"GopherMart/internal/errorsgm"
 )
@@ -31,6 +32,7 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 	switch resp.StatusCode {
 
 	case 200:
+		time.Sleep(3 * time.Second)
 		fmt.Println("=====AccrualGet==1=== ")
 		var bodyFloat requestAccrualFloat
 		fmt.Println("=====AccrualGet==1==2= ")
