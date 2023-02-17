@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"GopherMart/internal/errorsgm"
 )
@@ -32,31 +31,27 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 	switch resp.StatusCode {
 
 	case 200:
-		time.Sleep(3 * time.Second)
-		fmt.Println("=====AccrualGet==1=== ")
 		var bodyFloat requestAccrualFloat
-		fmt.Println("=====AccrualGet==1==2= ")
-		body, err := io.ReadAll(resp.Request.Body)
-		fmt.Println("=====AccrualGet==2=11== ")
-		if err != nil {
-			fmt.Println("=====AccrualGet==2=== ")
-			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
-		}
-		fmt.Println("=====AccrualGet==2==1= ")
-		err = json.Unmarshal(body, &bodyFloat)
+		fmt.Println("=====AccrualGet==1=== ")
+		body, err := io.ReadAll(resp.Body)
+		defer resp.Request.Body.Close()
+		fmt.Println("=====AccrualGet==2=== ")
 		if err != nil {
 			fmt.Println("=====AccrualGet==3=== ")
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
-		fmt.Println("=====AccrualGet==4=== ")
+
+		err = json.Unmarshal(body, &bodyFloat)
+		if err != nil {
+
+			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
+		}
 		bodyUint.Status = bodyFloat.Status
 		bodyUint.Accrual = uint(bodyFloat.Accrual * 100)
 		bodyUint.Order = bodyFloat.Order
-		fmt.Println("=====AccrualGet==5=== ")
 		return bodyUint, 0, nil
 
 	case 429:
-		fmt.Println("=====AccrualGet===4== ")
 		header := resp.Header
 		a := header["Retry-After"][0]
 		sec, err := strconv.ParseInt(a, 10, 0)
@@ -66,7 +61,6 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 		return requestAccrual{}, sec, nil //
 
 	case 500:
-		fmt.Println("=====AccrualGet===5== ")
 		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError //
 	}
 
