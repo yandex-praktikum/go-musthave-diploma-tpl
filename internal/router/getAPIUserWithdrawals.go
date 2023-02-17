@@ -25,7 +25,7 @@ func (s *serverMart) getAPIUserWithdrawals(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
-	fmt.Println("====getAPIUserWithdrawals==== ", string(allOrderJSON))
+	fmt.Println("====getAPIUserWithdrawals==== ", string(allOrderJSON), " ", get.(string))
 	c.Response().Header().Set("content-type", "application/json")
 	c.Response().WriteHeader(http.StatusOK)
 	c.Response().Write(allOrderJSON)

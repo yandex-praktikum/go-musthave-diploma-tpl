@@ -230,6 +230,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 func (db *Database) WriteOrderWithdrawn(user string, order string, point float64) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
+	fmt.Println("WriteOrderWithdrawn=== ", order, user)
 
 	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
 		order, user, withdraw, timeNow, processed, point*100)
