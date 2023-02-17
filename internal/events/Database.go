@@ -200,24 +200,21 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 	u, err = db.ReadUserPoints(user)
 	if err != nil {
-		fmt.Println("===postAPIUserBalanceWithdraw=4=")
 		return err
 	}
 	if u.CurrentPoints < sum {
-		fmt.Println("===postAPIUserBalanceWithdraw=41=")
 		return errorsgm.ErrDontHavePoints
 	}
 
 	err = db.WriteOrderWithdrawn(user, order, sum)
 	if err != nil {
-		fmt.Println("===postAPIUserBalanceWithdraw=5=")
 		return err
 	}
 
-	_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points - $1 and withdrawn_points = withdrawn_points + $1 WHERE login=$2",
-		sum*100, user)
+	_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points - $1 and withdrawn_points = withdrawn_points + $2 WHERE login=$3",
+		sum*100, sum*100, user)
 	if err != nil {
-		fmt.Println("===postAPIUserBalanceWithdraw=6=")
+		fmt.Println("===postAPIUserBalanceWithdraw=6=", err)
 		return err
 	}
 
