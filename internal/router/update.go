@@ -12,7 +12,7 @@ func (s *serverMart) updateAccrual() {
 	for {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
 		if err != nil {
-			time.Sleep(5 * time.Second)
+			//time.Sleep(1 * time.Second)
 			continue
 		}
 		if len(orders) != 0 {
@@ -21,7 +21,7 @@ func (s *serverMart) updateAccrual() {
 				go s.worker(order.Order, order.Login, &wg, &wgTimer)
 			}
 		} else {
-			time.Sleep(5 * time.Second)
+			//time.Sleep(1 * time.Second)
 		}
 
 		wg.Wait()

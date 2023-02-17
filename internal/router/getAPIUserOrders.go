@@ -26,6 +26,7 @@ func (s *serverMart) getAPIUserOrders(c echo.Context) error {
 	}
 
 	c.Response().WriteHeader(http.StatusOK)
-	c.Response().Write(allOrderJSON)
+	c.Response().Header().Add("application/json", string(allOrderJSON))
+	//c.Response().Write(allOrderJSON)
 	return nil
 }
