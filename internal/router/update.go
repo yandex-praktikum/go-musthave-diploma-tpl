@@ -44,7 +44,6 @@ func (s *serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGr
 		wgTimer.Done()
 		accrual, sec, err = events.AccrualGet(s.Cfg.AccrualAddress, order)
 	}
-	fmt.Println("====worker2==== ", accrual, sec, err)
 	if err != nil {
 		return
 	}

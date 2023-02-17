@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -314,14 +313,11 @@ func (db *Database) ReadAllOrderAccrualNoComplite() (orders []orderstruct, err e
 }
 
 func (db *Database) UpdateOrderAccrual(login string, orderAccrual requestAccrual) (err error) {
-	fmt.Println("=====UpdateOrderAccrual===== ", login, orderAccrual)
 	_, err = db.connection.Exec("UPDATE OperationsGopherMart SET status = $1,points = $2 WHERE order_number=$3",
 		orderAccrual.Status, orderAccrual.Accrual, orderAccrual.Order)
 	if err != nil {
-		fmt.Println("=====UpdateOrderAccrual===err== ", err)
 		return err
 	}
-	fmt.Println("=====UpdateOrderAccrual==Status=== ", orderAccrual.Status)
 	//зачислить балы пользователю
 	if orderAccrual.Status == registered {
 		_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE login=$2",
