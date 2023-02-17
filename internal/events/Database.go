@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -199,6 +200,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 	u, err = db.ReadUserPoints(user)
 	if err != nil {
+		fmt.Println("===postAPIUserBalanceWithdraw=4=")
 		return err
 	}
 	if u.CurrentPoints < sum {
@@ -207,12 +209,14 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 	err = db.WriteOrderWithdrawn(user, order, sum)
 	if err != nil {
+		fmt.Println("===postAPIUserBalanceWithdraw=5=")
 		return err
 	}
 
 	_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points - $1 and withdrawn_points = withdrawn_points + $1 WHERE login=$2",
 		sum*100, user)
 	if err != nil {
+		fmt.Println("===postAPIUserBalanceWithdraw=6=")
 		return err
 	}
 
