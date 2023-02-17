@@ -13,13 +13,17 @@ func (s *serverMart) updateAccrual() {
 	var wg, wgTimer sync.WaitGroup
 	for {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
+		fmt.Println("=====updateAccrual===orders== ", orders)
 		if err != nil {
 			//time.Sleep(1 * time.Second)
+			fmt.Println("=====updateAccrual====err= ", err)
 			continue
 		}
 		if len(orders) != 0 {
+			fmt.Println("=====updateAccrual====orders2= ", orders)
 			for _, order := range orders {
 				wg.Add(1)
+				fmt.Println("=====updateAccrual====order= ", order)
 				go s.worker(order.Order, order.Login, &wg, &wgTimer)
 			}
 		} else {
