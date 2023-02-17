@@ -22,6 +22,7 @@ func (s *serverMart) getAPIUserWithdrawals(c echo.Context) error {
 
 	allOrderJSON, err := json.Marshal(allOrder)
 	if err != nil {
+		fmt.Println("====getAPIUserWithdrawals==2== ", err, " ", allOrder)
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
