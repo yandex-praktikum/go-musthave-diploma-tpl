@@ -297,15 +297,19 @@ type orderstruct struct {
 
 func (db *Database) ReadAllOrderAccrualNoComplite() (orders []orderstruct, err error) {
 	var order orderstruct
-	rows, err := db.connection.Query("select order_number,login from OperationsGopherMart where status = $1 or $2",
+	fmt.Println("=====ReadAll===== ")
+	rows, err := db.connection.Query("select order_number,login from OperationsGopherMart where status = $1 or status = $2",
 		newOrder, processing)
 	if err != nil {
+		fmt.Println("=====ReadAll===2== ")
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
+		fmt.Println("=====ReadAll===3== ")
 		err := rows.Scan(&order.Order, &order.Login)
 		if err != nil {
+			fmt.Println("=====ReadAll===4== ")
 			return nil, err
 		}
 		orders = append(orders, order)
