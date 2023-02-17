@@ -25,27 +25,29 @@ type requestAccrual struct {
 func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration int64, err error) {
 	get := storage + "/api/orders/" + order
 	resp, err := http.Get(get)
-	fmt.Println("=====AccrualGet===== ")
 	if err != nil {
 		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 	}
-	fmt.Println("=====AccrualGet==2=== ")
 	switch resp.StatusCode {
 
 	case 200:
-		fmt.Println("=====AccrualGet==3=== ")
+		fmt.Println("=====AccrualGet==1=== ")
 		var bodyFloat requestAccrualFloat
 		body, err := io.ReadAll(resp.Request.Body)
 		if err != nil {
+			fmt.Println("=====AccrualGet==2=== ")
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
 		err = json.Unmarshal(body, &bodyFloat)
 		if err != nil {
+			fmt.Println("=====AccrualGet==3=== ")
 			return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 		}
+		fmt.Println("=====AccrualGet==4=== ")
 		bodyUint.Status = bodyFloat.Status
 		bodyUint.Accrual = uint(bodyFloat.Accrual * 100)
 		bodyUint.Order = bodyFloat.Order
+		fmt.Println("=====AccrualGet==5=== ")
 		return bodyUint, 0, nil
 
 	case 429:
