@@ -93,8 +93,9 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
-	db.connection.Exec("Drop TABLE OperationsGopherMart")
-	db.connection.Exec("Drop TABLE UsersGopherMart")
+	//db.connection.Exec("Drop TABLE OperationsGopherMart")
+	//db.connection.Exec("Drop TABLE UsersGopherMart")
+
 	if _, err := db.connection.Exec(createTableOperations); err != nil {
 		return err
 	}
@@ -141,11 +142,6 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 		}
 	}
 
-	//row := db.connection.QueryRow("select login from OperationsGopherMart where order_number = $1", order)
-	//
-	//if err = row.Scan(&loginOrder); err != nil {
-	//	return err
-	//}
 	if loginOrder != "" {
 		if loginOrder == user {
 			return errorsgm.ErrLoadedEarlierThisUser // надо что то вернуть
@@ -176,7 +172,6 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 		}
 		op.Points = op.Points / 100
 		ops = append(ops, op)
-
 	}
 
 	return ops, nil
