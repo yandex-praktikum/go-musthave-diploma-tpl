@@ -21,6 +21,7 @@ func (s *serverMart) getAPIUserBalance(c echo.Context) error {
 		return nil
 	}
 
+	c.Response().Header().Set("content-type", "application/json")
 	c.Response().WriteHeader(http.StatusOK)
 	c.Response().Write(allOrderJSON)
 	return nil
