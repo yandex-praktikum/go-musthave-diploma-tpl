@@ -29,7 +29,7 @@ func (s *serverMart) getAPIUserOrders(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
-	fmt.Println("===============test3 ", allOrderJSON)
+	fmt.Println("===============test3 ", string(allOrderJSON))
 	c.Response().Header().Set("content-type", "application/json")
 	c.Response().WriteHeader(http.StatusOK)
 	c.Response().Write(allOrderJSON)
