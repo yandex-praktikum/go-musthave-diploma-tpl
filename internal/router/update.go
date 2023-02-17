@@ -15,13 +15,11 @@ func (s *serverMart) updateAccrual() {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
 		if err != nil {
 			time.Sleep(1 * time.Second)
-			fmt.Println("=====updateAccrual====err= ", err)
 			continue
 		}
 		if len(orders) != 0 {
 			for _, order := range orders {
 				wg.Add(1)
-				fmt.Println("=====updateAccrual====order= ", order)
 				go s.worker(order.Order, order.Login, &wg, &wgTimer)
 			}
 		} else {
@@ -35,12 +33,10 @@ func (s *serverMart) updateAccrual() {
 
 func (s *serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGroup) {
 	wgTimer.Wait()
-
-	time.Sleep(1 * time.Second)
 	accrual, sec, err := events.AccrualGet(s.Cfg.AccrualAddress, order)
 	for sec != 0 {
 		wgTimer.Add(1)
-		time.Sleep(time.Duration(sec) * time.Second)
+
 		wgTimer.Done()
 		accrual, sec, err = events.AccrualGet(s.Cfg.AccrualAddress, order)
 	}
