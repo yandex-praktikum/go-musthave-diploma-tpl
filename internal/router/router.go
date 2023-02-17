@@ -2,6 +2,7 @@ package router
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
@@ -34,6 +35,9 @@ func (s *serverMart) Router() error {
 	}
 
 	e := echo.New()
+	fmt.Println(s.Cfg.ServerAddress)
+	fmt.Println(s.Cfg.BDAddress)
+	fmt.Println(s.Cfg.AccrualAddress)
 
 	go s.updateAccrual()
 
