@@ -158,7 +158,7 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 // вывод всех заказов пользователя
 func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err error) {
 	var op Operation
-	rows, err := db.connection.Query("select order_number, status, uploaded_at, points  from OperationsGopherMart where login = $1 ", user)
+	rows, err := db.connection.Query("select order_number, status, uploaded_at, points  from OperationsGopherMart where login = $1 ORDER BY uploaded_at ASC", user)
 	if err != nil {
 		return nil, err
 	}
