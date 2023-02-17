@@ -180,7 +180,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 			return nil, err
 		}
 		fmt.Println("=====1===", op.Points)
-		op.Points = math.Round(op.Points*100) / 100
+		op.Points = math.Round(op.Points) / 100
 		fmt.Println("=====2===", op.Points)
 		ops = append(ops, op)
 	}
