@@ -204,6 +204,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 		return err
 	}
 	if u.CurrentPoints < sum {
+		fmt.Println("===postAPIUserBalanceWithdraw=41=")
 		return errorsgm.ErrDontHavePoints
 	}
 
