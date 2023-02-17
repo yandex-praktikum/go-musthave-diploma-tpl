@@ -67,7 +67,7 @@ type DBI interface {
 	ReadUserPoints(user string) (u UserPoints, err error)
 	WithdrawnUserPoints(user string, order string, sum float64) (err error)
 	WriteOrderWithdrawn(order string, user string, point float64) (err error)
-	ReadAllOrderWithdrawnUser(user string) (ops []Operation, err error)
+	ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error)
 
 	ReadAllOrderAccrualNoComplite() (orders []orderstruct, err error)
 	UpdateOrderAccrual(login string, orderAccrual requestAccrual) (err error)
