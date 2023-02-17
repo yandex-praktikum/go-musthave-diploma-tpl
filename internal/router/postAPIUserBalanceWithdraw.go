@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -22,12 +23,14 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 	defer c.Request().Body.Close()
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
+		fmt.Println("===postAPIUserBalanceWithdraw=1=")
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
 	var bodyOrder orderWithdrawals
 	err = json.Unmarshal(body, &bodyOrder)
 	if err != nil {
+		fmt.Println("===postAPIUserBalanceWithdraw=2=")
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
@@ -50,6 +53,7 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 			c.Response().WriteHeader(http.StatusPaymentRequired)
 			return nil
 		}
+		fmt.Println("===postAPIUserBalanceWithdraw=3=")
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
