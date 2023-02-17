@@ -2,6 +2,7 @@ package events
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -24,13 +25,15 @@ type requestAccrual struct {
 func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration int64, err error) {
 	get := storage + "/api/orders/" + order
 	resp, err := http.Get(get)
-
+	fmt.Println("=====AccrualGet===== ")
 	if err != nil {
 		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError
 	}
+	fmt.Println("=====AccrualGet==2=== ")
 	switch resp.StatusCode {
 
 	case 200:
+		fmt.Println("=====AccrualGet==3=== ")
 		var bodyFloat requestAccrualFloat
 		body, err := io.ReadAll(resp.Request.Body)
 		if err != nil {
@@ -46,6 +49,7 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 		return bodyUint, 0, nil
 
 	case 429:
+		fmt.Println("=====AccrualGet===4== ")
 		header := resp.Header
 		a := header["Retry-After"][0]
 		sec, err := strconv.ParseInt(a, 10, 0)
@@ -55,6 +59,7 @@ func AccrualGet(storage string, order string) (bodyUint requestAccrual, duration
 		return requestAccrual{}, sec, nil //
 
 	case 500:
+		fmt.Println("=====AccrualGet===5== ")
 		return requestAccrual{}, 0, errorsgm.ErrAccrualGetError //
 	}
 

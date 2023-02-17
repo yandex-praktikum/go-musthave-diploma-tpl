@@ -34,11 +34,10 @@ func (s *serverMart) updateAccrual() {
 }
 
 func (s *serverMart) worker(order string, login string, wg, wgTimer *sync.WaitGroup) {
-	fmt.Println("=====worker1===== ")
 	wgTimer.Wait()
-	fmt.Println("=====worker2===== ")
+	fmt.Println("=====worker1===== ")
 	accrual, sec, err := events.AccrualGet(s.Cfg.AccrualAddress, order)
-	fmt.Println("=====worker3===== ", accrual, sec, err)
+	fmt.Println("=====worker2===== ", accrual, sec, err)
 	for sec != 0 {
 		wgTimer.Add(1)
 		time.Sleep(time.Duration(sec) * time.Second)
