@@ -201,8 +201,8 @@ func (db *Database) ReadUserPoints(user string) (up UserPoints, err error) {
 	if err = row.Scan(&up.CurrentPoints, &up.WithdrawnPoints); err != nil {
 		return UserPoints{}, err
 	}
-	up.WithdrawnPoints = math.Round(up.WithdrawnPoints*100) / 10000
-	up.CurrentPoints = math.Round(up.CurrentPoints*100) / 10000
+	up.WithdrawnPoints = math.Round(up.WithdrawnPoints) / 100
+	up.CurrentPoints = math.Round(up.CurrentPoints) / 100
 	return up, nil
 }
 
@@ -242,6 +242,7 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 	if err != nil {
 		return err
 	}
+	fmt.Println("=====WriteOrderWithdrawn=order=point==", order, point)
 	return nil
 }
 
@@ -259,11 +260,11 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			return nil, err
 		}
 		if op.Operation == withdraw {
-			op.Points = math.Round(op.Points*100) / 10000
+			op.Points = math.Round(op.Points) / 100
 			ops = append(ops, op)
 		}
 	}
-	fmt.Println("=====OPS====", ops)
+	fmt.Println("=====ReadAllOrderWithdrawnUser==ops==", ops)
 	return ops, nil
 }
 
