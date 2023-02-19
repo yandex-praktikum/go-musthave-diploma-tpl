@@ -43,6 +43,7 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 		return nil
 	}
 
+	fmt.Println("======postAPIUserBalanceWithdraw=====", bodyOrder.Order, bodyOrder.Sum)
 	get := c.Get("user")
 	err = s.DB.WithdrawnUserPoints(get.(string), bodyOrder.Order, bodyOrder.Sum)
 
@@ -51,7 +52,6 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 			c.Response().WriteHeader(http.StatusPaymentRequired)
 			return nil
 		}
-		fmt.Println("===postAPIUserBalanceWithdraw=3=", err)
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}

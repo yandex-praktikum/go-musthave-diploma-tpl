@@ -214,7 +214,8 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("===WithdrawnUserPoints==point=sum=", u.CurrentPoints, " ", sum)
+	fmt.Println("=====WithdrawnUserPoints==user, order, sum=", user, order, sum)
+	fmt.Println("=====WithdrawnUserPoints==u=", u)
 	if u.CurrentPoints < sum {
 		return errorsgm.ErrDontHavePoints
 	}
@@ -227,7 +228,6 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 	_, err = db.connection.Exec("UPDATE UsersGopherMart SET current_points = current_points - $1,withdrawn_points = withdrawn_points + $2 WHERE login=$3",
 		sum*100, sum*100, user)
 	if err != nil {
-		fmt.Println("===postAPIUserBalanceWithdraw=6=", err)
 		return err
 	}
 
@@ -236,14 +236,14 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 func (db *Database) WriteOrderWithdrawn(user string, order string, point float64) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
-	fmt.Println("WriteOrderWithdrawn=== ", order, user)
+	fmt.Println("=====WriteOrderWithdrawn=2=order=point=user=", user, order, point)
 
 	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
 		order, user, withdraw, timeNow, processed, point*100)
 	if err != nil {
 		return err
 	}
-	fmt.Println("=====WriteOrderWithdrawn=order=point==", order, point)
+
 	return nil
 }
 
