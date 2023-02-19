@@ -182,10 +182,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 			return nil, err
 		}
 		if op.Operation == accrual {
-			fmt.Println("=====1===", op.Points)
-			op.Points = math.Round(op.Points) / 100
-			fmt.Println("=====2===", op.Points)
-			//big.NewFloat(10.3).
+			op.Points = op.Points / 100
 			ops = append(ops, op)
 		}
 	}
@@ -205,8 +202,8 @@ func (db *Database) ReadUserPoints(user string) (up UserPoints, err error) {
 	if err = row.Scan(&up.CurrentPoints, &up.WithdrawnPoints); err != nil {
 		return UserPoints{}, err
 	}
-	up.WithdrawnPoints = math.Round(up.WithdrawnPoints) / 100
-	up.CurrentPoints = math.Round(up.CurrentPoints) / 100
+	up.WithdrawnPoints = up.WithdrawnPoints / 100
+	up.CurrentPoints = up.CurrentPoints / 100
 	return up, nil
 }
 
@@ -265,7 +262,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			return nil, err
 		}
 		if op.Operation == withdraw {
-			op.Points = math.Round(op.Points) / 100
+			op.Points = op.Points / 100
 			ops = append(ops, op)
 		}
 	}

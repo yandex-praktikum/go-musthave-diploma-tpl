@@ -13,7 +13,7 @@ func (s *serverMart) mwUserAuthentication(next echo.HandlerFunc) echo.HandlerFun
 	return func(c echo.Context) error {
 		headerAuth := c.Request().Header.Get(events.Authorization)
 		if headerAuth == "" {
-			c.Response().WriteHeader(http.StatusInternalServerError)
+			c.Response().WriteHeader(http.StatusUnauthorized)
 			return nil
 		}
 		headerParts := strings.Split(headerAuth, " ")
