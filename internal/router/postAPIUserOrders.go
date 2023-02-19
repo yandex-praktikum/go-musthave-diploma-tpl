@@ -40,6 +40,11 @@ func (s *serverMart) postAPIUserOrders(c echo.Context) error {
 			c.Response().WriteHeader(http.StatusOK)
 			return nil
 		}
+		if errors.Is(err, errorsgm.ErrLoadedEarlierAnotherUser) {
+			c.Response().WriteHeader(http.StatusConflict)
+			return nil
+		}
+
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil
 	}
