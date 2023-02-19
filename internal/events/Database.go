@@ -41,7 +41,7 @@ type Operation struct {
 type OperationO struct {
 	OrderNumber string  `json:"order"`
 	Status      string  `json:"-"`
-	Points      float64 `json:"accrual,omitempty"`
+	Points      float64 `json:"sum,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
 	Operation   string  `json:"-"`
 }
@@ -182,7 +182,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 		}
 		if op.Operation == accrual {
 			fmt.Println("=====1===", op.Points)
-			op.Points = math.Round(op.Points*100) / 10000
+			op.Points = math.Round(op.Points) / 100
 			fmt.Println("=====2===", op.Points)
 			//big.NewFloat(10.3).
 			ops = append(ops, op)
