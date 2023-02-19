@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -9,7 +8,6 @@ import (
 )
 
 func (s *serverMart) updateAccrual() {
-	fmt.Println("=====updateAccrual===== ")
 	var wg, wgTimer sync.WaitGroup
 	for {
 		orders, err := s.DB.ReadAllOrderAccrualNoComplite()
@@ -22,8 +20,6 @@ func (s *serverMart) updateAccrual() {
 				wg.Add(1)
 				go s.worker(order.Order, order.Login, &wg, &wgTimer)
 			}
-		} else {
-			//time.Sleep(1 * time.Second)
 		}
 
 		wg.Wait()

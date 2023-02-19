@@ -2,7 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -43,7 +42,6 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 		return nil
 	}
 
-	fmt.Println("======postAPIUserBalanceWithdraw=====", bodyOrder.Order, bodyOrder.Sum)
 	get := c.Get("user")
 	err = s.DB.WithdrawnUserPoints(get.(string), bodyOrder.Order, bodyOrder.Sum)
 

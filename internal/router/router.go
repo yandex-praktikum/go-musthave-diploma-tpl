@@ -2,7 +2,6 @@ package router
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
@@ -35,9 +34,6 @@ func (s *serverMart) Router() error {
 	}
 
 	e := echo.New()
-	fmt.Println(s.Cfg.ServerAddress)
-	fmt.Println(s.Cfg.BDAddress)
-	fmt.Println(s.Cfg.AccrualAddress)
 
 	go s.updateAccrual()
 
@@ -45,8 +41,6 @@ func (s *serverMart) Router() error {
 
 	e.POST("/api/user/register", s.postAPIUserRegister)
 	e.POST("/api/user/login", s.postAPIUserLogin)
-
-	//e.Use(s.mwUserAuthentication)
 
 	e.GET("/api/user/orders", s.getAPIUserOrders, s.mwUserAuthentication)           // Получение списка загруженных заказов
 	e.GET("/api/user/balance", s.getAPIUserBalance, s.mwUserAuthentication)         // Получение текущего баланса пользователя

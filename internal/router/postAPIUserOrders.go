@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -33,7 +32,6 @@ func (s *serverMart) postAPIUserOrders(c echo.Context) error {
 	}
 
 	get := c.Get("user")
-	fmt.Println("=====postAPIUserOrders====", bodyOrder, " ", get)
 	err = s.DB.WriteOrderAccrual(bodyOrder, get.(string))
 	if err != nil {
 		if errors.Is(err, errorsgm.ErrLoadedEarlierThisUser) {
