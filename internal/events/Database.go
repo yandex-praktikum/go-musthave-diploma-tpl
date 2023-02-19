@@ -214,6 +214,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 	if err != nil {
 		return err
 	}
+	fmt.Println("===WithdrawnUserPoints==point=sum=", u.CurrentPoints, " ", sum)
 	if u.CurrentPoints < sum {
 		return errorsgm.ErrDontHavePoints
 	}
