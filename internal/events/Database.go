@@ -35,6 +35,7 @@ type Operation struct {
 	Status      string  `json:"status"`
 	Points      float64 `json:"accrual,omitempty"`
 	UploadedAt  string  `json:"uploaded_at"`
+	Operation   string  `json:"-"`
 }
 
 type OperationO struct {
@@ -168,22 +169,24 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 // вывод всех заказов пользователя
 func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err error) {
 	var op Operation
-	rows, err := db.connection.Query("select order_number, status, uploaded_at, points  from OperationsGopherMart where login = $1 ORDER BY uploaded_at ASC", user)
+	rows, err := db.connection.Query("select order_number, status, uploaded_at, points, operation from OperationsGopherMart where login = $1 ORDER BY uploaded_at ASC", user)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points)
+		err := rows.Scan(&op.OrderNumber, &op.Status, &op.UploadedAt, &op.Points, &op.Operation)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("=====1===", op.Points)
-		op.Points = math.Round(op.Points*100) / 10000
-		fmt.Println("=====2===", op.Points)
-		//big.NewFloat(10.3).
-		ops = append(ops, op)
+		if op.Operation == accrual {
+			fmt.Println("=====1===", op.Points)
+			op.Points = math.Round(op.Points*100) / 10000
+			fmt.Println("=====2===", op.Points)
+			//big.NewFloat(10.3).
+			ops = append(ops, op)
+		}
 	}
 
 	return ops, nil
@@ -236,7 +239,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 
 func (db *Database) WriteOrderWithdrawn(user string, order string, point float64) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
-	fmt.Println("=====WriteOrderWithdrawn=2=order=point=user=", user, order, point)
+	fmt.Println("=====WriteOrderWithdrawn=2=order=point=user=", user, order, point, point*100)
 
 	_, err = db.connection.Exec("insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
 		order, user, withdraw, timeNow, processed, point*100)
@@ -265,7 +268,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			ops = append(ops, op)
 		}
 	}
-	fmt.Println("=====ReadAllOrderWithdrawnUser==ops==", ops)
+	fmt.Println("=====ReadAllOrderWithdrawnUser==ops==", ops, math.Round(op.Points)/100)
 	return ops, nil
 }
 
