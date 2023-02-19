@@ -142,6 +142,8 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 		return err
 	}
 	defer rows.Close()
+	defer rows.Err()
+
 	for rows.Next() {
 		err = rows.Scan(&loginOrder)
 		if err != nil {
