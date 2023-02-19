@@ -103,6 +103,7 @@ func (db *Database) Connect(connStr string) (err error) {
 }
 
 func (db *Database) CreateTable() error {
+
 	//db.connection.Exec("Drop TABLE OperationsGopherMart")
 	//db.connection.Exec("Drop TABLE UsersGopherMart")
 
