@@ -9,6 +9,7 @@ import (
 func main() {
 	rout := router.InitServer()
 	err := rout.Router()
+
 	if err != nil {
 		log.Fatal("Router:", err)
 	}
