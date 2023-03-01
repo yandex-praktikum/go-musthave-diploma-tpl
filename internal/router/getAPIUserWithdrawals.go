@@ -1,15 +1,19 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo"
 )
 
 func (s *serverMart) getAPIUserWithdrawals(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	get := c.Get("user")
-	allOrder, err := s.DB.ReadAllOrderWithdrawnUser(get.(string))
+	allOrder, err := s.DB.ReadAllOrderWithdrawnUser(ctx, get.(string))
 	if err != nil {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return nil

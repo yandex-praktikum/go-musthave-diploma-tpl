@@ -1,9 +1,11 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo"
 
@@ -23,7 +25,10 @@ func (s *serverMart) postAPIUserLogin(c echo.Context) error {
 		return nil
 	}
 
-	tokenJWT, err := s.DB.LoginUser(userLog.Login, userLog.Password)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	tokenJWT, err := s.DB.LoginUser(ctx, userLog.Login, userLog.Password)
 	if (tokenJWT == "") && (err == nil) {
 		c.Response().WriteHeader(http.StatusUnauthorized)
 		return nil

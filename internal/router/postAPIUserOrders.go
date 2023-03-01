@@ -1,9 +1,11 @@
 package router
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -30,9 +32,11 @@ func (s *serverMart) postAPIUserOrders(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusUnprocessableEntity)
 		return nil
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
 	get := c.Get("user")
-	err = s.DB.WriteOrderAccrual(bodyOrder, get.(string))
+	err = s.DB.WriteOrderAccrual(ctx, bodyOrder, get.(string))
 	if err != nil {
 		if errors.Is(err, errorsgm.ErrLoadedEarlierThisUser) {
 			c.Response().WriteHeader(http.StatusOK)

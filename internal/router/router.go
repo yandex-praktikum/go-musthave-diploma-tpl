@@ -1,7 +1,9 @@
 package router
 
 import (
+	"context"
 	"flag"
+	"time"
 
 	"github.com/caarlos0/env"
 	"github.com/labstack/echo"
@@ -77,11 +79,13 @@ func (s *serverMart) parseFlagCfg() error {
 }
 
 func (s *serverMart) connectDB() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	var err error
 	if s.DB, err = events.InitDB(); err != nil {
 		return err
 	}
-	if err = s.DB.Connect(s.Cfg.BDAddress); err != nil {
+	if err = s.DB.Connect(ctx, s.Cfg.BDAddress); err != nil {
 		return err
 	}
 
