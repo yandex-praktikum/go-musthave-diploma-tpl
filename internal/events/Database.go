@@ -12,7 +12,7 @@ import (
 	"GopherMart/internal/errorsgm"
 )
 
-var createTableOperations = `CREATE TABLE OperationsGopherMart(
+var createTableOperations = `CREATE TABLE operations_gopher_mart(
 order_number     	varchar(32),   
 login          		varchar(32),
 uploaded_at       	varchar(32),
@@ -21,14 +21,14 @@ operation 			varchar(32),
 points      		integer
 )`
 
-var createTableUsers = `CREATE TABLE UsersGopherMart(
+var createTableUsers = `CREATE TABLE users_gopher_mart(
 login				varchar(32),
 password          	varchar(32),
 current_points    	integer,
 withdrawn_points  	integer
 )`
 
-type Operation struct {
+type OperationAccrual struct {
 	OrderNumber string  `json:"number"`
 	Status      string  `json:"status"`
 	Points      float64 `json:"accrual,omitempty"`
@@ -36,7 +36,7 @@ type Operation struct {
 	Operation   string  `json:"-"`
 }
 
-type OperationO struct {
+type OperationWithdraw struct {
 	OrderNumber string  `json:"order"`
 	Status      string  `json:"-"`
 	Points      float64 `json:"sum,omitempty"`
@@ -64,11 +64,11 @@ type DBI interface {
 	LoginUser(login string, pass string) (tokenJWT string, err error)
 
 	WriteOrderAccrual(order string, user string) (err error)
-	ReadAllOrderAccrualUser(user string) (ops []Operation, err error)
+	ReadAllOrderAccrualUser(user string) (ops []OperationAccrual, err error)
 	ReadUserPoints(user string) (u UserPoints, err error)
 	WithdrawnUserPoints(user string, order string, sum float64) (err error)
 	WriteOrderWithdrawn(order string, user string, point float64) (err error)
-	ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error)
+	ReadAllOrderWithdrawnUser(user string) (ops []OperationWithdraw, err error)
 
 	ReadAllOrderAccrualNoComplite() (orders []orderstruct, err error)
 	UpdateOrderAccrual(login string, orderAccrual requestAccrual) (err error)
@@ -102,13 +102,13 @@ func (db *Database) Connect(connStr string) (err error) {
 func (db *Database) CreateTable() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	//db.connection.Exec("Drop TABLE OperationsGopherMart")
-	//db.connection.Exec("Drop TABLE UsersGopherMart")
+	//db.connection.Exec("Drop TABLE operations_gopher_mart")
+	//db.connection.Exec("Drop TABLE users_gopher_mart")
 
 	if _, err := db.connection.ExecContext(ctx, createTableOperations); err != nil {
 		return err
 	}
-	_, err := db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX order_index ON OperationsGopherMart (order_number)")
+	_, err := db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX order_index ON operations_gopher_mart (order_number)")
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (db *Database) CreateTable() error {
 	if _, err = db.connection.ExecContext(ctx, createTableUsers); err != nil {
 		return err
 	}
-	if _, err = db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX login_index ON UsersGopherMart (login)"); err != nil {
+	if _, err = db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX login_index ON users_gopher_mart (login)"); err != nil {
 		return err
 	}
 	return nil
@@ -140,7 +140,7 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 	timeNow := time.Now().Format(time.RFC3339)
 	var loginOrder string
 
-	rows, err := db.connection.QueryContext(ctx, "select login from OperationsGopherMart where order_number = $1", order)
+	rows, err := db.connection.QueryContext(ctx, "select login from operations_gopher_mart where order_number = $1", order)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 		}
 		return errorsgm.ErrLoadedEarlierAnotherUser
 	}
-	_, err = db.connection.ExecContext(ctx, "insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status, points) values ($1,$2,$3,$4,$5,$6)",
+	_, err = db.connection.ExecContext(ctx, "insert into operations_gopher_mart (order_number, login, operation, uploaded_at, status, points) values ($1,$2,$3,$4,$5,$6)",
 		order, user, accrual, timeNow, newOrder, 0)
 	if err != nil {
 		return err
@@ -172,11 +172,11 @@ func (db *Database) WriteOrderAccrual(order string, user string) (err error) {
 }
 
 // вывод всех заказов пользователя
-func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err error) {
+func (db *Database) ReadAllOrderAccrualUser(user string) (ops []OperationAccrual, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	var op Operation
-	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from OperationsGopherMart where login = $1 ORDER BY uploaded_at ASC", user)
+	var op OperationAccrual
+	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from operations_gopher_mart where login = $1 ORDER BY uploaded_at ASC", user)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (db *Database) ReadAllOrderAccrualUser(user string) (ops []Operation, err e
 			return nil, err
 		}
 		if op.Operation == accrual {
-			op.Points = op.Points / 100
+			op.Points /= 100
 			ops = append(ops, op)
 		}
 	}
@@ -209,13 +209,13 @@ type UserPoints struct {
 func (db *Database) ReadUserPoints(user string) (up UserPoints, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	row := db.connection.QueryRowContext(ctx, "select current_points, withdrawn_points from UsersGopherMart where login = $1",
+	row := db.connection.QueryRowContext(ctx, "select current_points, withdrawn_points from users_gopher_mart where login = $1",
 		user)
 	if err = row.Scan(&up.CurrentPoints, &up.WithdrawnPoints); err != nil {
 		return UserPoints{}, err
 	}
-	up.WithdrawnPoints = up.WithdrawnPoints / 100
-	up.CurrentPoints = up.CurrentPoints / 100
+	up.WithdrawnPoints /= 100
+	up.CurrentPoints /= 100
 	return up, nil
 }
 
@@ -238,7 +238,7 @@ func (db *Database) WithdrawnUserPoints(user string, order string, sum float64) 
 		return err
 	}
 
-	_, err = db.connection.ExecContext(ctx, "UPDATE UsersGopherMart SET current_points = current_points - $1,withdrawn_points = withdrawn_points + $2 WHERE login=$3",
+	_, err = db.connection.ExecContext(ctx, "UPDATE users_gopher_mart SET current_points = current_points - $1,withdrawn_points = withdrawn_points + $2 WHERE login=$3",
 		sum*100, sum*100, user)
 	if err != nil {
 		return err
@@ -252,7 +252,7 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 	defer cancel()
 	timeNow := time.Now().Format(time.RFC3339)
 
-	_, err = db.connection.ExecContext(ctx, "insert into OperationsGopherMart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
+	_, err = db.connection.ExecContext(ctx, "insert into operations_gopher_mart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
 		order, user, withdraw, timeNow, processed, point*100)
 	if err != nil {
 		return err
@@ -261,11 +261,11 @@ func (db *Database) WriteOrderWithdrawn(user string, order string, point float64
 	return nil
 }
 
-func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, err error) {
+func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationWithdraw, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	var op OperationO
-	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from OperationsGopherMart where login = $1", user)
+	var op OperationWithdraw
+	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from operations_gopher_mart where login = $1", user)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(user string) (ops []OperationO, er
 			return nil, err
 		}
 		if op.Operation == withdraw {
-			op.Points = op.Points / 100
+			op.Points /= 100
 			ops = append(ops, op)
 		}
 	}
@@ -296,7 +296,7 @@ func (db *Database) RegisterUser(login string, pass string) (tokenJWT string, er
 	h.Write([]byte(pass))
 	passHex := hex.EncodeToString(h.Sum(nil))
 
-	_, err = db.connection.ExecContext(ctx, "insert into UsersGopherMart (login, password, current_points, withdrawn_points ) values ($1,$2,$3,$4)", login, passHex, 0, 0)
+	_, err = db.connection.ExecContext(ctx, "insert into users_gopher_mart (login, password, current_points, withdrawn_points ) values ($1,$2,$3,$4)", login, passHex, 0, 0)
 	if err != nil {
 		return "", err
 	}
@@ -317,7 +317,7 @@ func (db *Database) LoginUser(login string, pass string) (tokenJWT string, err e
 	pass = hex.EncodeToString(h.Sum(nil))
 	var dbPass string
 
-	row := db.connection.QueryRowContext(ctx, "select password from UsersGopherMart where login = $1",
+	row := db.connection.QueryRowContext(ctx, "select password from users_gopher_mart where login = $1",
 		login)
 	if err = row.Scan(&dbPass); err != nil {
 		return "", err
@@ -341,7 +341,7 @@ func (db *Database) ReadAllOrderAccrualNoComplite() (orders []orderstruct, err e
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	var order orderstruct
-	rows, err := db.connection.QueryContext(ctx, "select order_number,login from OperationsGopherMart where status = $1 or status = $2",
+	rows, err := db.connection.QueryContext(ctx, "select order_number,login from operations_gopher_mart where status = $1 or status = $2",
 		newOrder, processing)
 	if err != nil {
 		return nil, err
@@ -364,14 +364,14 @@ func (db *Database) ReadAllOrderAccrualNoComplite() (orders []orderstruct, err e
 func (db *Database) UpdateOrderAccrual(login string, orderAccrual requestAccrual) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err = db.connection.ExecContext(ctx, "UPDATE OperationsGopherMart SET status = $1,points = $2 WHERE order_number=$3",
+	_, err = db.connection.ExecContext(ctx, "UPDATE operations_gopher_mart SET status = $1,points = $2 WHERE order_number=$3",
 		orderAccrual.Status, orderAccrual.Accrual, orderAccrual.Order)
 	if err != nil {
 		return err
 	}
 	//зачислить балы пользователю
 	if orderAccrual.Status == processed {
-		_, err = db.connection.ExecContext(ctx, "UPDATE UsersGopherMart SET current_points = current_points + $1 WHERE login=$2",
+		_, err = db.connection.ExecContext(ctx, "UPDATE users_gopher_mart SET current_points = current_points + $1 WHERE login=$2",
 			orderAccrual.Accrual, login)
 		if err != nil {
 			return err
