@@ -1,11 +1,9 @@
 package router
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -34,9 +32,7 @@ func (s *serverMart) postAPIUserRegister(c echo.Context) error {
 	}
 	var pgErr *pgconn.PgError
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	tokenJWT, err := s.DB.RegisterUser(ctx, userLog.Login, userLog.Password)
+	tokenJWT, err := s.DB.RegisterUser(c.Request().Context(), userLog.Login, userLog.Password)
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation: // дубликат

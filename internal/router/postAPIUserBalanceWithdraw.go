@@ -1,12 +1,10 @@
 package router
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -44,10 +42,9 @@ func (s *serverMart) postAPIUserBalanceWithdraw(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusUnprocessableEntity)
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+
 	get := c.Get("user")
-	err = s.DB.WithdrawnUserPoints(ctx, get.(string), bodyOrder.Order, bodyOrder.Sum)
+	err = s.DB.WithdrawnUserPoints(c.Request().Context(), get.(string), bodyOrder.Order, bodyOrder.Sum)
 
 	if err != nil {
 		if errors.Is(err, errorsgm.ErrDontHavePoints) {
