@@ -83,7 +83,6 @@ func InitDB() (*Database, error) {
 }
 
 func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
-
 	db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
 		return err
@@ -91,8 +90,6 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 	if err = db.CreateTable(ctx); err != nil {
 		return err
 	}
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	if err = db.Ping(ctx); err != nil {
 		return err
 	}
@@ -100,8 +97,6 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 }
 
 func (db *Database) CreateTable(ctx context.Context) error {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	//db.connection.Exec("Drop TABLE operations_gopher_mart")
 	//db.connection.Exec("Drop TABLE users_gopher_mart")
 
@@ -135,8 +130,6 @@ func (db *Database) Close() error {
 
 // добавление заказа для начисления
 func (db *Database) WriteOrderAccrual(ctx context.Context, order string, user string) (err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	timeNow := time.Now().Format(time.RFC3339)
 	var loginOrder string
 
@@ -173,8 +166,6 @@ func (db *Database) WriteOrderAccrual(ctx context.Context, order string, user st
 
 // вывод всех заказов пользователя
 func (db *Database) ReadAllOrderAccrualUser(ctx context.Context, user string) (ops []OperationAccrual, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	var op OperationAccrual
 	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from operations_gopher_mart where login = $1 ORDER BY uploaded_at ASC", user)
 	if err != nil {
@@ -207,8 +198,6 @@ type UserPoints struct {
 
 // информация о потраченных и остатках баллов
 func (db *Database) ReadUserPoints(ctx context.Context, user string) (up UserPoints, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	row := db.connection.QueryRowContext(ctx, "select current_points, withdrawn_points from users_gopher_mart where login = $1",
 		user)
 	if err = row.Scan(&up.CurrentPoints, &up.WithdrawnPoints); err != nil {
@@ -221,8 +210,6 @@ func (db *Database) ReadUserPoints(ctx context.Context, user string) (up UserPoi
 
 // списание
 func (db *Database) WithdrawnUserPoints(ctx context.Context, user string, order string, sum float64) (err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	var u UserPoints
 
 	u, err = db.ReadUserPoints(ctx, user)
@@ -248,8 +235,6 @@ func (db *Database) WithdrawnUserPoints(ctx context.Context, user string, order 
 }
 
 func (db *Database) WriteOrderWithdrawn(ctx context.Context, user string, order string, point float64) (err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	timeNow := time.Now().Format(time.RFC3339)
 
 	_, err = db.connection.ExecContext(ctx, "insert into operations_gopher_mart (order_number, login, operation, uploaded_at, status,  points) values ($1,$2,$3,$4,$5,$6)",
@@ -262,8 +247,6 @@ func (db *Database) WriteOrderWithdrawn(ctx context.Context, user string, order 
 }
 
 func (db *Database) ReadAllOrderWithdrawnUser(ctx context.Context, user string) (ops []OperationWithdraw, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
 	var op OperationWithdraw
 	rows, err := db.connection.QueryContext(ctx, "select order_number, status, uploaded_at, points, operation from operations_gopher_mart where login = $1", user)
 	if err != nil {
@@ -290,8 +273,7 @@ func (db *Database) ReadAllOrderWithdrawnUser(ctx context.Context, user string) 
 
 // регистрация
 func (db *Database) RegisterUser(ctx context.Context, login string, pass string) (tokenJWT string, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
+
 	h := md5.New()
 	h.Write([]byte(pass))
 	passHex := hex.EncodeToString(h.Sum(nil))
@@ -310,8 +292,7 @@ func (db *Database) RegisterUser(ctx context.Context, login string, pass string)
 
 // авторизация
 func (db *Database) LoginUser(ctx context.Context, login string, pass string) (tokenJWT string, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
+
 	h := md5.New()
 	h.Write([]byte(pass))
 	pass = hex.EncodeToString(h.Sum(nil))
@@ -338,8 +319,7 @@ type orderstruct struct {
 }
 
 func (db *Database) ReadAllOrderAccrualNoComplite(ctx context.Context) (orders []orderstruct, err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
+
 	var order orderstruct
 	rows, err := db.connection.QueryContext(ctx, "select order_number,login from operations_gopher_mart where status = $1 or status = $2",
 		newOrder, processing)
@@ -362,14 +342,13 @@ func (db *Database) ReadAllOrderAccrualNoComplite(ctx context.Context) (orders [
 }
 
 func (db *Database) UpdateOrderAccrual(ctx context.Context, login string, orderAccrual requestAccrual) (err error) {
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	//defer cancel()
+
 	_, err = db.connection.ExecContext(ctx, "UPDATE operations_gopher_mart SET status = $1,points = $2 WHERE order_number=$3",
 		orderAccrual.Status, orderAccrual.Accrual, orderAccrual.Order)
 	if err != nil {
 		return err
 	}
-	//зачислить балы пользователю
+
 	if orderAccrual.Status == processed {
 		_, err = db.connection.ExecContext(ctx, "UPDATE users_gopher_mart SET current_points = current_points + $1 WHERE login=$2",
 			orderAccrual.Accrual, login)
