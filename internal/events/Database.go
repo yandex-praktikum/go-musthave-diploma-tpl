@@ -40,10 +40,10 @@ type OperationDB struct {
 }
 
 type UserDB struct {
-	Login          string
-	Password       string
-	CurrentPoints  int
-	WithdawnPoints int
+	Login           string
+	Password        string
+	CurrentPoints   int
+	WithdrawnPoints int
 }
 
 func (OperationDB) TableName() string {
