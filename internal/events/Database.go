@@ -113,8 +113,8 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 	if err != nil {
 		return err
 	}
-	//db.connection, err = pdb.DB()
-	db.connection, err = sql.Open("pgx", connStr)
+	db.connection, err = pdb.DB()
+	//db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
 		return err
 	}
