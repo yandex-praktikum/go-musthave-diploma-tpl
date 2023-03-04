@@ -116,7 +116,7 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 		return err
 	}
 
-	pdb.AutoMigrate(&UserDB{})
+	pdb.AutoMigrate(&OperationDB{})
 	pdb.AutoMigrate(&UserDB{})
 
 	//if err = db.CreateTable(ctx, connStr); err != nil {
