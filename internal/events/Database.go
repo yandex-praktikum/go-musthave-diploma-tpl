@@ -8,6 +8,8 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"GopherMart/internal/errorsgm"
 )
@@ -27,6 +29,30 @@ password          	varchar(32),
 current_points    	integer,
 withdrawn_points  	integer
 )`
+
+type OperationDB struct {
+	order_number string
+	login        string
+	uploaded_at  string
+	status       string
+	operation    string
+	points       int
+}
+
+type UserDB struct {
+	Login          string
+	Password       string
+	CurrentPoints  int
+	WithdawnPoints int
+}
+
+func (OperationDB) TableName() string {
+	return "operations_gopher_mart"
+}
+
+func (UserDB) TableName() string {
+	return "users_gopher_mart"
+}
 
 type OperationAccrual struct {
 	OrderNumber string  `json:"number"`
@@ -83,13 +109,19 @@ func InitDB() (*Database, error) {
 }
 
 func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
-	db.connection, err = sql.Open("pgx", connStr)
+	pdb, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
+	db.connection, err = pdb.DB()
+	//db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
 		return err
 	}
-	if err = db.CreateTable(ctx); err != nil {
-		return err
-	}
+
+	pdb.AutoMigrate(&UserDB{})
+	pdb.AutoMigrate(&UserDB{})
+
+	//if err = db.CreateTable(ctx, connStr); err != nil {
+	//	return err
+	//}
 	if err = db.Ping(ctx); err != nil {
 		return err
 	}
@@ -100,20 +132,24 @@ func (db *Database) CreateTable(ctx context.Context) error {
 	//db.connection.Exec("Drop TABLE operations_gopher_mart")
 	//db.connection.Exec("Drop TABLE users_gopher_mart")
 
-	if _, err := db.connection.ExecContext(ctx, createTableOperations); err != nil {
-		return err
-	}
-	_, err := db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX order_index ON operations_gopher_mart (order_number)")
-	if err != nil {
-		return err
-	}
+	//pdb, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
 
-	if _, err = db.connection.ExecContext(ctx, createTableUsers); err != nil {
-		return err
-	}
-	if _, err = db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX login_index ON users_gopher_mart (login)"); err != nil {
-		return err
-	}
+	//pdb.AutoMigrate(&UserDB{})
+	//
+	//if _, err := db.connection.ExecContext(ctx, createTableOperations); err != nil {
+	//	return err
+	//}
+	//_, err := db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX order_index ON operations_gopher_mart (order_number)")
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if _, err = db.connection.ExecContext(ctx, createTableUsers); err != nil {
+	//	return err
+	//}
+	//if _, err = db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX login_index ON users_gopher_mart (login)"); err != nil {
+	//	return err
+	//}
 	return nil
 }
 
