@@ -31,12 +31,12 @@ withdrawn_points  	integer
 )`
 
 type OperationDB struct {
-	order_number string
-	login        string
-	uploaded_at  string
-	status       string
-	operation    string
-	points       int
+	OrderNumber string
+	Login       string
+	UploadedAt  string
+	Status      string
+	Operation   string
+	Points      int
 }
 
 type UserDB struct {
