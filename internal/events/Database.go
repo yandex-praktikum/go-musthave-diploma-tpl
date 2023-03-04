@@ -110,6 +110,9 @@ func InitDB() (*Database, error) {
 
 func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 	pdb, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
+	if err != nil {
+		return err
+	}
 	db.connection, err = pdb.DB()
 	//db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
