@@ -14,22 +14,6 @@ import (
 	"GopherMart/internal/errorsgm"
 )
 
-var createTableOperations = `CREATE TABLE operations_gopher_mart(
-order_number     	varchar(32),   
-login          		varchar(32),
-uploaded_at       	varchar(32),
-status				varchar(32),
-operation 			varchar(32),
-points      		integer
-)`
-
-var createTableUsers = `CREATE TABLE users_gopher_mart(
-login				varchar(32),
-password          	varchar(32),
-current_points    	integer,
-withdrawn_points  	integer
-)`
-
 type OperationDB struct {
 	OrderNumber string
 	Login       string
@@ -82,7 +66,6 @@ const (
 
 type DBI interface {
 	Connect(ctx context.Context, connStr string) (err error)
-	CreateTable(ctx context.Context) error
 	Ping(ctx context.Context) error
 	Close() error
 
@@ -114,7 +97,6 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 		return err
 	}
 	db.connection, err = pdb.DB()
-	//db.connection, err = sql.Open("pgx", connStr)
 	if err != nil {
 		return err
 	}
@@ -122,37 +104,9 @@ func (db *Database) Connect(ctx context.Context, connStr string) (err error) {
 	pdb.AutoMigrate(&OperationDB{})
 	pdb.AutoMigrate(&UserDB{})
 
-	//if err = db.CreateTable(ctx, connStr); err != nil {
-	//	return err
-	//}
 	if err = db.Ping(ctx); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (db *Database) CreateTable(ctx context.Context) error {
-	//db.connection.Exec("Drop TABLE operations_gopher_mart")
-	//db.connection.Exec("Drop TABLE users_gopher_mart")
-
-	//pdb, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
-
-	//pdb.AutoMigrate(&UserDB{})
-	//
-	//if _, err := db.connection.ExecContext(ctx, createTableOperations); err != nil {
-	//	return err
-	//}
-	//_, err := db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX order_index ON operations_gopher_mart (order_number)")
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if _, err = db.connection.ExecContext(ctx, createTableUsers); err != nil {
-	//	return err
-	//}
-	//if _, err = db.connection.ExecContext(ctx, "CREATE UNIQUE INDEX login_index ON users_gopher_mart (login)"); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
