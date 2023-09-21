@@ -2,23 +2,29 @@ package app
 
 import (
 	"fmt"
-	"net/http"
+	//"log"
+	//"net/http"
 
 	"github.com/labstack/echo/v4"
 
+	//"github.com/go-chi/chi/v5"
 	"github.com/kindenko/gophermart/config"
-	"github.com/kindenko/gophermart/internal/storage"
+	"github.com/kindenko/gophermart/internal/api"
 )
 
 func Run() {
-	e := echo.New()
 
 	cfg := config.NewCfg()
-	InitDB := storage.InitDB(*cfg)
 
-	fmt.Println(InitDB)
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-	e.Logger.Fatal(e.Start(":1323"))
+	server := api.NewServer(cfg)
+
+	fmt.Println(server.Config)
+	fmt.Println(server.DB)
+
+	e := echo.New()
+
+	e.POST("/api/user/registrater", server.UserRegistrater)
+	e.POST("/api/user/login", server.UserAuthorization)
+
+	e.Logger.Fatal(e.Start(":8080"))
 }

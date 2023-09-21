@@ -10,12 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type PostgresDB struct {
-	db  *gorm.DB
-	cfg config.AppConfig
-}
-
-func InitDB(cfg config.AppConfig) *PostgresDB {
+func InitDB(cfg config.AppConfig) *gorm.DB {
 
 	if cfg.DataBaseString == "" {
 		return nil
@@ -27,8 +22,7 @@ func InitDB(cfg config.AppConfig) *PostgresDB {
 		return nil
 	}
 
-	db.AutoMigrate(models.User{})
+	db.AutoMigrate(models.Users{})
 
-	return &PostgresDB{db: db,
-		cfg: cfg}
+	return db
 }
