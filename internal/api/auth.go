@@ -7,48 +7,70 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kindenko/gophermart/internal/auth"
 	"github.com/kindenko/gophermart/internal/models"
 	"github.com/kindenko/gophermart/internal/utils"
 
-	"github.com/kindenko/gophermart/internal/auth"
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Server) UserAuthorization(c echo.Context) error {
+func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
+	return func(c echo.Context) error {
+
+		cookie, err := c.Cookie("Token")
+		if err != nil {
+			return c.String(http.StatusUnauthorized, "Register before you start working")
+		}
+
+		if auth.ValidationToken(string(cookie.Value)) {
+			return next(c)
+		}
+		return c.String(http.StatusUnauthorized, "Register before you start working")
+	}
+
+}
+
+func (s *Server) UserAuthentication(c echo.Context) error {
 	var userReq models.User
 	var userDB models.User
 
 	b, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		log.Printf("Failed to read request body: %s", err)
-		return c.String(http.StatusBadRequest, "Bad Request")
+		return c.String(http.StatusBadRequest, "Invalid request type")
 	}
 
 	err = json.Unmarshal(b, &userReq)
 	if err != nil {
 		log.Printf("Failed to parse JSON: %s", err)
-		return c.String(http.StatusBadRequest, "Bad Request")
+		return c.String(http.StatusBadRequest, "Invalid request type")
 	}
 
-	row := s.DB.First(&userDB, models.User{Login: userReq.Login})
-	if row.Error != nil {
-		return c.JSON(http.StatusUnauthorized, "Invalid Login or Password")
+	if userReq.Login == "" || userReq.Password == "" {
+		log.Println("Invalid request type")
+		return c.String(http.StatusBadRequest, "Invalid request type")
+	}
+	// ок ли так делать ?
+	_ = s.DB.First(&userDB, models.User{Login: userReq.Login})
+
+	if err = utils.VerifyPassword(userDB.Password, userReq.Password); userDB.Login != userReq.Login || err != nil {
+		return c.String(http.StatusUnauthorized, "Invalid login/password")
 	}
 
-	verifyPass := utils.VerifyPassword(userDB.Password, userReq.Password)
-	if verifyPass != nil {
-		return c.JSON(http.StatusUnauthorized, "Invalid Login or Password")
-	}
-
+	expiresTime := time.Now().Add(3 * time.Hour)
 	token, err := auth.GenerateToken(userDB)
+
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
+
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "inside error")
 	}
 
-	expiresTime := time.Now().Add(3 * time.Hour)
-	generateCookie(userReq.Login, token, expiresTime, c)
+	utils.GenerateCookie(token, expiresTime, c)
 
-	return c.String(http.StatusOK, "Bad Request")
+	return c.String(http.StatusOK, "User is authenticated")
 
 }

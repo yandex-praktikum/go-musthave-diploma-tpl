@@ -6,7 +6,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Функция HashPassword отвечает за хеширование пароля в виде открытого текста.
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
@@ -16,7 +15,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-// Функция VerifyPassword отвечает за проверку паролей.
 func VerifyPassword(hashedPassword string, candidatePassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(candidatePassword))
 }

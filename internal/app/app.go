@@ -22,9 +22,14 @@ func Run() {
 	fmt.Println(server.DB)
 
 	e := echo.New()
-
 	e.POST("/api/user/registrater", server.UserRegistrater)
-	e.POST("/api/user/login", server.UserAuthorization)
+	e.POST("/api/user/login", server.UserAuthentication)
+
+	r := e.Group("/")
+	{
+		r.Use(api.JWTMiddleware)
+		r.POST("api/test", server.UsTests)
+	}
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

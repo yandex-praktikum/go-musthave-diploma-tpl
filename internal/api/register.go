@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,11 +14,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// type User struct {
-// 	Login    string `gorm:"column:login" json:"login"`
-// 	Password string `gorm:"column:password" json:"password"`
-// 	Balance  int    `gorm:"column:balance" json:"balance"`
-// }
+func (s *Server) UsTests(c echo.Context) error {
+	return c.String(http.StatusAccepted, "прет сук")
+}
 
 func (s *Server) UserRegistrater(c echo.Context) error {
 
@@ -47,8 +45,9 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 		return c.JSON(http.StatusConflict, "The user has already been registered")
 	}
 
-	bytes, _ := json.Marshal(row)
-	fmt.Println(string(bytes))
+	// bytes, _ := json.Marshal(row)
+	// // обработать ошибку
+	// fmt.Println(string(bytes))
 
 	hashPassword, err := utils.HashPassword(userReq.Password)
 	if err != nil {
@@ -57,6 +56,7 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 
 	newUser := models.User{Login: userReq.Login, Password: hashPassword, Balance: 0}
 	result := s.DB.Create(&newUser)
+
 	if result.Error != nil {
 		return c.JSON(http.StatusInternalServerError, "Failed to write to user database")
 	}
@@ -67,18 +67,8 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, "inside error")
 	}
 
-	generateCookie(userReq.Login, token, expiresTime, c)
+	utils.GenerateCookie(token, expiresTime, c)
 
 	return c.JSON(http.StatusOK, "User has registered!")
 
-}
-
-func generateCookie(login string, token string, expr time.Time, c echo.Context) {
-
-	cookie := new(http.Cookie)
-	cookie.Name = login
-	cookie.Value = token
-	cookie.Expires = expr
-	cookie.Path = "/"
-	c.SetCookie(cookie)
 }
