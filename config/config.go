@@ -24,7 +24,7 @@ func NewCfg() *AppConfig {
 
 	cfq := &AppConfig{}
 
-	flag.StringVar(&cfq.Host, "a", "localhost:8081", "Host")
+	flag.StringVar(&cfq.Host, "a", "localhost:8080", "Host")
 	flag.StringVar(&cfq.DataBaseString, "d", "DB", "Result URL")
 	flag.StringVar(&cfq.AccrualSys, "r", "AccrualSys", "FilePATH")
 

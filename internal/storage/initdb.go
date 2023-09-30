@@ -12,17 +12,27 @@ import (
 
 func InitDB(cfg config.AppConfig) *gorm.DB {
 
+	db, err := gorm.Open(postgres.Open(cfg.DataBaseString), &gorm.Config{})
+
+	if err != nil {
+		log.Fatal("Failed to connect to database!")
+	}
+
 	if cfg.DataBaseString == "" {
 		return nil
 	}
 
-	db, err := gorm.Open(postgres.Open(cfg.DataBaseString))
-	if err != nil {
-		log.Println(err)
+	users := db.AutoMigrate(models.User{})
+	if users != nil {
+		log.Fatal(err)
 		return nil
 	}
 
-	db.AutoMigrate(models.Users{})
+	orders := db.AutoMigrate(models.Orders{})
+	if orders != nil {
+		log.Fatal(err)
+		return nil
+	}
 
 	return db
 }

@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	//"fmt"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +15,14 @@ import (
 )
 
 func (s *Server) UsTests(c echo.Context) error {
+
+	cookie, err := c.Cookie("Token")
+	if err != nil {
+
+	}
+	userLogin, err := auth.GetUserLoginFromToken(cookie.Value)
+	fmt.Println(userLogin, err)
+
 	return c.String(http.StatusAccepted, "прет сук")
 }
 
@@ -44,10 +52,6 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 	if row.Error == nil && userDB.Login == userReq.Login {
 		return c.JSON(http.StatusConflict, "The user has already been registered")
 	}
-
-	// bytes, _ := json.Marshal(row)
-	// // обработать ошибку
-	// fmt.Println(string(bytes))
 
 	hashPassword, err := utils.HashPassword(userReq.Password)
 	if err != nil {

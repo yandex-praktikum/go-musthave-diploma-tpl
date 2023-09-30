@@ -2,14 +2,11 @@ package auth
 
 import (
 	"fmt"
-	//"log"
+	"log"
 	"time"
-
-	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/kindenko/gophermart/internal/models"
-	"github.com/labstack/echo/v4"
 )
 
 type Claims struct {
@@ -19,22 +16,6 @@ type Claims struct {
 
 const TokenMaxAge = time.Hour * 3
 const SecretKey = "very2secret3token"
-
-func UserAuthorization() {
-
-}
-
-// func GenerateTokensAndSetCookies(user models.User, c echo.Context) error {
-// 	accessToken, err := GenerateToken(user)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	setTokenCookie("access-token", accessToken, c)
-// 	setUserCookie(user, c)
-
-// 	return nil
-// }
 
 func GenerateToken(user models.User) (string, error) {
 
@@ -78,20 +59,18 @@ func ValidationToken(tokenString string) bool {
 	return true
 }
 
-func setTokenCookie(name, token string, c echo.Context) {
-	cookie := new(http.Cookie)
-	cookie.Name = name
-	cookie.Value = token
-	cookie.Path = "/"
-	cookie.HttpOnly = true
-
-	c.SetCookie(cookie)
-}
-
-func setUserCookie(user *models.User, c echo.Context) {
-	cookie := new(http.Cookie)
-	cookie.Name = "user"
-	cookie.Value = user.Login
-	cookie.Path = "/"
-	c.SetCookie(cookie)
+func GetUserLoginFromToken(tokenString string) (string, error) {
+	claims := &Claims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims,
+		func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return []byte(SecretKey), nil
+		})
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return claims.UserLogin, nil
 }
