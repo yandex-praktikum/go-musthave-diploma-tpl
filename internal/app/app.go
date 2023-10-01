@@ -30,6 +30,7 @@ func Run() {
 		r.Use(api.JWTMiddleware)
 		r.POST("api/test", server.UsTests)
 		r.POST("api/user/orders", server.UploadOrder)
+		r.GET("api/user/orders", server.GetOrders)
 	}
 
 	e.Logger.Fatal(e.Start(":8080"))

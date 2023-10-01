@@ -28,7 +28,7 @@ func InitDB(cfg config.AppConfig) *gorm.DB {
 		return nil
 	}
 
-	orders := db.AutoMigrate(models.Orders{})
+	orders := db.AutoMigrate(models.Order{})
 	if orders != nil {
 		log.Fatal(err)
 		return nil
