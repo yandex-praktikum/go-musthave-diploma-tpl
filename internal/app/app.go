@@ -2,12 +2,9 @@ package app
 
 import (
 	"fmt"
-	//"log"
-	//"net/http"
 
 	"github.com/labstack/echo/v4"
 
-	//"github.com/go-chi/chi/v5"
 	"github.com/kindenko/gophermart/config"
 	"github.com/kindenko/gophermart/internal/api"
 )
@@ -30,7 +27,9 @@ func Run() {
 		r.Use(api.JWTMiddleware)
 		r.POST("api/test", server.UsTests)
 		r.POST("api/user/orders", server.UploadOrder)
+		r.POST("api/user/balance/withdraw", server.WithdrawnPoints)
 		r.GET("api/user/orders", server.GetOrders)
+		r.GET("api/user/balance", server.GetUserBalace)
 	}
 
 	e.Logger.Fatal(e.Start(":8080"))

@@ -28,8 +28,8 @@ func (s *Server) UsTests(c echo.Context) error {
 
 func (s *Server) UserRegistrater(c echo.Context) error {
 
-	var userReq models.User
-	var userDB models.User
+	var userReq models.Users
+	var userDB models.Users
 
 	b, err := io.ReadAll(c.Request().Body)
 	if err != nil {
@@ -48,7 +48,7 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Incorrect request")
 	}
 
-	row := s.DB.First(&userDB, models.User{Login: userReq.Login})
+	row := s.DB.First(&userDB, models.Users{Login: userReq.Login})
 	if row.Error == nil && userDB.Login == userReq.Login {
 		return c.JSON(http.StatusConflict, "The user has already been registered")
 	}
@@ -58,7 +58,7 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	newUser := models.User{Login: userReq.Login, Password: hashPassword, Balance: 0}
+	newUser := models.Users{Login: userReq.Login, Password: hashPassword, Balance: 0, Withdrawn: 0}
 	result := s.DB.Create(&newUser)
 
 	if result.Error != nil {
@@ -66,7 +66,7 @@ func (s *Server) UserRegistrater(c echo.Context) error {
 	}
 
 	expiresTime := time.Now().Add(3 * time.Hour)
-	token, err := auth.GenerateToken(userDB)
+	token, err := auth.GenerateToken(userReq)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, "inside error")
 	}

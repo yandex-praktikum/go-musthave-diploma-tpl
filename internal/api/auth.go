@@ -32,8 +32,8 @@ func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func (s *Server) UserAuthentication(c echo.Context) error {
-	var userReq models.User
-	var userDB models.User
+	var userReq models.Users
+	var userDB models.Users
 
 	b, err := io.ReadAll(c.Request().Body)
 	if err != nil {
@@ -52,7 +52,7 @@ func (s *Server) UserAuthentication(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid request type")
 	}
 	// ок ли так делать ?
-	_ = s.DB.First(&userDB, models.User{Login: userReq.Login})
+	_ = s.DB.First(&userDB, models.Users{Login: userReq.Login})
 
 	if err = utils.VerifyPassword(userDB.Password, userReq.Password); userDB.Login != userReq.Login || err != nil {
 		return c.String(http.StatusUnauthorized, "Invalid login/password")

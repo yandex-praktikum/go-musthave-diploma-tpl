@@ -17,7 +17,8 @@ type Claims struct {
 const TokenMaxAge = time.Hour * 3
 const SecretKey = "very2secret3token"
 
-func GenerateToken(user models.User) (string, error) {
+func GenerateToken(user models.Users) (string, error) {
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenMaxAge)),
