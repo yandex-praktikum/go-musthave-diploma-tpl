@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,18 +12,6 @@ import (
 	"github.com/kindenko/gophermart/internal/utils"
 	"github.com/labstack/echo/v4"
 )
-
-func (s *Server) UsTests(c echo.Context) error {
-
-	cookie, err := c.Cookie("Token")
-	if err != nil {
-
-	}
-	userLogin, err := auth.GetUserLoginFromToken(cookie.Value)
-	fmt.Println(userLogin, err)
-
-	return c.String(http.StatusAccepted, "прет сук")
-}
 
 func (s *Server) UserRegistrater(c echo.Context) error {
 

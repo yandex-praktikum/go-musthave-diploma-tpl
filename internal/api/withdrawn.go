@@ -13,7 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Server) WithdrawnPoints(c echo.Context) error {
+func (s *Server) WithdrawnDebitPoints(c echo.Context) error {
 
 	var balance models.Balance
 	var withdraw models.Withdraw
@@ -70,4 +70,27 @@ func (s *Server) WithdrawnPoints(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, "Successful request processing")
+}
+
+func (s *Server) WithdrawnInformationAboutDebitingFunds(c echo.Context) error {
+	var Orders []models.OrdersWithdrawn
+
+	cookie, err := c.Cookie("Token")
+	if err != nil {
+		log.Printf("Could not get cookies, %s", err)
+		return c.JSON(http.StatusInternalServerError, "Internal error")
+	}
+
+	userLogin, err := auth.GetUserLoginFromToken(cookie.Value)
+	if err != nil {
+		log.Printf("Could get user from cookies, %s", err)
+		return c.JSON(http.StatusInternalServerError, "Internal error")
+	}
+
+	s.DB.Table("orders").Select("number, accrual as sum, uploaded_at as processed_at").Order("processed_at").Where("user_login = ? and operation_type = ?", userLogin, "Withdrawn").Find(&Orders)
+	if len(Orders) == 0 {
+		return c.JSON(http.StatusNoContent, "No data to answer")
+	}
+
+	return c.JSON(http.StatusOK, Orders)
 }
