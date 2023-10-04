@@ -34,6 +34,5 @@ func InitDB(cfg config.AppConfig) *gorm.DB {
 		log.Fatal(err)
 		return nil
 	}
-
 	return db
 }

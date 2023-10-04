@@ -51,7 +51,7 @@ func (s *Server) UserAuthentication(c echo.Context) error {
 		log.Println("Invalid request type")
 		return c.String(http.StatusBadRequest, "Invalid request type")
 	}
-	// ок ли так делать ?
+
 	_ = s.DB.First(&userDB, models.Users{Login: userReq.Login})
 
 	if err = utils.VerifyPassword(userDB.Password, userReq.Password); userDB.Login != userReq.Login || err != nil {
