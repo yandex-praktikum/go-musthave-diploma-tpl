@@ -49,7 +49,6 @@ func ValidationToken(tokenString string) bool {
 	if !token.Valid {
 		return false
 	}
-
 	return true
 }
 
