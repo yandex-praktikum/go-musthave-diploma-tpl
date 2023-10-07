@@ -18,8 +18,6 @@ type AppConfig struct {
 	AccrualSys     string `env:"FILE_STORAGE_PATH"`
 }
 
-var cfg AppConfig
-
 func NewCfg() *AppConfig {
 
 	cfq := &AppConfig{}

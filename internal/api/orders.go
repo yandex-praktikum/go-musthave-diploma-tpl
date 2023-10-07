@@ -82,12 +82,7 @@ func (s *Server) GetOrders(c echo.Context) error {
 
 func (s *Server) GetOrderByParam(c echo.Context) error {
 	var order models.Orders
-	type Response struct {
-		Order   string
-		Status  string
-		Accrual float32
-	}
-
+	var orderNumber models.OrderNumber
 	_, err := strconv.Atoi(string(c.Param("number")))
 	if err != nil {
 		return c.String(http.StatusUnprocessableEntity, "Invalid order")
@@ -98,7 +93,7 @@ func (s *Server) GetOrderByParam(c echo.Context) error {
 		return c.JSON(http.StatusOK, "Internal error")
 	}
 
-	resp := &Response{}
+	resp := &orderNumber
 
 	resp.Order = order.Number
 	resp.Accrual = order.Accrual

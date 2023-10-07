@@ -52,7 +52,10 @@ func (s *Server) UserAuthentication(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Invalid request type")
 	}
 
-	_ = s.DB.First(&userDB, models.Users{Login: userReq.Login})
+	row := s.DB.First(&userDB, models.Users{Login: userReq.Login})
+	if row.Error != nil {
+		return c.String(http.StatusInternalServerError, "Internal server error")
+	}
 
 	if err = utils.VerifyPassword(userDB.Password, userReq.Password); userDB.Login != userReq.Login || err != nil {
 		return c.String(http.StatusUnauthorized, "Invalid login/password")
@@ -63,10 +66,6 @@ func (s *Server) UserAuthentication(c echo.Context) error {
 
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Internal server error")
-	}
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "inside error")
 	}
 
 	utils.GenerateCookie(token, expiresTime, c)
