@@ -1,0 +1,38 @@
+version: "2"
+
+# networks:
+#   app-tier:
+#     driver: bridge
+
+services:
+  db:
+    # User connection command
+    # psql --host=127.0.0.1 --port=5432 --username=dbuser --password cloud_dispatcher
+    # Superuser connection command
+    # psql --host=127.0.0.1 --port=5432 --username=postgres --password
+    #
+    # Image description
+    # https://hub.docker.com/r/bitnami/postgresql
+    image: docker.io/bitnami/postgresql:14
+    container_name: postgres
+    # networks:
+    #   - app-tier
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'postgresql14_data:/bitnami/postgresql'
+    environment:
+      # Password for `postgres` user
+      - POSTGRESQL_POSTGRES_PASSWORD=password
+      - POSTGRESQL_DATABASE=gofermart
+      # Restricted user
+      - POSTGRESQL_USERNAME=dbuser
+      - POSTGRESQL_PASSWORD=password123
+      # Time zone for displaying and interpreting time stamps
+      - POSTGRESQL_TIMEZONE=UTC
+      # Time zone used for timestamps written in the server log
+      - POSTGRESQL_LOG_TIMEZONE=UTC
+
+volumes:
+  postgresql14_data:
+    driver: local
