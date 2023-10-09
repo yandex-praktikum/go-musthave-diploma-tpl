@@ -17,14 +17,21 @@ type Orders interface {
 	GetOrders(user_id int) ([]models.Order, error)
 }
 
+type Balance interface {
+	GetBalance(user_id int) (models.Balance, error)
+	DoWithdraw(user_id int, withdraw models.Withdraw) error
+}
+
 type Repository struct {
 	Autorisation
 	Orders
+	Balance
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
 		Autorisation: NewAuthPostgres(db),
 		Orders:       NewOrdersPostgres(db),
+		Balance:      NewBalancePostgres(db),
 	}
 }

@@ -20,6 +20,8 @@ const (
 	ErrInvalidPassword     = "Invalid password"
 	ErrInvalidField        = "Invalid field"
 	ErrInternalServerError = "Internal Server Error"
+	ErrNoContent           = "No content"
+	ErrPaymentRequired     = "Payment Required"
 )
 
 // RestErr Rest error interface
@@ -73,6 +75,7 @@ func NewRestError(status int, err string, causes interface{}, debug bool) RestEr
 
 // ParseErrors Parser of error string messages returns RestError
 func ParseErrors(err error, debug bool) RestErr {
+
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return NewRestError(http.StatusNotFound, ErrNotFound, err.Error(), debug)
@@ -80,6 +83,10 @@ func ParseErrors(err error, debug bool) RestErr {
 		return NewRestError(http.StatusUnauthorized, ErrUnauthorized, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "signature is invalid"):
 		return NewRestError(http.StatusUnauthorized, ErrUnauthorized, err.Error(), debug)
+	case strings.Contains(strings.ToLower(err.Error()), "NoContent"):
+		return NewRestError(http.StatusNoContent, ErrNoContent, err.Error(), debug)
+	case strings.Contains(strings.ToLower(err.Error()), "paymentrequired"):
+		return NewRestError(http.StatusPaymentRequired, ErrPaymentRequired, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "conflict"):
 		return parseSqlErrors(err, debug)
 	case strings.Contains(strings.ToLower(err.Error()), "unique constraint"):

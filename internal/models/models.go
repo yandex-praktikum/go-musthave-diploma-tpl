@@ -15,3 +15,13 @@ type Order struct {
 	Accrual     float64   `json:"accrual" db:"sum"`
 	Uploaded_at time.Time `json:"uploaded_at" db:"uploaddate"`
 }
+
+type Balance struct {
+	Current   float64 `json:"current" db:"current"`
+	Withdrawn float64 `json:"withdrawn" db:"withdrawn"`
+}
+
+type Withdraw struct {
+	Order string  `json:"order" db:"number"`
+	Sum   float64 `json:"sum" db:"sum"`
+}

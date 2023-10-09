@@ -24,6 +24,10 @@ func (h *Handler) GetOrders(c *gin.Context) {
 		return
 	}
 
+	if len(orders) == 0 {
+		newErrorResponse(c, errors.New("NoContent"))
+		return
+	}
 	c.JSON(http.StatusOK, getAllOrdersResponse{
 		Data: orders,
 	})

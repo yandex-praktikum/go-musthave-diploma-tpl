@@ -18,14 +18,21 @@ type Orders interface {
 	GetOrders(user_id int) ([]models.Order, error)
 }
 
+type Balance interface {
+	GetBalance(user_id int) (models.Balance, error)
+	Withdraw(user_id int, withdraw models.Withdraw) error
+}
+
 type Storage struct {
 	Autorisation
 	Orders
+	Balance
 }
 
 func NewStorage(repos *repository.Repository) *Storage {
 	return &Storage{
 		Autorisation: NewAuthStorage(repos.Autorisation),
 		Orders:       NewOrdersStorage(repos.Orders),
+		Balance:      NewBalanceStorage(repos.Balance),
 	}
 }
