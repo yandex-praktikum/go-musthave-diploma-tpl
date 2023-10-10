@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
@@ -73,6 +74,17 @@ func (b *BalanceService) GetBalance(user_id int) (models.Balance, error) {
 
 }
 func (b *BalanceService) Withdraw(user_id int, withdraw models.Withdraw) error {
+
+	num, err := strconv.Atoi(withdraw.Order)
+	if err != nil {
+		return errors.New("PreconditionFailed")
+	}
+	exist := b.repo.ExistOrder(num)
+
+	if !exist {
+		return errors.New("PreconditionFailed")
+	}
+
 	balance, err := b.repo.GetBalance(user_id)
 
 	if err != nil {

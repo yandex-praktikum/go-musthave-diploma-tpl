@@ -20,6 +20,7 @@ type Orders interface {
 type Balance interface {
 	GetBalance(user_id int) (models.Balance, error)
 	DoWithdraw(user_id int, withdraw models.Withdraw) error
+	ExistOrder(order int) bool
 }
 
 type Repository struct {

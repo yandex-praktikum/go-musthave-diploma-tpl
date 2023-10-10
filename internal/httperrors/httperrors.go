@@ -22,6 +22,7 @@ const (
 	ErrInternalServerError = "Internal Server Error"
 	ErrNoContent           = "No content"
 	ErrPaymentRequired     = "Payment Required"
+	ErrPreconditionFailed  = "Precondition Failed"
 )
 
 // RestErr Rest error interface
@@ -87,6 +88,8 @@ func ParseErrors(err error, debug bool) RestErr {
 		return NewRestError(http.StatusNoContent, ErrNoContent, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "paymentrequired"):
 		return NewRestError(http.StatusPaymentRequired, ErrPaymentRequired, err.Error(), debug)
+	case strings.Contains(strings.ToLower(err.Error()), "preconditionfailed"):
+		return NewRestError(http.StatusPreconditionFailed, ErrPreconditionFailed, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "conflict"):
 		return parseSqlErrors(err, debug)
 	case strings.Contains(strings.ToLower(err.Error()), "unique constraint"):
