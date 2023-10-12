@@ -102,7 +102,7 @@ func (a *AuthService) GenerateToken(username, password string) (string, error) {
 			ExpiresAt: time.Now().Add(constants.TokenTTL).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
-		user.Id,
+		user.ID,
 	})
 
 	return token.SignedString([]byte(constants.SigningKey))
