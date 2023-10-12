@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -121,8 +122,8 @@ func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
 		return err
 	}
 	// if balance.Current > withdraw.Sum {
-	err := b.repo.DoWithdraw(userID, withdraw)
-
+	err = b.repo.DoWithdraw(userID, withdraw)
+	fmt.Println("Order ", withdraw.Order, "balance ", balance, withdraw.Sum, "withdraw")
 	if err != nil {
 		return err
 	}
