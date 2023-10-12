@@ -38,6 +38,7 @@ func (h *Handler) SingUp(c *gin.Context) {
 		return
 	}
 
+	c.Writer.Header().Set("Authorization", token)
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 	})
@@ -58,9 +59,12 @@ func (h *Handler) SingIn(c *gin.Context) {
 		return
 	}
 
+	c.Writer.Header().Set("Authorization", token)
+
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"token": token,
 	})
+
 }
 
 type AuthService struct {
