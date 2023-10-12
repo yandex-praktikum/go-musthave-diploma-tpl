@@ -20,18 +20,18 @@ func NewOrdersPostgres(db *sqlx.DB) *OrdersPostgres {
 	return &OrdersPostgres{db: db}
 }
 
-func (o *OrdersPostgres) CreateOrder(user_id int, num, status string) (int, time.Time, error) {
-	var userId int
+func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int, time.Time, error) {
+	var userID int
 	var apdatedate time.Time
 	query := `INSERT INTO orders (number, status, user_id, apdatedate) values ($1, $2, $3, $4)
                                 ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, apdatedate = now() returning user_id, apdatedate`
-	row := o.db.QueryRow(query, num, status, user_id, apdatedate)
+	row := o.db.QueryRow(query, num, status, currentuserID, apdatedate)
 
-	if err := row.Scan(&userId, &apdatedate); err != nil {
+	if err := row.Scan(&userID, &apdatedate); err != nil {
 		return 0, apdatedate, err
 	}
 
-	return userId, apdatedate, nil
+	return userID, apdatedate, nil
 }
 
 func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) error {
@@ -52,11 +52,11 @@ func (o *OrdersPostgres) GetOrdersWithStatus() ([]models.OrderResponse, error) {
 	return lists, err
 }
 
-func (o *OrdersPostgres) GetOrders(user_id int) ([]models.Order, error) {
+func (o *OrdersPostgres) GetOrders(userID int) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
 	query := "SELECT  number, status, sum, uploaddate FROM ORDERS WHERE user_id = $1 Order by uploaddate"
 
-	err := o.db.Select(&orders, query, user_id)
+	err := o.db.Select(&orders, query, userID)
 
 	if err != nil {
 		return orders, err

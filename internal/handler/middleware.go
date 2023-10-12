@@ -28,13 +28,13 @@ func (h *Handler) UserIdentify(c *gin.Context) {
 	// 	return
 	// }
 
-	userId, err := h.storage.Autorisation.ParseToken(header)
+	userID, err := h.storage.Autorisation.ParseToken(header)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	c.Set(constants.UserCtx, userId)
+	c.Set(constants.UserCtx, userID)
 }
 
 func getUserID(c *gin.Context) (int, error) {
