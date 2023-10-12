@@ -94,9 +94,9 @@ func ParseErrors(err error, debug bool) RestErr {
 	case strings.Contains(strings.ToLower(err.Error()), "preconditionfailed"):
 		return NewRestError(http.StatusPreconditionFailed, ErrPreconditionFailed, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "conflict"):
-		return parseSqlErrors(err, debug)
+		return parseSQLErrors(err, debug)
 	case strings.Contains(strings.ToLower(err.Error()), "unique constraint"):
-		return parseSqlErrors(err, debug)
+		return parseSQLErrors(err, debug)
 	case strings.Contains(strings.ToLower(err.Error()), "field validation"):
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 			return NewRestError(http.StatusBadRequest, ErrBadRequest, validationErrors.Error(), debug)
@@ -110,7 +110,7 @@ func ParseErrors(err error, debug bool) RestErr {
 	}
 }
 
-func parseSqlErrors(err error, debug bool) RestErr {
+func parseSQLErrors(err error, debug bool) RestErr {
 	return NewRestError(http.StatusConflict, ErrStatusConflict, err, debug)
 }
 

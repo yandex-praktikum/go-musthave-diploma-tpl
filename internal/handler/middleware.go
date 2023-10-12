@@ -37,16 +37,16 @@ func (h *Handler) UserIdentify(c *gin.Context) {
 	c.Set(constants.UserCtx, userId)
 }
 
-func getUserId(c *gin.Context) (int, error) {
+func getUserID(c *gin.Context) (int, error) {
 	id, ok := c.Get(constants.UserCtx)
-	unauthorized_err := errors.New("Unauthorized")
+	unauthorizedErr := errors.New("Unauthorized")
 	if !ok {
-		newErrorResponse(c, unauthorized_err)
+		newErrorResponse(c, unauthorizedErr)
 		return 0, errors.New("user id not found")
 	}
 	idInt, ok := id.(int)
 	if !ok {
-		newErrorResponse(c, unauthorized_err)
+		newErrorResponse(c, unauthorizedErr)
 		return 0, errors.New("user id not found")
 	}
 

@@ -10,10 +10,10 @@ type User struct {
 }
 
 type Order struct {
-	Number      string    `json:"number" db:"number"`
-	Status      string    `json:"status" db:"status"`
-	Accrual     float64   `json:"accrual" db:"sum"`
-	Uploaded_at time.Time `json:"uploaded_at" db:"uploaddate"`
+	Number     string    `json:"number" db:"number"`
+	Status     string    `json:"status" db:"status"`
+	Accrual    float64   `json:"accrual" db:"sum"`
+	UploadedAt time.Time `json:"uploaded_at" db:"uploaddate"`
 }
 
 type OrderResponse struct {

@@ -14,13 +14,13 @@ import (
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {
-	curentuserId, err := getUserId(c)
+	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	balance, err := h.storage.GetBalance(curentuserId)
+	balance, err := h.storage.GetBalance(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -30,7 +30,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 }
 
 func (h *Handler) Withdraw(c *gin.Context) {
-	curentuserId, err := getUserId(c)
+	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -52,7 +52,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		return
 	}
 
-	err = h.storage.Withdraw(curentuserId, withdraw)
+	err = h.storage.Withdraw(curentuserID, withdraw)
 
 	if err != nil {
 		newErrorResponse(c, err)
@@ -64,13 +64,13 @@ func (h *Handler) Withdraw(c *gin.Context) {
 
 func (h *Handler) GetWithdraws(c *gin.Context) {
 
-	curentuserId, err := getUserId(c)
+	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	withdraws, err := h.storage.GetWithdraws(curentuserId)
+	withdraws, err := h.storage.GetWithdraws(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return

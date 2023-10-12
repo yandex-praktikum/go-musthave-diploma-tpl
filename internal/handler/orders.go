@@ -14,13 +14,14 @@ import (
 )
 
 func (h *Handler) GetOrders(c *gin.Context) {
-	curentuserId, err := getUserId(c)
+	c.Writer.Header().Set("Content-Type", "application/json")
+	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	orders, err := h.storage.GetOrders(curentuserId)
+	orders, err := h.storage.GetOrders(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -30,9 +31,6 @@ func (h *Handler) GetOrders(c *gin.Context) {
 		newErrorResponse(c, errors.New("NoContent"))
 		return
 	}
-	// c.JSON(http.StatusOK, getAllOrdersResponse{
-	// 	Data: orders,
-	// })
 
 	c.JSON(http.StatusOK, orders)
 }
@@ -61,7 +59,7 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	curentuserID, err := getUserId(c)
+	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
