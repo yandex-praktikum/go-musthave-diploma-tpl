@@ -54,6 +54,7 @@ func (h *Handler) SingIn(c *gin.Context) {
 	input.Login = validatelogin(input.Login)
 
 	token, err := h.storage.Autorisation.GenerateToken(input.Login, input.Password)
+
 	if err != nil {
 		newErrorResponse(c, err)
 		return
