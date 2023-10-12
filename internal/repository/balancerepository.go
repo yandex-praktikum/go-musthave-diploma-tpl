@@ -47,13 +47,9 @@ func (b *BalancePostgres) ExistOrder(order int) bool {
 func (b *BalancePostgres) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
 	var withdraws []models.WithdrawResponse
 
-	// query := `SELECT number, sum, processed from withdrawns WHERE user_id = $1`
+	query := `SELECT number, sum, processed from withdrawns WHERE user_id = $1`
 
-	// err := b.db.Select(&withdraws, query, userID)
-
-	query := `SELECT number, sum, processed from withdrawns`
-
-	err := b.db.Select(&withdraws, query)
+	err := b.db.Select(&withdraws, query, userID)
 
 	if err != nil {
 		return withdraws, err

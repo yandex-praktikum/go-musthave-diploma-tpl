@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -72,7 +71,7 @@ func (h *Handler) GetWithdraws(c *gin.Context) {
 		newErrorResponse(c, err)
 		return
 	}
-	fmt.Println("111111111111111111111111111111111111111111")
+
 	withdraws, err := h.storage.GetWithdraws(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
@@ -121,15 +120,15 @@ func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
 	if err != nil {
 		return err
 	}
-	if balance.Current > withdraw.Sum {
-		err := b.repo.DoWithdraw(userID, withdraw)
+	// if balance.Current > withdraw.Sum {
+	err := b.repo.DoWithdraw(userID, withdraw)
 
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("PaymentRequired")
+	if err != nil {
+		return err
 	}
+	// } else {
+	// 	return errors.New("PaymentRequired")
+	// }
 
 	return nil
 }
