@@ -34,7 +34,7 @@ func (o *OrdersPostgres) CreateOrder(user_id int, num, status string) (int, time
 	return userId, apdatedate, nil
 }
 
-func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, num, status string) error {
+func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) error {
 
 	query := `UPDATE orders SET sum = $1, status = $2 WHERE number = $3`
 

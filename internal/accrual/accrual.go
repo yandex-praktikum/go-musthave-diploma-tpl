@@ -82,7 +82,6 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 		return orderResp, errors.New("TooManyRequests")
 	}
 	return orderResp, nil
-
 }
 
 func backoff(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
