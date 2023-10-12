@@ -18,7 +18,7 @@ func (b *BalancePostgres) GetBalance(userID int) (models.Balance, error) {
 	var balance models.Balance
 
 	query := `SELECT SUM(VT.withdrawn) withdrawn, (SUM(VT.accrual) - SUM(VT.withdrawn)) current   from
-                    (SELECT user_id, -SUM (sum) withdrawn, 0 accrual FROM withdrawns WHERE user_id=$1 group by user_id
+                    (SELECT user_id, SUM (sum) withdrawn, 0 accrual FROM withdrawns WHERE user_id=$1 group by user_id
                         UNION ALL
                             SELECT user_id, 0 withdrawn, SUM (sum) accrual FROM orders WHERE user_id=$2 group by user_id) VT GROUP BY VT.user_id`
 
