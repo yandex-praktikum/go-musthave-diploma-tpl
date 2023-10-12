@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {
+	c.Writer.Header().Set("Content-Type", "application/json")
 	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
@@ -30,6 +32,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 }
 
 func (h *Handler) Withdraw(c *gin.Context) {
+	c.Writer.Header().Set("Content-Type", "application/json")
 	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
@@ -63,13 +66,13 @@ func (h *Handler) Withdraw(c *gin.Context) {
 }
 
 func (h *Handler) GetWithdraws(c *gin.Context) {
-
+	c.Writer.Header().Set("Content-Type", "application/json")
 	curentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
-
+	fmt.Println("111111111111111111111111111111111111111111")
 	withdraws, err := h.storage.GetWithdraws(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)

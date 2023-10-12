@@ -20,7 +20,7 @@ func (s *server) NewRouter(repo *repository.Repository) *gin.Engine {
 
 	router.GET("/api/user/balance", h.UserIdentify, h.GetBalance)
 	router.POST("/api/user/balance/withdraw", h.UserIdentify, h.Withdraw)
-	router.POST("/api/user/withdrawals", h.UserIdentify, h.GetWithdraws)
+	router.GET("/api/user/withdrawals", h.UserIdentify, h.GetWithdraws)
 
 	return router
 }
