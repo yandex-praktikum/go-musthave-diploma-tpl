@@ -30,9 +30,11 @@ func (h *Handler) GetOrders(c *gin.Context) {
 		newErrorResponse(c, errors.New("NoContent"))
 		return
 	}
-	c.JSON(http.StatusOK, getAllOrdersResponse{
-		Data: orders,
-	})
+	// c.JSON(http.StatusOK, getAllOrdersResponse{
+	// 	Data: orders,
+	// })
+
+	c.JSON(http.StatusOK, orders)
 }
 
 func (h *Handler) PostOrder(c *gin.Context) {
@@ -59,25 +61,25 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	curentuserId, err := getUserId(c)
+	curentuserID, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	user_id, apdatedate, err := h.storage.Orders.CreateOrder(curentuserId, numOrder, "NEW")
+	userID, apdatedate, err := h.storage.Orders.CreateOrder(curentuserID, numOrder, "NEW")
 
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	if curentuserId != user_id {
+	if curentuserID != userID {
 		newErrorResponse(c, errors.New("conflict"))
 		return
 	}
 
-	if curentuserId == user_id && !apdatedate.IsZero() {
+	if curentuserID == userID && !apdatedate.IsZero() {
 		c.JSON(http.StatusOK, "Order was save earlier")
 		return
 	}
@@ -98,12 +100,12 @@ func (r *OrdersService) ChangeStatusAndSum(sum float64, status, num string) erro
 	return r.repo.ChangeStatusAndSum(sum, status, num)
 }
 
-func (r *OrdersService) CreateOrder(user_id int, num, status string) (int, time.Time, error) {
-	return r.repo.CreateOrder(user_id, num, status)
+func (r *OrdersService) CreateOrder(userID int, num, status string) (int, time.Time, error) {
+	return r.repo.CreateOrder(userID, num, status)
 }
 
-func (r *OrdersService) GetOrders(user_id int) ([]models.Order, error) {
-	return r.repo.GetOrders(user_id)
+func (r *OrdersService) GetOrders(userID int) ([]models.Order, error) {
+	return r.repo.GetOrders(userID)
 }
 
 func NewOrdersStorage(repo repository.Orders) *OrdersService {

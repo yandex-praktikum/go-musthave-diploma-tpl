@@ -13,7 +13,7 @@ func NewBalancePostgres(db *sqlx.DB) *BalancePostgres {
 	return &BalancePostgres{db: db}
 }
 
-func (b *BalancePostgres) GetBalance(user_id int) (models.Balance, error) {
+func (b *BalancePostgres) GetBalance(userID int) (models.Balance, error) {
 
 	var balance models.Balance
 
@@ -22,7 +22,7 @@ func (b *BalancePostgres) GetBalance(user_id int) (models.Balance, error) {
                         UNION ALL
                             SELECT user_id, 0 withdrawn, SUM (sum) accrual FROM orders WHERE user_id=$2 group by user_id) VT GROUP BY VT.user_id`
 
-	err := b.db.Get(&balance, query, user_id, user_id)
+	err := b.db.Get(&balance, query, userID, userID)
 
 	if err != nil {
 		return balance, err
@@ -44,12 +44,12 @@ func (b *BalancePostgres) ExistOrder(order int) bool {
 	return existOrder
 }
 
-func (b *BalancePostgres) GetWithdraws(user_id int) ([]models.WithdrawResponse, error) {
+func (b *BalancePostgres) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
 	var withdraws []models.WithdrawResponse
 
 	query := `SELECT number, sum, processed from withdrawns WHERE user_id = $1`
 
-	err := b.db.Select(&withdraws, query, user_id)
+	err := b.db.Select(&withdraws, query, userID)
 
 	if err != nil {
 		return withdraws, err
@@ -57,11 +57,11 @@ func (b *BalancePostgres) GetWithdraws(user_id int) ([]models.WithdrawResponse, 
 	return withdraws, nil
 }
 
-func (b *BalancePostgres) DoWithdraw(user_id int, withdraw models.Withdraw) error {
+func (b *BalancePostgres) DoWithdraw(userID int, withdraw models.Withdraw) error {
 
 	query := `INSERT INTO withdrawns (number, user_id, sum) values ($1, $2, $3)
                     ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, sum =  EXCLUDED.sum`
-	_, err := b.db.Exec(query, withdraw.Order, user_id, withdraw.Sum)
+	_, err := b.db.Exec(query, withdraw.Order, userID, withdraw.Sum)
 
 	if err != nil {
 		return err

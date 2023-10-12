@@ -80,9 +80,7 @@ func (h *Handler) GetWithdraws(c *gin.Context) {
 		newErrorResponse(c, errors.New("NoContent"))
 		return
 	}
-	c.JSON(http.StatusOK, getAllWithdrawalsResponse{
-		Data: withdraws,
-	})
+	c.JSON(http.StatusOK, withdraws)
 }
 
 type BalanceService struct {
@@ -94,15 +92,15 @@ func NewBalanceStorage(repo repository.Balance) *BalanceService {
 	return &BalanceService{repo: repo}
 }
 
-func (b *BalanceService) GetWithdraws(user_id int) ([]models.WithdrawResponse, error) {
-	return b.repo.GetWithdraws(user_id)
+func (b *BalanceService) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
+	return b.repo.GetWithdraws(userID)
 }
 
-func (b *BalanceService) GetBalance(user_id int) (models.Balance, error) {
-	return b.repo.GetBalance(user_id)
+func (b *BalanceService) GetBalance(userID int) (models.Balance, error) {
+	return b.repo.GetBalance(userID)
 
 }
-func (b *BalanceService) Withdraw(user_id int, withdraw models.Withdraw) error {
+func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
 
 	numOrderInt, err := strconv.Atoi(withdraw.Order)
 	if err != nil {
@@ -115,13 +113,13 @@ func (b *BalanceService) Withdraw(user_id int, withdraw models.Withdraw) error {
 		return errors.New("UnprocessableEntity")
 	}
 
-	balance, err := b.repo.GetBalance(user_id)
+	balance, err := b.repo.GetBalance(userID)
 
 	if err != nil {
 		return err
 	}
 	if balance.Current > withdraw.Sum {
-		err := b.repo.DoWithdraw(user_id, withdraw)
+		err := b.repo.DoWithdraw(userID, withdraw)
 
 		if err != nil {
 			return err
