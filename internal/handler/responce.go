@@ -18,3 +18,7 @@ type errorResponse struct {
 type getAllOrdersResponse struct {
 	Data []models.Order `json:"data"`
 }
+
+type getAllWithdrawalsResponse struct {
+	Data []models.WithdrawResponse `json:"data"`
+}

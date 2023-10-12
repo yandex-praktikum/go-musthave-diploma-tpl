@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
@@ -52,12 +53,36 @@ func (h *Handler) Withdraw(c *gin.Context) {
 	}
 
 	err = h.storage.Withdraw(curentuserId, withdraw)
+
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, "bonuses was debeted")
+}
+
+func (h *Handler) GetWithdraws(c *gin.Context) {
+
+	curentuserId, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, err)
+		return
+	}
+
+	withdraws, err := h.storage.GetWithdraws(curentuserId)
+	if err != nil {
+		newErrorResponse(c, err)
+		return
+	}
+
+	if len(withdraws) == 0 {
+		newErrorResponse(c, errors.New("NoContent"))
+		return
+	}
+	c.JSON(http.StatusOK, getAllWithdrawalsResponse{
+		Data: withdraws,
+	})
 }
 
 type BalanceService struct {
@@ -69,20 +94,25 @@ func NewBalanceStorage(repo repository.Balance) *BalanceService {
 	return &BalanceService{repo: repo}
 }
 
+func (b *BalanceService) GetWithdraws(user_id int) ([]models.WithdrawResponse, error) {
+	return b.repo.GetWithdraws(user_id)
+}
+
 func (b *BalanceService) GetBalance(user_id int) (models.Balance, error) {
 	return b.repo.GetBalance(user_id)
 
 }
 func (b *BalanceService) Withdraw(user_id int, withdraw models.Withdraw) error {
 
-	num, err := strconv.Atoi(withdraw.Order)
+	numOrderInt, err := strconv.Atoi(withdraw.Order)
 	if err != nil {
 		return errors.New("PreconditionFailed")
 	}
-	exist := b.repo.ExistOrder(num)
 
-	if !exist {
-		return errors.New("PreconditionFailed")
+	correctnum := luhn.Valid(numOrderInt)
+
+	if !correctnum {
+		return errors.New("UnprocessableEntity")
 	}
 
 	balance, err := b.repo.GetBalance(user_id)

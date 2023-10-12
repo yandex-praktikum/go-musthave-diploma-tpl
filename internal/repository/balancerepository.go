@@ -14,6 +14,7 @@ func NewBalancePostgres(db *sqlx.DB) *BalancePostgres {
 }
 
 func (b *BalancePostgres) GetBalance(user_id int) (models.Balance, error) {
+
 	var balance models.Balance
 
 	query := `SELECT -SUM(VT.withdrawn) withdrawn, (SUM(VT.accrual) + SUM(VT.withdrawn)) current   from
@@ -41,6 +42,19 @@ func (b *BalancePostgres) ExistOrder(order int) bool {
 		return false
 	}
 	return existOrder
+}
+
+func (b *BalancePostgres) GetWithdraws(user_id int) ([]models.WithdrawResponse, error) {
+	var withdraws []models.WithdrawResponse
+
+	query := `SELECT number, sum, processed from withdrawns WHERE user_id = $1`
+
+	err := b.db.Select(&withdraws, query, user_id)
+
+	if err != nil {
+		return withdraws, err
+	}
+	return withdraws, nil
 }
 
 func (b *BalancePostgres) DoWithdraw(user_id int, withdraw models.Withdraw) error {

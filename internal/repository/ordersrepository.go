@@ -7,6 +7,11 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 )
 
+const (
+	statusNew       = "NEW"
+	statusProcessed = "PROCESSED"
+)
+
 type OrdersPostgres struct {
 	db *sqlx.DB
 }
@@ -15,7 +20,7 @@ func NewOrdersPostgres(db *sqlx.DB) *OrdersPostgres {
 	return &OrdersPostgres{db: db}
 }
 
-func (o *OrdersPostgres) CreateOrder(num, user_id int, status string) (int, time.Time, error) {
+func (o *OrdersPostgres) CreateOrder(user_id int, num, status string) (int, time.Time, error) {
 	var userId int
 	var apdatedate time.Time
 	query := `INSERT INTO orders (number, status, user_id, apdatedate) values ($1, $2, $3, $4)
@@ -27,6 +32,24 @@ func (o *OrdersPostgres) CreateOrder(num, user_id int, status string) (int, time
 	}
 
 	return userId, apdatedate, nil
+}
+
+func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, num, status string) error {
+
+	query := `UPDATE orders SET sum = $1, status = $2 WHERE number = $3`
+
+	_, err := o.db.Exec(query, sum, num, status)
+	return err
+}
+
+func (o *OrdersPostgres) GetOrdersWithStatus() ([]models.OrderResponse, error) {
+	var lists []models.OrderResponse
+
+	query := `SELECT number, status, sum as accrual from orders WHERE status in ($1, $2)`
+
+	err := o.db.Select(&lists, query, statusNew, statusProcessed)
+
+	return lists, err
 }
 
 func (o *OrdersPostgres) GetOrders(user_id int) ([]models.Order, error) {

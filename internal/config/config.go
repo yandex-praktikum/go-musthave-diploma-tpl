@@ -9,23 +9,23 @@ import (
 )
 
 type ConfigServer struct {
-	Port    string `env:"ADDRESS"`
-	HashKey string `env:"KEY"`
-	DSN     string `env:"DATABASE_DSN"`
-	Logger  *logger.Config
+	Port        string `env:"RUN_ADDRESS "`
+	AccrualPort string `env:"ACCRUAL_SYSTEM_ADDRESS "`
+	DSN         string `env:"DATABASE_URI"`
+	Logger      *logger.Config
 }
 
 func InitServer() (*ConfigServer, error) {
 
 	var flagRunAddr string
-	var flaghashkey string
+	var flagRunAddrAccrual string
 	var flagDSN string
 
 	cfg := &ConfigServer{}
 	_ = env.Parse(cfg)
 
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&flaghashkey, "k", "secretkey", "key for hash func")
+	flag.StringVar(&flagRunAddrAccrual, "r", "localhost:8090", "address and port to run server")
 	flag.StringVar(&flagDSN, "d", "sslmode=disable host=localhost port=5432 dbname = gofermart user=dbuser password=password123", "connection to database")
 
 	flag.Parse()
@@ -34,8 +34,8 @@ func InitServer() (*ConfigServer, error) {
 		cfg.Port = flagRunAddr
 	}
 
-	if cfg.HashKey == "" {
-		cfg.HashKey = flaghashkey
+	if cfg.AccrualPort == "" {
+		cfg.AccrualPort = flagRunAddrAccrual
 	}
 
 	if cfg.DSN == "" {

@@ -23,6 +23,7 @@ const (
 	ErrNoContent           = "No content"
 	ErrPaymentRequired     = "Payment Required"
 	ErrPreconditionFailed  = "Precondition Failed"
+	ErrUnprocessableEntity = "Unprocessable Entity"
 )
 
 // RestErr Rest error interface
@@ -84,8 +85,10 @@ func ParseErrors(err error, debug bool) RestErr {
 		return NewRestError(http.StatusUnauthorized, ErrUnauthorized, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "signature is invalid"):
 		return NewRestError(http.StatusUnauthorized, ErrUnauthorized, err.Error(), debug)
-	case strings.Contains(strings.ToLower(err.Error()), "NoContent"):
+	case strings.Contains(strings.ToLower(err.Error()), "nocontent"):
 		return NewRestError(http.StatusNoContent, ErrNoContent, err.Error(), debug)
+	case strings.Contains(strings.ToLower(err.Error()), "unprocessableentity"):
+		return NewRestError(http.StatusUnprocessableEntity, ErrUnprocessableEntity, "", debug)
 	case strings.Contains(strings.ToLower(err.Error()), "paymentrequired"):
 		return NewRestError(http.StatusPaymentRequired, ErrPaymentRequired, err.Error(), debug)
 	case strings.Contains(strings.ToLower(err.Error()), "preconditionfailed"):

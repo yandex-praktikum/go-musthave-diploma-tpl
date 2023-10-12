@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/accrual"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
@@ -49,7 +51,33 @@ func (s *server) Run() error {
 		}
 	}()
 
-	<-ctx.Done()
-	stop()
-	return nil
+	as := accrual.NewServiceAccrual(repo, s.log, s.cfg.AccrualPort)
+
+	timer := time.NewTicker(15 * time.Second)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-timer.C:
+			orders, err := as.Storage.Orders.GetOrdersWithStatus()
+			if err != nil {
+				s.log.Error(err)
+			}
+			for _, order := range orders {
+				ord, err := as.RecieveOrder(ctx, order.Number)
+				if err != nil {
+					s.log.Error(err)
+				}
+
+				err = as.Storage.Orders.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
+
+				if err != nil {
+					s.log.Error(err)
+				}
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+
 }

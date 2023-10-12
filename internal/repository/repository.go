@@ -13,14 +13,17 @@ type Autorisation interface {
 }
 
 type Orders interface {
-	CreateOrder(num, user_id int, status string) (int, time.Time, error)
+	CreateOrder(user_id int, num, status string) (int, time.Time, error)
 	GetOrders(user_id int) ([]models.Order, error)
+	GetOrdersWithStatus() ([]models.OrderResponse, error)
+	ChangeStatusAndSum(sum float64, status, num string) error
 }
 
 type Balance interface {
 	GetBalance(user_id int) (models.Balance, error)
 	DoWithdraw(user_id int, withdraw models.Withdraw) error
 	ExistOrder(order int) bool
+	GetWithdraws(user_id int) ([]models.WithdrawResponse, error)
 }
 
 type Repository struct {
