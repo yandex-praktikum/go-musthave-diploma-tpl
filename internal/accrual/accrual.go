@@ -42,7 +42,7 @@ func NewServiceAccrual(stor *repository.Repository, log logger.Logger, addr stri
 func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, error) {
 	var orderResp models.OrderResponse
 	url := fmt.Sprintf("%s/api/order/%s", s.addr, number)
-	s.log.Error("Recieving order from accrual system ", url)
+	s.log.Info("Recieving order from accrual system ", url)
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		s.log.Error(err)
@@ -57,6 +57,8 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 	}
 	defer resp.Body.Close()
 
+	s.log.Info("Get response status ", resp.StatusCode)
+
 	switch resp.StatusCode {
 	case http.StatusOK:
 
@@ -65,12 +67,13 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 			s.log.Error(err)
 			return orderResp, err
 		}
-		defer resp.Body.Close()
 
 		if err := json.Unmarshal(jsonData, &orderResp); err != nil {
 			s.log.Error(err)
 			return orderResp, err
 		}
+
+		s.log.Info("Get response body ", string(jsonData))
 		if orderResp.Status == "REGISTERED" {
 			orderResp.Status = "NEW"
 		}
@@ -78,8 +81,10 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 		s.log.Info("Get data", orderResp)
 		return orderResp, nil
 	case http.StatusNoContent:
+		s.log.Info("No content in request ")
 		return orderResp, errors.New("NoContent")
 	case http.StatusTooManyRequests:
+		s.log.Info("Too Many Requests ")
 		return orderResp, errors.New("TooManyRequests")
 	}
 	return orderResp, nil
