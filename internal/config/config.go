@@ -9,8 +9,8 @@ import (
 )
 
 type ConfigServer struct {
-	Port        string `env:"RUN_ADDRESS "`
-	AccrualPort string `env:"ACCRUAL_SYSTEM_ADDRESS "`
+	Port        string `env:"RUN_ADDRESS"`
+	AccrualPort string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	DSN         string `env:"DATABASE_URI"`
 	Logger      *logger.Config
 }
@@ -26,7 +26,7 @@ func InitServer() (*ConfigServer, error) {
 
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	// flag.StringVar(&flagRunAddrAccrual, "r", "localhost:8090", "address and port to run server")
-	flag.StringVar(&flagRunAddrAccrual, "r", "", "address and port to run server")
+	flag.StringVar(&flagRunAddrAccrual, "r", "localhost:8081", "address and port to run accrual server")
 	flag.StringVar(&flagDSN, "d", "sslmode=disable host=localhost port=5432 dbname = gofermart user=dbuser password=password123", "connection to database")
 
 	flag.Parse()
