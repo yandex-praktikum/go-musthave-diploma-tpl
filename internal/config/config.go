@@ -25,7 +25,6 @@ func InitServer() (*ConfigServer, error) {
 	_ = env.Parse(cfg)
 
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
-	// flag.StringVar(&flagRunAddrAccrual, "r", "localhost:8090", "address and port to run server")
 	flag.StringVar(&flagRunAddrAccrual, "r", "localhost:8081", "address and port to run accrual server")
 	flag.StringVar(&flagDSN, "d", "sslmode=disable host=localhost port=5432 dbname = gofermart user=dbuser password=password123", "connection to database")
 

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -35,10 +36,11 @@ func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int
 }
 
 func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) error {
+	fmt.Println("1111111111111 order", num, "status ", status, " sum ", sum)
 
 	query := `UPDATE orders SET sum = $1, status = $2 WHERE number = $3`
 
-	_, err := o.db.Exec(query, sum, num, status)
+	_, err := o.db.Exec(query, sum, status, num)
 	return err
 }
 

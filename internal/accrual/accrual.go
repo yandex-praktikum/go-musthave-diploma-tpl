@@ -73,11 +73,9 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 			return orderResp, err
 		}
 
-		s.log.Info("Get response body ", string(jsonData))
 		if orderResp.Status == "REGISTERED" {
 			orderResp.Status = "NEW"
 		}
-
 		s.log.Info("Get data", orderResp)
 		return orderResp, nil
 	case http.StatusNoContent:
