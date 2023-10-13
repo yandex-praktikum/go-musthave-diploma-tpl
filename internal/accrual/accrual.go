@@ -72,6 +72,7 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 			s.log.Error(err)
 			return orderResp, err
 		}
+		s.log.Info("Get data from accrual system  ", orderResp)
 
 		if orderResp.Status == "REGISTERED" {
 			orderResp.Status = "NEW"

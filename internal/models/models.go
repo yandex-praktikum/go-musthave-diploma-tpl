@@ -17,7 +17,7 @@ type Order struct {
 }
 
 type OrderResponse struct {
-	Number  string  `json:"number" db:"number"`
+	Number  string  `json:"order" db:"number"`
 	Status  string  `json:"status" db:"status"`
 	Accrual float64 `json:"accrual" db:"accrual"`
 }
