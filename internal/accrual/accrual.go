@@ -41,7 +41,7 @@ func NewServiceAccrual(stor *repository.Repository, log logger.Logger, addr stri
 
 func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, error) {
 	var orderResp models.OrderResponse
-	url := fmt.Sprintf("%s/api/order/%s", s.addr, number)
+	url := fmt.Sprintf("%s/api/orders/%s", s.addr, number)
 	s.log.Info("Recieving order from accrual system ", url)
 	req, err := retryablehttp.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
