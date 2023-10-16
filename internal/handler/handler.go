@@ -3,18 +3,18 @@ package handler
 import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/service"
 )
 
 type Handler struct {
-	storage *Storage
+	service *service.Service
 	cfg     *config.ConfigServer
 	log     logger.Logger
 }
 
-func NewHandler(repos *repository.Repository, cfg *config.ConfigServer, log logger.Logger) *Handler {
+func NewHandler(service *service.Service, cfg *config.ConfigServer, log logger.Logger) *Handler {
 	return &Handler{
-		storage: NewStorage(repos),
+		service: service,
 		cfg:     cfg,
 		log:     log,
 	}

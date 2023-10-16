@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -23,20 +22,19 @@ func NewOrdersPostgres(db *sqlx.DB) *OrdersPostgres {
 
 func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int, time.Time, error) {
 	var userID int
-	var apdatedate time.Time
-	query := `INSERT INTO orders (number, status, user_id, apdatedate) values ($1, $2, $3, $4)
-                                ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, apdatedate = now() returning user_id, apdatedate`
-	row := o.db.QueryRow(query, num, status, currentuserID, apdatedate)
+	var updatedate time.Time
+	query := `INSERT INTO orders (number, status, user_id, updatedate) values ($1, $2, $3, $4)
+                                ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, updatedate = now() returning user_id, updatedate`
+	row := o.db.QueryRow(query, num, status, currentuserID, updatedate)
 
-	if err := row.Scan(&userID, &apdatedate); err != nil {
-		return 0, apdatedate, err
+	if err := row.Scan(&userID, &updatedate); err != nil {
+		return 0, updatedate, err
 	}
 
-	return userID, apdatedate, nil
+	return userID, updatedate, nil
 }
 
 func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) error {
-	fmt.Println("1111111111111 order", num, "status ", status, " sum ", sum)
 
 	query := `UPDATE orders SET sum = $1, status = $2 WHERE number = $3`
 

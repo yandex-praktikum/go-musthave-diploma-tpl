@@ -3,15 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {
@@ -22,7 +18,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 		return
 	}
 
-	balance, err := h.storage.GetBalance(curentuserID)
+	balance, err := h.service.GetBalance(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -55,7 +51,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		return
 	}
 
-	err = h.storage.Withdraw(curentuserID, withdraw)
+	err = h.service.Withdraw(curentuserID, withdraw)
 
 	if err != nil {
 		newErrorResponse(c, err)
@@ -73,7 +69,7 @@ func (h *Handler) GetWithdraws(c *gin.Context) {
 		return
 	}
 
-	withdraws, err := h.storage.GetWithdraws(curentuserID)
+	withdraws, err := h.service.GetWithdraws(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -84,53 +80,4 @@ func (h *Handler) GetWithdraws(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, withdraws)
-}
-
-type BalanceService struct {
-	// log  logger.Logger
-	repo repository.Balance
-}
-
-func NewBalanceStorage(repo repository.Balance) *BalanceService {
-	return &BalanceService{repo: repo}
-}
-
-func (b *BalanceService) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
-	return b.repo.GetWithdraws(userID)
-}
-
-func (b *BalanceService) GetBalance(userID int) (models.Balance, error) {
-	return b.repo.GetBalance(userID)
-
-}
-func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
-
-	numOrderInt, err := strconv.Atoi(withdraw.Order)
-	if err != nil {
-		return errors.New("PreconditionFailed")
-	}
-
-	correctnum := luhn.Valid(numOrderInt)
-
-	if !correctnum {
-		return errors.New("UnprocessableEntity")
-	}
-
-	balance, err := b.repo.GetBalance(userID)
-
-	if err != nil {
-		return err
-	}
-	// if balance.Current > withdraw.Sum {
-	err = b.repo.DoWithdraw(userID, withdraw)
-	fmt.Println("Order ", withdraw.Order, "balance ", balance, withdraw.Sum, "withdraw")
-
-	if err != nil {
-		return err
-	}
-	// } else {
-	// 	return errors.New("PaymentRequired")
-	// }
-
-	return nil
 }

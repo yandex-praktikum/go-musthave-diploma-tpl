@@ -16,19 +16,7 @@ func (h *Handler) UserIdentify(c *gin.Context) {
 		return
 	}
 
-	// headerParts := strings.Split(header, " ")
-	// if len(headerParts) != 2 {
-	// 	newErrorResponse(c, errors.New("unauthorized"))
-	// 	return
-	// }
-
-	// userId, err := h.storage.Autorisation.ParseToken(headerParts[1])
-	// if err != nil {
-	// 	newErrorResponse(c, err)
-	// 	return
-	// }
-
-	userID, err := h.storage.Autorisation.ParseToken(header)
+	userID, err := h.service.Autorisation.ParseToken(header)
 	if err != nil {
 		newErrorResponse(c, err)
 		return

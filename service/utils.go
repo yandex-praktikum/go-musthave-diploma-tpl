@@ -1,10 +1,9 @@
-package handler
+package service
 
 import (
 	"crypto/sha1"
 	"fmt"
 	"math/rand"
-	"strings"
 )
 
 // n is the length of random string we want to generate
@@ -23,8 +22,4 @@ func generatePasswordHash(password, salt string) string {
 	hash.Write([]byte(password))
 
 	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
-}
-
-func validatelogin(s string) string {
-	return strings.ToLower(strings.TrimSpace(s))
 }

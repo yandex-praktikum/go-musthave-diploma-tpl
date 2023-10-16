@@ -1,4 +1,4 @@
-package handler
+package service
 
 import (
 	"time"
@@ -26,14 +26,14 @@ type Balance interface {
 	GetWithdraws(userID int) ([]models.WithdrawResponse, error)
 }
 
-type Storage struct {
+type Service struct {
 	Autorisation
 	Orders
 	Balance
 }
 
-func NewStorage(repos *repository.Repository) *Storage {
-	return &Storage{
+func NewService(repos *repository.Repository) *Service {
+	return &Service{
 		Autorisation: NewAuthStorage(repos.Autorisation),
 		Orders:       NewOrdersStorage(repos.Orders),
 		Balance:      NewBalanceStorage(repos.Balance),

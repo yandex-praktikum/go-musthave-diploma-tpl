@@ -13,6 +13,7 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/service"
 )
 
 type server struct {
@@ -42,7 +43,9 @@ func (s *server) Run() error {
 	}
 
 	repo := repository.NewRepository(db)
-	s.router = s.NewRouter(repo)
+	service := service.NewService(repo)
+
+	s.router = s.NewRouter(service, repo)
 	go func() {
 		s.log.Info("Connect listening on port: %s", s.cfg.Port)
 		if err := s.router.Run(s.cfg.Port); err != nil {
