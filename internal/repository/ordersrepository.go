@@ -98,7 +98,7 @@ func (o *OrdersPostgres) GetOrdersWithStatus() ([]models.OrderResponse, error) {
 
 func (o *OrdersPostgres) GetOrders(userID int) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
-	query := "SELECT  o.number, o.status, b.sum, o.uploaddate FROM ORDERS o LEFT JOIN BALANCE b  ON o.number = b.number WHERE o.user_id = $1 AND b.sum > 0 ORDER by uploaddate"
+	query := "SELECT  o.number, o.status, b.sum, o.uploaddate FROM ORDERS o LEFT JOIN BALANCE b  ON o.number = b.number WHERE o.user_id = $1 AND b.sum => 0 ORDER by uploaddate"
 
 	err := o.db.Select(&orders, query, userID)
 
