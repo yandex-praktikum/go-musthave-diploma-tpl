@@ -60,9 +60,9 @@ func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int
 		return 0, updatedate, err
 	}
 
-	fmt.Println("111111111111111", updatedate)
+	fmt.Println("111111111111111", updatedate, " CU ", currentuserID, " UI ", userID)
 	if !updatedate.IsZero() {
-		return 0, updatedate, nil
+		return userID, updatedate, nil
 	}
 
 	_ = tx.Commit()
