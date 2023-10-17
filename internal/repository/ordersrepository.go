@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -60,7 +59,6 @@ func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int
 		return 0, updatedate, err
 	}
 
-	fmt.Println("111111111111111", updatedate, " CU ", currentuserID, " UI ", userID)
 	if !updatedate.IsZero() {
 		return userID, updatedate, nil
 	}
