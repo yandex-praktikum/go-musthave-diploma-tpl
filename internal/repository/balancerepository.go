@@ -2,7 +2,6 @@ package repository
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
@@ -63,8 +62,6 @@ func (b *BalancePostgres) DoWithdraw(userID int, withdraw models.Withdraw) error
 	}
 
 	if balance < 0 {
-		current := balance + withdraw.Sum
-		fmt.Println("Balans lowere than sum for withdraw ", current, " ", withdraw.Sum)
 		return errors.New("PaymentRequired")
 	}
 

@@ -39,7 +39,6 @@ func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
 	}
 
 	err = b.repo.DoWithdraw(userID, withdraw)
-	// fmt.Println("Order ", withdraw.Order, "balance ", balance, withdraw.Sum, "withdraw")
 
 	if err != nil {
 		return err
