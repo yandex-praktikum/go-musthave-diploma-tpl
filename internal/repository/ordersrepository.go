@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -47,6 +48,7 @@ func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int
 	if err != nil {
 		return 0, updatedate, err
 	}
+
 	defer stmtBal.Close()
 
 	row := stmtOrd.QueryRow(currentuserID, num, status, updatedate)
@@ -56,6 +58,11 @@ func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int
 	_, err = stmtBal.Exec(num, currentuserID)
 	if err != nil {
 		return 0, updatedate, err
+	}
+
+	fmt.Println("111111111111111", updatedate)
+	if !updatedate.IsZero() {
+		return 0, updatedate, nil
 	}
 
 	_ = tx.Commit()
