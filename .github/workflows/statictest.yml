@@ -12,7 +12,7 @@ jobs:
 
   statictest:
     runs-on: ubuntu-latest
-    container: golang:1.19
+    container: golang:1.21
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -21,7 +21,7 @@ jobs:
         uses: robinraju/release-downloader@v1
         with:
           repository: Yandex-Practicum/go-autotests-bin
-          latest: true
+          tag: "v0.9.16"
           fileName: statictest
           out-file-path: .tools
 
