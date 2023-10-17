@@ -19,7 +19,9 @@ func (b *BalancePostgres) GetBalance(userID int) (models.Balance, error) {
 
 	var balance models.Balance
 
-	query := `SELECT user_id, SUM (sum) accrual FROM balance WHERE user_id=$1 group by user_id`
+	query := `SELECT SUM (sum) current,
+                SUM(CASE WHEN  sum < 0 THEN -sum ELSE 0 END) withdrawn
+                        FROM balance WHERE user_id=$1 group by user_id`
 
 	err := b.db.Get(&balance, query, userID)
 
