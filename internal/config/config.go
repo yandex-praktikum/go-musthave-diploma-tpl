@@ -4,8 +4,13 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/constants"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
+)
+
+const (
+	LogLevel = "info"
+	DevMode  = true
+	Type     = "plaintext"
 )
 
 type ConfigServer struct {
@@ -43,9 +48,9 @@ func InitServer() (*ConfigServer, error) {
 	}
 
 	cfglog := &logger.Config{
-		LogLevel: constants.LogLevel,
-		DevMode:  constants.DevMode,
-		Type:     constants.Type,
+		LogLevel: LogLevel,
+		DevMode:  DevMode,
+		Type:     Type,
 	}
 
 	cfg.Logger = cfglog

@@ -17,13 +17,13 @@ func (h *Handler) SingUp(c *gin.Context) {
 	}
 	input.Login = validatelogin(input.Login)
 
-	_, err := h.service.Autorisation.CreateUser(input)
+	_, err := h.authService.CreateUser(input)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	token, err := h.service.Autorisation.GenerateToken(input.Login, input.Password)
+	token, err := h.authService.GenerateToken(input.Login, input.Password)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -44,7 +44,7 @@ func (h *Handler) SingIn(c *gin.Context) {
 	}
 	input.Login = validatelogin(input.Login)
 
-	token, err := h.service.Autorisation.GenerateToken(input.Login, input.Password)
+	token, err := h.authService.GenerateToken(input.Login, input.Password)
 
 	if err != nil {
 		newErrorResponse(c, err)

@@ -18,7 +18,7 @@ func (h *Handler) GetOrders(c *gin.Context) {
 		return
 	}
 
-	orders, err := h.service.GetOrders(curentuserID)
+	orders, err := h.ordersService.GetOrders(curentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -62,7 +62,7 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	userID, updatedate, err := h.service.Orders.CreateOrder(curentuserID, numOrder, "NEW")
+	userID, updatedate, err := h.ordersService.CreateOrder(curentuserID, numOrder, "NEW")
 
 	if err != nil {
 		newErrorResponse(c, err)

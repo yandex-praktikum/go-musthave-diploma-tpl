@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
@@ -39,14 +38,8 @@ func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
 		return errors.New("UnprocessableEntity")
 	}
 
-	balance, err := b.repo.GetBalance(userID)
-
-	if err != nil {
-		return err
-	}
-
 	err = b.repo.DoWithdraw(userID, withdraw)
-	fmt.Println("Order ", withdraw.Order, "balance ", balance, withdraw.Sum, "withdraw")
+	// fmt.Println("Order ", withdraw.Order, "balance ", balance, withdraw.Sum, "withdraw")
 
 	if err != nil {
 		return err

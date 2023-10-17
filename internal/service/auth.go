@@ -5,9 +5,13 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/constants"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
+)
+
+const (
+	signingKey = "kljksj542ds;flks;l;"
+	tokenTTL   = 12 * time.Hour
 )
 
 type tokenClaims struct {
@@ -45,13 +49,13 @@ func (a *AuthService) GenerateToken(username, password string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(constants.TokenTTL).Unix(),
+			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		user.ID,
 	})
 
-	return token.SignedString([]byte(constants.SigningKey))
+	return token.SignedString([]byte(signingKey))
 }
 
 func (a *AuthService) ParseToken(accessToken string) (int, error) {
@@ -60,7 +64,7 @@ func (a *AuthService) ParseToken(accessToken string) (int, error) {
 			return nil, errors.New("invalid signing method")
 		}
 
-		return []byte(constants.SigningKey), nil
+		return []byte(signingKey), nil
 	})
 	if err != nil {
 		return 0, err

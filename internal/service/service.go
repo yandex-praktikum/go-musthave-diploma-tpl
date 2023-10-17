@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 type Autorisation interface {
@@ -24,18 +23,4 @@ type Balance interface {
 	GetBalance(userID int) (models.Balance, error)
 	Withdraw(userID int, withdraw models.Withdraw) error
 	GetWithdraws(userID int) ([]models.WithdrawResponse, error)
-}
-
-type Service struct {
-	Autorisation
-	Orders
-	Balance
-}
-
-func NewService(repos *repository.Repository) *Service {
-	return &Service{
-		Autorisation: NewAuthStorage(repos.Autorisation),
-		Orders:       NewOrdersStorage(repos.Orders),
-		Balance:      NewBalanceStorage(repos.Balance),
-	}
 }

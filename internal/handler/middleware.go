@@ -4,29 +4,33 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/constants"
+)
+
+const (
+	hashHeader = "Authorization"
+	userCtx    = "userId"
 )
 
 func (h *Handler) UserIdentify(c *gin.Context) {
 
-	header := c.GetHeader(constants.HashHeader)
+	header := c.GetHeader(hashHeader)
 
 	if header == "" {
 		newErrorResponse(c, errors.New("unauthorized"))
 		return
 	}
 
-	userID, err := h.service.Autorisation.ParseToken(header)
+	userID, err := h.authService.ParseToken(header)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	c.Set(constants.UserCtx, userID)
+	c.Set(userCtx, userID)
 }
 
 func getUserID(c *gin.Context) (int, error) {
-	id, ok := c.Get(constants.UserCtx)
+	id, ok := c.Get(userCtx)
 	unauthorizedErr := errors.New("Unauthorized")
 	if !ok {
 		newErrorResponse(c, unauthorizedErr)

@@ -13,22 +13,28 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/constants"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 )
 
+const (
+	RetryMax     int           = 3
+	RetryWaitMin time.Duration = 1 * time.Second
+	RetryMedium  time.Duration = 3 * time.Second
+	RetryWaitMax time.Duration = 5 * time.Second
+)
+
 type ServiceAccrual struct {
-	Storage    *repository.Repository
+	Storage    repository.Orders
 	httpClient *retryablehttp.Client
 	log        logger.Logger
 	addr       string
 }
 
-func NewServiceAccrual(stor *repository.Repository, log logger.Logger, addr string) *ServiceAccrual {
+func NewServiceAccrual(stor repository.Orders, log logger.Logger, addr string) *ServiceAccrual {
 	retryClient := retryablehttp.NewClient()
-	retryClient.RetryMax = constants.RetryMax
-	retryClient.RetryWaitMin = constants.RetryWaitMin
-	retryClient.RetryWaitMax = constants.RetryWaitMax
+	retryClient.RetryMax = RetryMax
+	retryClient.RetryWaitMin = RetryWaitMin
+	retryClient.RetryWaitMax = RetryWaitMax
 	retryClient.Backoff = backoff
 
 	return &ServiceAccrual{

@@ -13,13 +13,14 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/service"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
 )
 
 type server struct {
 	cfg    *config.ConfigServer
 	router *gin.Engine
 	log    logger.Logger
+	as     *accrual.ServiceAccrual
 }
 
 func NewServer(cfg *config.ConfigServer, log logger.Logger) *server {
@@ -42,10 +43,15 @@ func (s *server) Run() error {
 		defer db.Close()
 	}
 
-	repo := repository.NewRepository(db)
-	service := service.NewService(repo)
+	authRepo := repository.NewAuthPostgres(db)
+	ordersRepo := repository.NewOrdersPostgres(db)
+	balanceRepo := repository.NewBalancePostgres(db)
 
-	s.router = s.NewRouter(service, repo)
+	authService := service.NewAuthStorage(authRepo)
+	ordersService := service.NewOrdersStorage(ordersRepo)
+	balanceService := service.NewBalanceStorage(balanceRepo)
+
+	s.router = s.NewRouter(authService, ordersService, balanceService)
 	go func() {
 		s.log.Info("Connect listening on port: %s", s.cfg.Port)
 		if err := s.router.Run(s.cfg.Port); err != nil {
@@ -54,32 +60,41 @@ func (s *server) Run() error {
 		}
 	}()
 
-	as := accrual.NewServiceAccrual(repo, s.log, s.cfg.AccrualPort)
+	s.as = accrual.NewServiceAccrual(ordersRepo, s.log, s.cfg.AccrualPort)
 
+	go s.ProcessedAccrualData(ctx)
+
+	<-ctx.Done()
+
+	return nil
+
+}
+
+func (s *server) ProcessedAccrualData(ctx context.Context) {
 	timer := time.NewTicker(15 * time.Second)
 	defer timer.Stop()
 
 	for {
 		select {
 		case <-timer.C:
-			orders, err := as.Storage.Orders.GetOrdersWithStatus()
+			orders, err := s.as.Storage.GetOrdersWithStatus()
 			if err != nil {
 				s.log.Error(err)
 			}
 			for _, order := range orders {
-				ord, err := as.RecieveOrder(ctx, order.Number)
+				ord, err := s.as.RecieveOrder(ctx, order.Number)
 				if err != nil {
 					s.log.Error(err)
 				}
 
-				err = as.Storage.Orders.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
+				err = s.as.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
 
 				if err != nil {
 					s.log.Error(err)
 				}
 			}
 		case <-ctx.Done():
-			return nil
+			return
 		}
 	}
 
