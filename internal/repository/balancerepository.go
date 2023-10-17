@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"errors"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 )
@@ -46,7 +44,7 @@ func (b *BalancePostgres) GetWithdraws(userID int) ([]models.WithdrawResponse, e
 }
 
 func (b *BalancePostgres) DoWithdraw(userID int, withdraw models.Withdraw) error {
-	var balance int64
+	// var balance int64
 	tx, err := b.db.Begin()
 	if err != nil {
 		return err
@@ -55,15 +53,15 @@ func (b *BalancePostgres) DoWithdraw(userID int, withdraw models.Withdraw) error
 		_ = tx.Rollback()
 	}()
 
-	queryB := `SELECT SUM(sum) - $1 AS balance from balance WHERE user_id = $2 group by user_id`
-	err = tx.QueryRow(queryB, withdraw.Sum, userID).Scan(&balance)
-	if err != nil {
-		return err
-	}
+	// queryB := `SELECT SUM(sum) - $1 AS balance from balance WHERE user_id = $2 group by user_id`
+	// err = tx.QueryRow(queryB, withdraw.Sum, userID).Scan(&balance)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if balance < 0 {
-		return errors.New("PaymentRequired")
-	}
+	// if balance < 0 {
+	// 	return errors.New("PaymentRequired")
+	// }
 
 	query := `INSERT INTO balance (number, user_id, sum) values ($1, $2, $3)`
 	_, err = b.db.Exec(query, withdraw.Order, userID, -withdraw.Sum)
