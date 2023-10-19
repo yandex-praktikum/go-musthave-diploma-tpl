@@ -12,13 +12,13 @@ import (
 
 func (h *Handler) GetOrders(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
-	curentuserID, err := getUserID(c)
+	currentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	orders, err := h.ordersService.GetOrders(curentuserID)
+	orders, err := h.ordersService.GetOrders(currentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -56,25 +56,25 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	curentuserID, err := getUserID(c)
+	currentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	userID, updatedate, err := h.ordersService.CreateOrder(curentuserID, numOrder, "NEW")
+	userID, updatedate, err := h.ordersService.CreateOrder(currentuserID, numOrder, "NEW")
 
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	if curentuserID != userID {
+	if currentuserID != userID {
 		newErrorResponse(c, errors.New("conflict"))
 		return
 	}
 
-	if curentuserID == userID && !updatedate.IsZero() {
+	if currentuserID == userID && !updatedate.IsZero() {
 		c.JSON(http.StatusOK, "Order was save earlier")
 		return
 	}

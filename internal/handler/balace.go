@@ -12,13 +12,13 @@ import (
 
 func (h *Handler) GetBalance(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
-	curentuserID, err := getUserID(c)
+	currentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	balance, err := h.balanceService.GetBalance(curentuserID)
+	balance, err := h.balanceService.GetBalance(currentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -29,7 +29,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 
 func (h *Handler) Withdraw(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
-	curentuserID, err := getUserID(c)
+	currentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -51,7 +51,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		return
 	}
 
-	err = h.balanceService.Withdraw(curentuserID, withdraw)
+	err = h.balanceService.Withdraw(currentuserID, withdraw)
 
 	if err != nil {
 		newErrorResponse(c, err)
@@ -63,13 +63,13 @@ func (h *Handler) Withdraw(c *gin.Context) {
 
 func (h *Handler) GetWithdraws(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "application/json")
-	curentuserID, err := getUserID(c)
+	currentuserID, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
 	}
 
-	withdraws, err := h.balanceService.GetWithdraws(curentuserID)
+	withdraws, err := h.balanceService.GetWithdraws(currentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return

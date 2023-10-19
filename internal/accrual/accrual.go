@@ -39,21 +39,21 @@ func NewServiceAccrual(stor repository.Orders, log logger.Logger, addr string) *
 	}
 }
 
-func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, error, int) {
+func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, int, error) {
 	var orderResp models.OrderResponse
 	url := fmt.Sprintf("%s/api/orders/%s", s.addr, number)
 	s.log.Info("Recieving order from accrual system ", url)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		s.log.Error(err)
-		return orderResp, err, 0
+		return orderResp, 0, err
 	}
 
 	resp, err := s.httpClient.Do(req)
 
 	if err != nil {
 		s.log.Debug("Can't get message")
-		return orderResp, err, 0
+		return orderResp, 0, err
 	}
 	defer resp.Body.Close()
 
@@ -65,12 +65,12 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 		jsonData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			s.log.Error(err)
-			return orderResp, err, 0
+			return orderResp, 0, err
 		}
 
 		if err := json.Unmarshal(jsonData, &orderResp); err != nil {
 			s.log.Error(err)
-			return orderResp, err, 0
+			return orderResp, 0, err
 		}
 		s.log.Info("Get data from accrual system  ", orderResp)
 
@@ -78,20 +78,20 @@ func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (model
 			orderResp.Status = "NEW"
 		}
 		s.log.Info("Get data", orderResp)
-		return orderResp, nil, 0
+		return orderResp, 0, nil
 	case http.StatusNoContent:
 		s.log.Info("No content in request ")
-		return orderResp, errors.New("NoContent"), 0
+		return orderResp, 0, errors.New("NoContent")
 	case http.StatusTooManyRequests:
 		s.log.Info("Too Many Requests ")
 
 		retryHeder := resp.Header.Get("Retry-After")
 		retryafter, err := strconv.Atoi(retryHeder)
 		if err != nil {
-			return orderResp, errors.New("TooManyRequests"), 0
+			return orderResp, 0, errors.New("TooManyRequests")
 		}
 
-		return orderResp, errors.New("TooManyRequests"), retryafter
+		return orderResp, retryafter, errors.New("TooManyRequests")
 	}
-	return orderResp, nil, 0
+	return orderResp, 0, nil
 }
