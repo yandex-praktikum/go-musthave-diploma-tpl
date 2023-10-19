@@ -1,4 +1,4 @@
-// package handler
+package handler
 
 // import (
 // 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
