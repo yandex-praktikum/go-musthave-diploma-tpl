@@ -16,21 +16,21 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
 )
 
-type server struct {
+type Server struct {
 	cfg    *config.ConfigServer
 	router *gin.Engine
 	log    logger.Logger
 	as     *accrual.ServiceAccrual
 }
 
-func NewServer(cfg *config.ConfigServer, log logger.Logger) *server {
-	return &server{
+func NewServer(cfg *config.ConfigServer, log logger.Logger) *Server {
+	return &Server{
 		cfg: cfg,
 		log: log,
 	}
 }
 
-func (s *server) Run() error {
+func (s *Server) Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
@@ -48,10 +48,9 @@ func (s *server) Run() error {
 	balanceRepo := repository.NewBalancePostgres(db)
 
 	authService := service.NewAuthStorage(authRepo)
-	ordersService := service.NewOrdersStorage(ordersRepo)
 	balanceService := service.NewBalanceStorage(balanceRepo)
 
-	s.router = s.NewRouter(authService, ordersService, balanceService)
+	s.router = s.NewRouter(authService, ordersRepo, balanceService)
 	go func() {
 		s.log.Info("Connect listening on port: %s", s.cfg.Port)
 		if err := s.router.Run(s.cfg.Port); err != nil {
@@ -70,7 +69,7 @@ func (s *server) Run() error {
 
 }
 
-func (s *server) ProcessedAccrualData(ctx context.Context) {
+func (s *Server) ProcessedAccrualData(ctx context.Context) {
 	timer := time.NewTicker(15 * time.Second)
 	defer timer.Stop()
 
@@ -82,7 +81,7 @@ func (s *server) ProcessedAccrualData(ctx context.Context) {
 				s.log.Error(err)
 			}
 			for _, order := range orders {
-				ord, err, t := s.as.RecieveOrder(ctx, order.Number)
+				ord, t, err := s.as.RecieveOrder(ctx, order.Number)
 				if err != nil {
 					s.log.Error(err)
 
