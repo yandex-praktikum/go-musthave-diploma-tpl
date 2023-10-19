@@ -82,9 +82,14 @@ func (s *server) ProcessedAccrualData(ctx context.Context) {
 				s.log.Error(err)
 			}
 			for _, order := range orders {
-				ord, err := s.as.RecieveOrder(ctx, order.Number)
+				ord, err, t := s.as.RecieveOrder(ctx, order.Number)
 				if err != nil {
 					s.log.Error(err)
+
+					if t != 0 {
+						time.Sleep(time.Duration(t) * time.Second)
+					}
+					continue
 				}
 
 				err = s.as.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)

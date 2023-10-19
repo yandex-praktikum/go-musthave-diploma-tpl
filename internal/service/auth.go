@@ -24,7 +24,7 @@ type AuthService struct {
 }
 
 func (a *AuthService) CreateUser(user models.User) (int, error) {
-	user.Salt = randStr(20)
+	user.Salt = RandStr(20)
 	user.Password = generatePasswordHash(user.Password, user.Salt)
 
 	return a.repo.CreateUser(user)

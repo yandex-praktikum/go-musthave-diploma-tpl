@@ -7,7 +7,7 @@ import (
 )
 
 // n is the length of random string we want to generate
-func randStr(n int) string {
+func RandStr(n int) string {
 	var charset = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]byte, n)
 	for i := range b {
