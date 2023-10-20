@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Download statictest binary
-        uses: robinraju/release-downloader@v1
+        uses: robinraju/release-downloader@v1.8
         with:
           repository: Yandex-Practicum/go-autotests-bin
           tag: "v0.9.16"
