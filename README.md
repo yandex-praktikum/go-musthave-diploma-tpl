@@ -13,7 +13,7 @@
 Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
 
 ```
-git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl.git
+git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl
 ```
 
 Для обновления кода автотестов выполните команду:

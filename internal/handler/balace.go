@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {

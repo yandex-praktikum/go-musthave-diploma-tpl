@@ -2,9 +2,9 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/handler"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/handler"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/service"
 )
 
 func (s *Server) NewRouter(auth service.Autorisation, orders repository.Orders, balance service.Balance) *gin.Engine {

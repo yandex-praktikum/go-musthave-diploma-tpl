@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/config"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/logger"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/service"
 )
 
 type Handler struct {

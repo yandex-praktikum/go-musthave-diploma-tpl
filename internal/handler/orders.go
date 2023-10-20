@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/luhn"
 )
 
 func (h *Handler) GetOrders(c *gin.Context) {
@@ -62,7 +62,7 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	userID, updatedate, err := h.ordersService.CreateOrder(currentuserID, numOrder, "NEW")
+	userID, updateDate, err := h.ordersService.CreateOrder(currentuserID, numOrder, "NEW")
 
 	if err != nil {
 		newErrorResponse(c, err)
@@ -74,7 +74,7 @@ func (h *Handler) PostOrder(c *gin.Context) {
 		return
 	}
 
-	if currentuserID == userID && !updatedate.IsZero() {
+	if currentuserID == userID && !updateDate.IsZero() {
 		c.JSON(http.StatusOK, "Order was save earlier")
 		return
 	}

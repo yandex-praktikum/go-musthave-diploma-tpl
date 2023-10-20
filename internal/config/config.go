@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/logger"
 )
 
 const (

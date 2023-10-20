@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
 )
 
 const (
@@ -22,49 +22,55 @@ func NewOrdersPostgres(db *sqlx.DB) *OrdersPostgres {
 
 func (o *OrdersPostgres) CreateOrder(currentuserID int, num, status string) (int, time.Time, error) {
 	var userID int
-	var updatedate time.Time
+	var updateDate time.Time
 
 	tx, err := o.db.Begin()
 	if err != nil {
-		return 0, updatedate, err
+		return 0, updateDate, err
 	}
 
 	defer func() {
-		_ = tx.Rollback()
+		err = tx.Rollback()
+		if err != nil {
+			return
+		}
 	}()
 
 	stmtOrd, err := tx.Prepare(
-		`INSERT INTO orders (user_id, number, status, updatedate) values ($1, $2, $3, $4)
-            ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, updatedate = now() returning user_id, updatedate`)
+		`INSERT INTO orders (user_id, number, status, update_date) values ($1, $2, $3, $4)
+            ON CONFLICT (number) DO UPDATE SET number =  EXCLUDED.number, update_date = now() returning user_id, update_date`)
 
 	if err != nil {
-		return 0, updatedate, err
+		return 0, updateDate, err
 	}
 	defer stmtOrd.Close()
 
 	stmtBal, err := tx.Prepare(`INSERT INTO balance (number, user_id, sum) values ($1, $2, 0)`)
 
 	if err != nil {
-		return 0, updatedate, err
+		return 0, updateDate, err
 	}
 
 	defer stmtBal.Close()
 
-	row := stmtOrd.QueryRow(currentuserID, num, status, updatedate)
-	if err := row.Scan(&userID, &updatedate); err != nil {
-		return 0, updatedate, err
+	row := stmtOrd.QueryRow(currentuserID, num, status, updateDate)
+	if err := row.Scan(&userID, &updateDate); err != nil {
+		return 0, updateDate, err
 	}
 	_, err = stmtBal.Exec(num, currentuserID)
 	if err != nil {
-		return 0, updatedate, err
+		return 0, updateDate, err
 	}
 
-	if !updatedate.IsZero() {
-		return userID, updatedate, nil
+	if !updateDate.IsZero() {
+		return userID, updateDate, nil
 	}
 
-	_ = tx.Commit()
-	return userID, updatedate, nil
+	err = tx.Commit()
+	if err != nil {
+		return 0, updateDate, err
+	}
+	return userID, updateDate, nil
 }
 
 func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) error {
@@ -73,7 +79,10 @@ func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) err
 		return err
 	}
 	defer func() {
-		_ = tx.Rollback()
+		err = tx.Rollback()
+		if err != nil {
+			return
+		}
 	}()
 
 	queryO := `UPDATE orders SET status = $1 WHERE number = $2`
@@ -87,7 +96,11 @@ func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) err
 		return err
 	}
 
-	_ = tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -103,7 +116,7 @@ func (o *OrdersPostgres) GetOrdersWithStatus() ([]models.OrderResponse, error) {
 
 func (o *OrdersPostgres) GetOrders(userID int) ([]models.Order, error) {
 	orders := make([]models.Order, 0)
-	query := "SELECT  o.number, o.status, b.sum, o.uploaddate FROM ORDERS o LEFT JOIN BALANCE b  ON o.number = b.number WHERE o.user_id = $1 AND b.sum >= 0 ORDER by uploaddate"
+	query := "SELECT  o.number, o.status, b.sum, o.upload_date FROM ORDERS o LEFT JOIN BALANCE b  ON o.number = b.number WHERE o.user_id = $1 AND b.sum >= 0 ORDER by upload_date"
 
 	err := o.db.Select(&orders, query, userID)
 

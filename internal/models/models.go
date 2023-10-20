@@ -13,7 +13,7 @@ type Order struct {
 	Number     string    `json:"number" db:"number"`
 	Status     string    `json:"status" db:"status"`
 	Accrual    float64   `json:"accrual" db:"sum"`
-	UploadedAt time.Time `json:"uploaded_at" db:"uploaddate"`
+	UploadedAt time.Time `json:"uploaded_at" db:"upload_date"`
 }
 
 type OrderResponse struct {

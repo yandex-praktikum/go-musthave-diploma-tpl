@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
 )
 
 const (
