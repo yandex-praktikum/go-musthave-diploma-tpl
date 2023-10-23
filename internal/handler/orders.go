@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -34,7 +33,7 @@ func (h *Handler) GetOrders(c *gin.Context) {
 }
 
 func (h *Handler) PostOrder(c *gin.Context) {
-	fmt.Println("1111111111111111")
+
 	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		newErrorResponse(c, err)
