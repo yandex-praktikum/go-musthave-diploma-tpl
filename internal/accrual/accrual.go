@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/logger"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 )
 
 const (

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/httperrors"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/httperrors"
 )
 
 func newErrorResponse(c *gin.Context, err error) {

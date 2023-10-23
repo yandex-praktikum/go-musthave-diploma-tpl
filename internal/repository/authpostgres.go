@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 )
 
 type AuthPostgres struct {

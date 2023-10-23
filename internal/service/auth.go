@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 const (
@@ -23,15 +23,15 @@ type AuthService struct {
 	repo repository.Autorisation
 }
 
+func NewAuthStorage(repo repository.Autorisation) *AuthService {
+	return &AuthService{repo: repo}
+}
+
 func (a *AuthService) CreateUser(user models.User) (int, error) {
 	user.Salt = RandStr(20)
 	user.Password = generatePasswordHash(user.Password, user.Salt)
 
 	return a.repo.CreateUser(user)
-}
-
-func NewAuthStorage(repo repository.Autorisation) *AuthService {
-	return &AuthService{repo: repo}
 }
 
 func (a *AuthService) GenerateToken(username, password string) (string, error) {

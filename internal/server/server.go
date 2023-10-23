@@ -9,11 +9,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/accrual"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/config"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/logger"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/service"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/accrual"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
 )
 
 type Server struct {

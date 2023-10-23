@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 )
 
 func (h *Handler) GetBalance(c *gin.Context) {
@@ -28,6 +28,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 }
 
 func (h *Handler) Withdraw(c *gin.Context) {
+
 	c.Writer.Header().Set("Content-Type", "application/json")
 	currentuserID, err := getUserID(c)
 	if err != nil {
@@ -43,6 +44,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		h.log.Error(err)
 		return
 	}
+
 	defer c.Request.Body.Close()
 
 	if err := json.Unmarshal(jsonData, &withdraw); err != nil {

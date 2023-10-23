@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/luhn"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/repository"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 type BalanceService struct {

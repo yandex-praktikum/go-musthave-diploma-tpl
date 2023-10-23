@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/config"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/logger"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl/internal/server"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
+	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/server"
 )
 
 func main() {

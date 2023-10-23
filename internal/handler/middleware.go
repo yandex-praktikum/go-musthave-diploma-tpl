@@ -16,6 +16,7 @@ func (h *Handler) UserIdentify(c *gin.Context) {
 	header := c.GetHeader(hashHeader)
 
 	if header == "" {
+
 		newErrorResponse(c, errors.New("unauthorized"))
 		return
 	}

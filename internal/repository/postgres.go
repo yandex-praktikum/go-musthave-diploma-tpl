@@ -29,7 +29,7 @@ func NewPostgresDB(dsn string) (*sqlx.DB, error) {
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS orders (id serial PRIMARY KEY, number VARCHAR(100) not null unique, status varchar(50),
             user_id int references users (id) on delete cascade not null,
-                upload_date timestamp   DEFAULT now(), update_date timestamp  without time zone ) ;`)
+                upload_date timestamp   DEFAULT now(), updatedate timestamp  without time zone ) ;`)
 
 	if err != nil {
 		return db, err
