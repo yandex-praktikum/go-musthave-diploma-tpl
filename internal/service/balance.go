@@ -9,23 +9,23 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
-type BalanceService struct {
+type AccountService struct {
 	repo repository.Balance
 }
 
-func NewBalanceStorage(repo repository.Balance) *BalanceService {
-	return &BalanceService{repo: repo}
+func NewAccountService(repo repository.Balance) *AccountService {
+	return &AccountService{repo: repo}
 }
 
-func (b *BalanceService) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
+func (b *AccountService) GetWithdraws(userID int) ([]models.WithdrawResponse, error) {
 	return b.repo.GetWithdraws(userID)
 }
 
-func (b *BalanceService) GetBalance(userID int) (models.Balance, error) {
+func (b *AccountService) GetBalance(userID int) (models.Balance, error) {
 	return b.repo.GetBalance(userID)
 
 }
-func (b *BalanceService) Withdraw(userID int, withdraw models.Withdraw) error {
+func (b *AccountService) Withdraw(userID int, withdraw models.Withdraw) error {
 
 	numOrderInt, err := strconv.Atoi(withdraw.Order)
 	if err != nil {

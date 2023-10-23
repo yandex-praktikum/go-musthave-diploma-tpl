@@ -10,16 +10,16 @@ import (
 type Handler struct {
 	authService    service.Autorisation
 	ordersService  repository.Orders
-	balanceService service.Balance
+	accountService service.Account
 	cfg            *config.ConfigServer
 	log            logger.Logger
 }
 
-func NewHandler(auth service.Autorisation, orders repository.Orders, balance service.Balance, cfg *config.ConfigServer, log logger.Logger) *Handler {
+func NewHandler(auth service.Autorisation, orders repository.Orders, account service.Account, cfg *config.ConfigServer, log logger.Logger) *Handler {
 	return &Handler{
 		authService:    auth,
 		ordersService:  orders,
-		balanceService: balance,
+		accountService: account,
 		cfg:            cfg,
 		log:            log,
 	}

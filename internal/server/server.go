@@ -48,9 +48,9 @@ func (s *Server) Run() error {
 	balanceRepo := repository.NewBalancePostgres(db)
 
 	authService := service.NewAuthStorage(authRepo)
-	balanceService := service.NewBalanceStorage(balanceRepo)
+	accountService := service.NewAccountService(balanceRepo)
 
-	s.router = s.NewRouter(authService, ordersRepo, balanceService)
+	s.router = s.NewRouter(authService, ordersRepo, accountService)
 	go func() {
 		s.log.Info("Connect listening on port: %s", s.cfg.Port)
 		if err := s.router.Run(s.cfg.Port); err != nil {

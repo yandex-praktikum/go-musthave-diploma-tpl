@@ -19,7 +19,7 @@ type Orders interface {
 	ChangeStatusAndSum(sum float64, status, num string) error
 }
 
-type Balance interface {
+type Account interface {
 	GetBalance(userID int) (models.Balance, error)
 	Withdraw(userID int, withdraw models.Withdraw) error
 	GetWithdraws(userID int) ([]models.WithdrawResponse, error)

@@ -7,7 +7,7 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
 )
 
-func (s *Server) NewRouter(auth service.Autorisation, orders repository.Orders, balance service.Balance) *gin.Engine {
+func (s *Server) NewRouter(auth service.Autorisation, orders repository.Orders, balance service.Account) *gin.Engine {
 
 	h := handler.NewHandler(auth, orders, balance, s.cfg, s.log)
 

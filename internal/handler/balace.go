@@ -18,7 +18,7 @@ func (h *Handler) GetBalance(c *gin.Context) {
 		return
 	}
 
-	balance, err := h.balanceService.GetBalance(currentuserID)
+	balance, err := h.accountService.GetBalance(currentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
@@ -53,7 +53,7 @@ func (h *Handler) Withdraw(c *gin.Context) {
 		return
 	}
 
-	err = h.balanceService.Withdraw(currentuserID, withdraw)
+	err = h.accountService.Withdraw(currentuserID, withdraw)
 
 	if err != nil {
 		newErrorResponse(c, err)
@@ -71,7 +71,7 @@ func (h *Handler) GetWithdraws(c *gin.Context) {
 		return
 	}
 
-	withdraws, err := h.balanceService.GetWithdraws(currentuserID)
+	withdraws, err := h.accountService.GetWithdraws(currentuserID)
 	if err != nil {
 		newErrorResponse(c, err)
 		return
