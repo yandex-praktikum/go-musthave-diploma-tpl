@@ -6,14 +6,13 @@ import (
 
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/luhn"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 type AccountService struct {
-	repo repository.Balance
+	repo balance
 }
 
-func NewAccountService(repo repository.Balance) *AccountService {
+func NewAccountService(repo balance) *AccountService {
 	return &AccountService{repo: repo}
 }
 

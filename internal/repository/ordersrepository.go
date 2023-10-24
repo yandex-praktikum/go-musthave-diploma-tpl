@@ -85,13 +85,13 @@ func (o *OrdersPostgres) ChangeStatusAndSum(sum float64, status, num string) err
 		}
 	}()
 
-	queryO := `UPDATE orders SET status = $1 WHERE number = $2`
-	_, err = tx.Exec(queryO, status, num)
+	queryUpdateOrder := `UPDATE orders SET status = $1 WHERE number = $2`
+	_, err = tx.Exec(queryUpdateOrder, status, num)
 	if err != nil {
 		return err
 	}
-	queryB := `UPDATE  balance SET sum = $1 WHERE sum = 0 AND number = $2`
-	_, err = tx.Exec(queryB, sum, num)
+	queryUpdateBalance := `UPDATE  balance SET sum = $1 WHERE sum = 0 AND number = $2`
+	_, err = tx.Exec(queryUpdateBalance, sum, num)
 	if err != nil {
 		return err
 	}

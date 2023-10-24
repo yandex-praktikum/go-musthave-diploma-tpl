@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 const (
@@ -20,10 +19,10 @@ type tokenClaims struct {
 }
 
 type AuthService struct {
-	repo repository.Autorisation
+	repo autorisation
 }
 
-func NewAuthStorage(repo repository.Autorisation) *AuthService {
+func NewAuthStorage(repo autorisation) *AuthService {
 	return &AuthService{repo: repo}
 }
 

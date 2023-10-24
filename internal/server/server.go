@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -13,14 +12,12 @@ import (
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/config"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/service"
 )
 
 type Server struct {
 	cfg    *config.ConfigServer
 	router *gin.Engine
 	log    logger.Logger
-	as     *accrual.ServiceAccrual
 }
 
 func NewServer(cfg *config.ConfigServer, log logger.Logger) *Server {
@@ -38,19 +35,12 @@ func (s *Server) Run() error {
 
 	if err != nil {
 		s.log.Info("Failed to initialaze db: %s", err.Error())
-	} else {
-		s.log.Info("Success connection to db")
-		defer db.Close()
+		panic("Failed to initialaze db")
 	}
+	s.log.Info("Success connection to db")
+	defer db.Close()
 
-	authRepo := repository.NewAuthPostgres(db)
-	ordersRepo := repository.NewOrdersPostgres(db)
-	balanceRepo := repository.NewBalancePostgres(db)
-
-	authService := service.NewAuthStorage(authRepo)
-	accountService := service.NewAccountService(balanceRepo)
-
-	s.router = s.NewRouter(authService, ordersRepo, accountService)
+	s.router = s.NewRouter(db)
 	go func() {
 		s.log.Info("Connect listening on port: %s", s.cfg.Port)
 		if err := s.router.Run(s.cfg.Port); err != nil {
@@ -59,47 +49,13 @@ func (s *Server) Run() error {
 		}
 	}()
 
-	s.as = accrual.NewServiceAccrual(ordersRepo, s.log, s.cfg.AccrualPort)
+	ordersRepo := repository.NewOrdersPostgres(db)
+	accrualService := accrual.NewServiceAccrual(ordersRepo, s.log, s.cfg.AccrualPort)
 
-	go s.ProcessedAccrualData(ctx)
+	go accrualService.ProcessedAccrualData(ctx)
 
 	<-ctx.Done()
 
 	return nil
-
-}
-
-func (s *Server) ProcessedAccrualData(ctx context.Context) {
-	timer := time.NewTicker(15 * time.Second)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-timer.C:
-			orders, err := s.as.Storage.GetOrdersWithStatus()
-			if err != nil {
-				s.log.Error(err)
-			}
-			for _, order := range orders {
-				ord, t, err := s.as.RecieveOrder(ctx, order.Number)
-				if err != nil {
-					s.log.Error(err)
-
-					if t != 0 {
-						time.Sleep(time.Duration(t) * time.Second)
-					}
-					continue
-				}
-
-				err = s.as.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
-
-				if err != nil {
-					s.log.Error(err)
-				}
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
 
 }

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
-	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository"
 
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 )
@@ -24,19 +23,54 @@ const (
 )
 
 type ServiceAccrual struct {
-	Storage    repository.Orders
+	Storage    orders
 	httpClient *http.Client
 	log        logger.Logger
 	addr       string
 }
 
-func NewServiceAccrual(stor repository.Orders, log logger.Logger, addr string) *ServiceAccrual {
+func NewServiceAccrual(stor orders, log logger.Logger, addr string) *ServiceAccrual {
 	return &ServiceAccrual{
 		Storage:    stor,
 		httpClient: &http.Client{},
 		log:        log,
 		addr:       addr,
 	}
+}
+
+func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
+	timer := time.NewTicker(15 * time.Second)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-timer.C:
+			orders, err := s.Storage.GetOrdersWithStatus()
+			if err != nil {
+				s.log.Error(err)
+			}
+			for _, order := range orders {
+				ord, t, err := s.RecieveOrder(ctx, order.Number)
+				if err != nil {
+					s.log.Error(err)
+
+					if t != 0 {
+						time.Sleep(time.Duration(t) * time.Second)
+					}
+					continue
+				}
+
+				err = s.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
+
+				if err != nil {
+					s.log.Error(err)
+				}
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+
 }
 
 func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, int, error) {
