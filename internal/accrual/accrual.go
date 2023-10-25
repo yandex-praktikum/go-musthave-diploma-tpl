@@ -46,16 +46,20 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 		select {
 		case <-timer.C:
 			orders, err := s.Storage.GetOrdersWithStatus()
+
 			if err != nil {
 				s.log.Error(err)
 			}
 			for _, order := range orders {
+
 				ord, t, err := s.RecieveOrder(ctx, order.Number)
+
 				if err != nil {
 					s.log.Error(err)
 
 					if t != 0 {
-						time.Sleep(time.Duration(t) * time.Second)
+						s.log.Info("Too Many Requests")
+						timer.Reset(time.Duration(t) * time.Second)
 					}
 					continue
 				}
@@ -76,9 +80,13 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, int, error) {
 	var orderResp models.OrderResponse
 	url := fmt.Sprintf("%s/api/orders/%s", s.addr, number)
+
 	s.log.Info("Recieving order from accrual system ", url)
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+
 	if err != nil {
+
 		s.log.Error(err)
 		return orderResp, 0, err
 	}
