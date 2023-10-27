@@ -61,7 +61,7 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 			}
 
 			for j := 1; j <= numjobs; j++ {
-				fmt.Println("get metric  ", orders[j-1])
+				fmt.Println("get order  ", orders[j-1])
 				jobs <- orders[j-1]
 			}
 
@@ -77,6 +77,13 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 					}
 					continue
 				}
+
+				err = s.Storage.ChangeStatusAndSum(res.ord.Accrual, res.ord.Status, res.ord.Number)
+
+				if err != nil {
+					s.log.Error(err)
+				}
+
 			}
 			// orders, err := s.Storage.GetOrdersWithStatus()
 
