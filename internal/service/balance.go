@@ -25,7 +25,6 @@ func (b *AccountService) GetBalance(userID int) (models.Balance, error) {
 
 }
 func (b *AccountService) Withdraw(userID int, withdraw models.Withdraw) error {
-
 	numOrderInt, err := strconv.Atoi(withdraw.Order)
 	if err != nil {
 		return errors.New("PreconditionFailed")

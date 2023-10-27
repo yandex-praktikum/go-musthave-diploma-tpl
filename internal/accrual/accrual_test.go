@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/logger"
 	"github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/models"
 	repo_mocks "github.com/tanya-mtv/go-musthave-diploma-tpl.git/internal/repository/mocks"

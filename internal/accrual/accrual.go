@@ -50,31 +50,125 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 			if err != nil {
 				s.log.Error(err)
 			}
-			for _, order := range orders {
+			numjobs := len(orders)
+			jobs := make(chan models.OrderResponse, numjobs)
+			results := make(chan accrServiceResponce)
 
-				ord, t, err := s.RecieveOrder(ctx, order.Number)
+			for w := 1; w <= 5; w++ {
+				go func(w int) {
+					s.recieveChainData(ctx, jobs, results, w)
+				}(w)
+			}
 
-				if err != nil {
+			for j := 1; j <= numjobs; j++ {
+				fmt.Println("get metric  ", orders[j-1])
+				jobs <- orders[j-1]
+			}
+
+			close(jobs)
+
+			for res := range results {
+				if res.err != nil {
 					s.log.Error(err)
 
-					if t != 0 {
+					if res.t != 0 {
 						s.log.Info("Too Many Requests")
-						timer.Reset(time.Duration(t) * time.Second)
+						timer.Reset(time.Duration(res.t) * time.Second)
 					}
 					continue
 				}
-
-				err = s.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
-
-				if err != nil {
-					s.log.Error(err)
-				}
 			}
+			// orders, err := s.Storage.GetOrdersWithStatus()
+
+			// if err != nil {
+			// 	s.log.Error(err)
+			// }
+			// for _, order := range orders {
+
+			// 	ord, t, err := s.RecieveOrder(ctx, order.Number)
+
+			// 	if err != nil {
+			// 		s.log.Error(err)
+
+			// 		if t != 0 {
+			// 			s.log.Info("Too Many Requests")
+			// 			timer.Reset(time.Duration(t) * time.Second)
+			// 		}
+			// 		continue
+			// 	}
+
+			// 	err = s.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
+
+			// 	if err != nil {
+			// 		s.log.Error(err)
+			// 	}
+			// }
 		case <-ctx.Done():
 			return
 		}
 	}
 
+}
+
+// func (s *ServiceAccrual) createWorkerPool(ctx context.Context, timer time.Ticker) {
+// 	orders, err := s.Storage.GetOrdersWithStatus()
+
+// 	if err != nil {
+// 		s.log.Error(err)
+// 	}
+// 	numjobs := len(orders)
+// 	jobs := make(chan models.OrderResponse, numjobs)
+// 	results := make(chan accrServiceResponce)
+
+// 	for w := 1; w <= 5; w++ {
+// 		go func(w int) {
+// 			s.recieveChainData(ctx, jobs, results, w)
+// 		}(w)
+// 	}
+
+// 	for j := 1; j <= numjobs; j++ {
+// 		fmt.Println("get metric  ", orders[j-1])
+// 		jobs <- orders[j-1]
+// 	}
+
+// 	close(jobs)
+
+// 	for res := range results {
+// 		if res.err != nil {
+// 			s.log.Error(err)
+
+// 			if res.t != 0 {
+// 				s.log.Info("Too Many Requests")
+// 				timer.Reset(time.Duration(res.t) * time.Second)
+// 			}
+// 			continue
+// 		}
+// 	}
+// }
+
+type accrServiceResponce struct {
+	ord models.OrderResponse
+	t   int
+	err error
+}
+
+func (s *ServiceAccrual) recieveChainData(ctx context.Context, jobs <-chan models.OrderResponse, res chan<- accrServiceResponce, w int) {
+	var accrResponce accrServiceResponce
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case val, ok := <-jobs:
+			if !ok {
+				fmt.Println("<-- loop broke!")
+				return
+			} else {
+				fmt.Println("worker ", w, "send request", val)
+				accrResponce.ord, accrResponce.t, accrResponce.err = s.RecieveOrder(ctx, val.Number)
+				res <- accrResponce
+			}
+		}
+	}
 }
 
 func (s *ServiceAccrual) RecieveOrder(ctx context.Context, number string) (models.OrderResponse, int, error) {
