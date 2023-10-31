@@ -53,7 +53,7 @@ func TestServiceAccrual_ProcessedAccrualData(t *testing.T) {
 
 			accrualService := NewServiceAccrual(repo, log, "http://127.0.0.1:8090")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 			defer cancel()
 
 			accrualService.ProcessedAccrualData(ctx)

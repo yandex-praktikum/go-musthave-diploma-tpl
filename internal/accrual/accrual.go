@@ -59,13 +59,15 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 					s.recieveChainData(ctx, jobs, results, w)
 				}(w)
 			}
+			go func() {
 
-			for j := 1; j <= numjobs; j++ {
-				fmt.Println("get order  ", orders[j-1])
-				jobs <- orders[j-1]
-			}
+				for j := 1; j <= numjobs; j++ {
+					fmt.Println("get order  ", orders[j-1])
+					jobs <- orders[j-1]
+				}
 
-			close(jobs)
+				close(jobs)
+			}()
 
 			for res := range results {
 				if res.err != nil {
@@ -85,73 +87,14 @@ func (s *ServiceAccrual) ProcessedAccrualData(ctx context.Context) {
 				}
 
 			}
-			// orders, err := s.Storage.GetOrdersWithStatus()
+			close(results)
 
-			// if err != nil {
-			// 	s.log.Error(err)
-			// }
-			// for _, order := range orders {
-
-			// 	ord, t, err := s.RecieveOrder(ctx, order.Number)
-
-			// 	if err != nil {
-			// 		s.log.Error(err)
-
-			// 		if t != 0 {
-			// 			s.log.Info("Too Many Requests")
-			// 			timer.Reset(time.Duration(t) * time.Second)
-			// 		}
-			// 		continue
-			// 	}
-
-			// 	err = s.Storage.ChangeStatusAndSum(ord.Accrual, ord.Status, ord.Number)
-
-			// 	if err != nil {
-			// 		s.log.Error(err)
-			// 	}
-			// }
 		case <-ctx.Done():
 			return
 		}
 	}
 
 }
-
-// func (s *ServiceAccrual) createWorkerPool(ctx context.Context, timer time.Ticker) {
-// 	orders, err := s.Storage.GetOrdersWithStatus()
-
-// 	if err != nil {
-// 		s.log.Error(err)
-// 	}
-// 	numjobs := len(orders)
-// 	jobs := make(chan models.OrderResponse, numjobs)
-// 	results := make(chan accrServiceResponce)
-
-// 	for w := 1; w <= 5; w++ {
-// 		go func(w int) {
-// 			s.recieveChainData(ctx, jobs, results, w)
-// 		}(w)
-// 	}
-
-// 	for j := 1; j <= numjobs; j++ {
-// 		fmt.Println("get metric  ", orders[j-1])
-// 		jobs <- orders[j-1]
-// 	}
-
-// 	close(jobs)
-
-// 	for res := range results {
-// 		if res.err != nil {
-// 			s.log.Error(err)
-
-// 			if res.t != 0 {
-// 				s.log.Info("Too Many Requests")
-// 				timer.Reset(time.Duration(res.t) * time.Second)
-// 			}
-// 			continue
-// 		}
-// 	}
-// }
 
 type accrServiceResponce struct {
 	ord models.OrderResponse
