@@ -50,6 +50,15 @@ jobs:
           (cd cmd/gophermart && go build -buildvcs=false -o gophermart)
           (cd cmd/accrual && chmod +x accrual_linux_amd64)
 
+      - name: Install golangmigrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
+          mv ./migrate /usr/local/bin/migrate
+
+      - name: Migrate up
+        run: |
+          migrate -path ./internal/db/shcema -database "postgres://127.0.0.1/gofermart?sslmode=disable&user=dbuser&password=password123" up
+
       - name: Test
         run: |
           gophermarttest \
