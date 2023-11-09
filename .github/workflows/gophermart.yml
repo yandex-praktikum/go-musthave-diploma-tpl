@@ -57,7 +57,7 @@ jobs:
 
       - name: Migrate up
         run: |
-          migrate -path ./internal/db/shcema -database postgresql://postgres:postgres@postgres/gofermart?sslmode=disable up
+          migrate -path ./migrations -database postgresql://postgres:postgres@postgres/gofermart?sslmode=disable up
 
 
       - name: Test
