@@ -57,7 +57,7 @@ jobs:
 
       - name: Migrate up
         run: |
-          migrate -path ./migrations -database postgresql://postgres:postgres@postgres/gofermart?sslmode=disable up
+          migrate -path ./migrations -database postgresql://postgres:postgres@postgres/praktikum?sslmode=disable up
 
 
       - name: Test
