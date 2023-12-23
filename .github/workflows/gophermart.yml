@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - master
+      - develop
 
 jobs:
 
@@ -49,6 +50,16 @@ jobs:
         run: |
           (cd cmd/gophermart && go build -buildvcs=false -o gophermart)
           (cd cmd/accrual && chmod +x accrual_linux_amd64)
+
+      - name: Install golangmigrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
+          mv ./migrate /usr/local/bin/migrate
+
+      - name: Migrate up
+        run: |
+          migrate -path ./migrations -database postgresql://postgres:postgres@postgres/praktikum?sslmode=disable up
+
 
       - name: Test
         run: |
