@@ -97,3 +97,9 @@ type Balance struct {
 	Withdrawn float32 `json:"withdrawn"`
 	Current   float32 `json:"current"`
 }
+
+type WithdrawHistory struct {
+	Order       string  `json:"order"`
+	Sum         float32 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
+}

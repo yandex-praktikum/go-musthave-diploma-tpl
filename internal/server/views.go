@@ -34,6 +34,7 @@ func ServerRouter(s *zap.SugaredLogger) http.Handler {
 	r.Get("/api/user/orders", WithLogging(http.HandlerFunc(RequireAuth(GetOrders)), s))
 	r.Get("/api/user/balance", WithLogging(http.HandlerFunc(RequireAuth(GetBalance)), s))
 	r.Post("/api/user/balance/withdraw", WithLogging(http.HandlerFunc(RequireAuth(GetWithdraw)), s))
+	r.Get("/api/user/withdrawals", WithLogging(http.HandlerFunc(RequireAuth(GetWithdrawals)), s))
 	return r
 }
 
@@ -420,8 +421,69 @@ func GetBalance(w http.ResponseWriter, request *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func GetWithdrawals(w http.ResponseWriter, request *http.Request) {
+	name, err := GetNameFromToken(request.Header.Get("Authorization"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Bad token value"))
+		return
+	}
+	query := "SELECT order_id, sum, processed_at FROM withdrawals WHERE name = $1"
+	var rows *sql.Rows
+	f := func() error {
+		rows, err = DB.QueryContext(
+			request.Context(),
+			query, name,
+		)
+		return err
+	}
+	err = general.RetryCode(f, syscall.ECONNREFUSED)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Query problem " + err.Error()))
+		return
+	}
+	defer rows.Close()
+	values := make([]WithdrawHistory, 0)
+	var oldErr error
+	for rows.Next() {
+		var value WithdrawHistory
+		var t time.Time
+		err = rows.Scan(&value.Order, &value.Sum, &t)
+		value.ProcessedAt = t.Format(time.RFC3339)
+		if err != nil {
+			err = errors.Join(oldErr, err)
+		}
+		values = append(values, value)
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Rows reading problem 1 category" + err.Error()))
+		return
+	}
+	if rows.Err() != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Rows reading problem 2 category" + err.Error()))
+		return
+	}
+	if len(values) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	data, err := json.Marshal(values)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Problem with marshaling data " + err.Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 func GetWithdraw(w http.ResponseWriter, request *http.Request) {
