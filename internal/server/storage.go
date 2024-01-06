@@ -31,7 +31,7 @@ func InitDB() error {
 		"CREATE TABLE IF NOT EXISTS tokens (" +
 			"token VARCHAR (1000) UNIQUE NOT NULL," +
 			"name VARCHAR (50) UNIQUE NOT NULL," +
-			"FOREIGN KEY (name) REFERENCES users(login)," +
+			"FOREIGN KEY (name) REFERENCES users(login) ON DELETE CASCADE," +
 			"expired_time TIMESTAMP NOT NULL" +
 			")",
 	)
@@ -41,7 +41,7 @@ func InitDB() error {
 			"order_id BIGINT UNIQUE NOT NULL," +
 			"name VARCHAR (50) NOT NULL," +
 			"created_time TIMESTAMP NOT NULL," +
-			"FOREIGN KEY (name) REFERENCES users(login)" +
+			"FOREIGN KEY (name) REFERENCES users(login) ON DELETE CASCADE" +
 			")",
 	)
 	prevErr = errors.Join(prevErr, err)
@@ -50,7 +50,7 @@ func InitDB() error {
 			"current REAL NOT NULL DEFAULT 0," +
 			"withdrawn REAL NOT NULL DEFAULT 0," +
 			"name VARCHAR (50) UNIQUE NOT NULL," +
-			"FOREIGN KEY (name) REFERENCES users(login)" +
+			"FOREIGN KEY (name) REFERENCES users(login) ON DELETE CASCADE" +
 			")",
 	)
 	prevErr = errors.Join(prevErr, err)

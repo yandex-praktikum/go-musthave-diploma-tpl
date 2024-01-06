@@ -93,7 +93,7 @@ func Register(w http.ResponseWriter, request *http.Request) {
 					if err != nil {
 						return err
 					}
-					addBalance := "INSERT INTO balances VALUES(0, 0, $1)"
+					addBalance := "INSERT INTO balances VALUES(0, 0, $1) ON CONFLICT (name) DO UPDATE SET current = 0.0, withdrawn = 0.0;"
 					_, err = tx.ExecContext(
 						request.Context(),
 						addBalance, register.Login,
@@ -109,9 +109,9 @@ func Register(w http.ResponseWriter, request *http.Request) {
 					tx.Commit()
 					request.Body = io.NopCloser(strings.NewReader(string(buf.Bytes())))
 					request.ContentLength = int64(len(string(buf.Bytes())))
-					w.WriteHeader(http.StatusOK)
+					// w.WriteHeader(http.StatusOK)
 					status, err = w.Write(
-						[]byte("User was successfully created\nAuthorization...\n"),
+						[]byte("User was successfully created\nAuthontefication...\n"),
 					)
 					Authontefication(w, request)
 				}
@@ -472,6 +472,29 @@ func LoadOrder(w http.ResponseWriter, request *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(resp.Body())
 		return
+	}
+	var order OrderInfo
+	err = json.Unmarshal(resp.Body(), &order)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Problem with unmarshal json data"))
+		return
+	}
+	if order.Accrual != 0 {
+		addAccrualToWallet := "UPDATE balances SET current = current + $1 WHERE name = $2"
+		f := func() error {
+			_, err := DB.ExecContext(
+				request.Context(),
+				addAccrualToWallet, order.Accrual, name,
+			)
+			return err
+		}
+		err = general.RetryCode(f, syscall.ECONNREFUSED)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Problem with assigning accrual " + err.Error()))
+			return
+		}
 	}
 
 	createOrderQuery := "INSERT INTO orders VALUES($1, $2, TO_TIMESTAMP($3))"
