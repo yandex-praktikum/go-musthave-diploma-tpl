@@ -32,6 +32,7 @@ func ServerRouter(s *zap.SugaredLogger) http.Handler {
 	r.Post("/api/user/login", WithLogging(http.HandlerFunc(Authontefication), s))
 	r.Post("/api/user/orders", WithLogging(http.HandlerFunc(RequireAuth(LoadOrder)), s))
 	r.Get("/api/user/orders", WithLogging(http.HandlerFunc(RequireAuth(GetOrders)), s))
+	r.Get("/api/user/balance", WithLogging(http.HandlerFunc(RequireAuth(GetBalance)), s))
 	return r
 }
 
@@ -46,6 +47,12 @@ func Register(w http.ResponseWriter, request *http.Request) {
 	err := CheckContentTypeHeader(request, "application/json")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	tx, err := DB.Begin()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
 	}
@@ -77,19 +84,29 @@ func Register(w http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			// if there is no user, we can create new one
 			if err.Error() == sql.ErrNoRows.Error() {
-				createUserQuery := "INSERT INTO users VALUES($1, $2)"
 				f := func() error {
-					_, err := DB.ExecContext(
+					createUserQuery := "INSERT INTO users VALUES($1, $2)"
+					_, err := tx.ExecContext(
 						request.Context(),
 						createUserQuery, register.Login, hashedPWDStr,
+					)
+					if err != nil {
+						return err
+					}
+					addBalance := "INSERT INTO balances VALUES(0, 0, $1)"
+					_, err = tx.ExecContext(
+						request.Context(),
+						addBalance, register.Login,
 					)
 					return err
 				}
 				err = general.RetryCode(f, syscall.ECONNREFUSED)
 				if err != nil {
+					tx.Rollback()
 					w.WriteHeader(http.StatusInternalServerError)
 					status, err = w.Write([]byte("Something is wrong, " + err.Error()))
 				} else {
+					tx.Commit()
 					request.Body = io.NopCloser(strings.NewReader(string(buf.Bytes())))
 					request.ContentLength = int64(len(string(buf.Bytes())))
 					w.WriteHeader(http.StatusOK)
@@ -368,6 +385,42 @@ func GetOrders(w http.ResponseWriter, request *http.Request) {
 		w.Write(data)
 		return
 	}
+}
+
+func GetBalance(w http.ResponseWriter, request *http.Request) {
+	name, err := GetNameFromToken(request.Header.Get("Authorization"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Bad token value"))
+		return
+	}
+	queryGetBalance := "SELECT current, withdrawn FROM balances WHERE name = $1"
+	var balance Balance
+	f := func() error {
+		row := DB.QueryRowContext(
+			request.Context(),
+			queryGetBalance, name,
+		)
+		err := row.Scan(&balance.Current, &balance.Withdrawn)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	err = general.RetryCode(f, syscall.ECONNREFUSED)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	resp, err := json.Marshal(balance)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 func LoadOrder(w http.ResponseWriter, request *http.Request) {

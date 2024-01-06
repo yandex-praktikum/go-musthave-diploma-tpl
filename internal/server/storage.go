@@ -38,9 +38,18 @@ func InitDB() error {
 	prevErr = errors.Join(prevErr, err)
 	_, err = DB.Exec(
 		"CREATE TABLE IF NOT EXISTS orders (" +
-			"order_id INTEGER UNIQUE NOT NULL," +
+			"order_id BIGINT UNIQUE NOT NULL," +
 			"name VARCHAR (50) NOT NULL," +
 			"created_time TIMESTAMP NOT NULL," +
+			"FOREIGN KEY (name) REFERENCES users(login)" +
+			")",
+	)
+	prevErr = errors.Join(prevErr, err)
+	_, err = DB.Exec(
+		"CREATE TABLE IF NOT EXISTS balances (" +
+			"current REAL NOT NULL DEFAULT 0," +
+			"withdrawn REAL NOT NULL DEFAULT 0," +
+			"name VARCHAR (50) UNIQUE NOT NULL," +
 			"FOREIGN KEY (name) REFERENCES users(login)" +
 			")",
 	)
@@ -68,4 +77,9 @@ type OrderInfo struct {
 
 type Orders struct {
 	Values []OrderInfo `json:"orders"`
+}
+
+type Balance struct {
+	Withdrawn float32 `json:"withdrawn"`
+	Current   float32 `json:"current"`
 }
