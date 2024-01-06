@@ -54,6 +54,16 @@ func InitDB() error {
 			")",
 	)
 	prevErr = errors.Join(prevErr, err)
+	_, err = DB.Exec(
+		"CREATE TABLE IF NOT EXISTS withdrawals (" +
+			"order_id BIGINT NOT NULL," +
+			"sum REAL NOT NULL DEFAULT 0," +
+			"name VARCHAR (50) NOT NULL," +
+			"processed_at TIMESTAMP NOT NULL," +
+			"FOREIGN KEY (name) REFERENCES users(login) ON DELETE CASCADE" +
+			")",
+	)
+	prevErr = errors.Join(prevErr, err)
 	return prevErr
 }
 

@@ -425,6 +425,7 @@ func GetBalance(w http.ResponseWriter, request *http.Request) {
 }
 
 func GetWithdraw(w http.ResponseWriter, request *http.Request) {
+	fmt.Println("we are here!!!")
 	err := CheckContentTypeHeader(request, "application/json")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -468,12 +469,33 @@ func GetWithdraw(w http.ResponseWriter, request *http.Request) {
 		w.Write([]byte("Insufficient balance"))
 		return
 	}
-	err = ChangeAccrual(request, &reqData, name)
+	tx, err := DB.Begin()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
 	}
+	err = ChangeAccrual(request, &reqData, name, tx)
+	if err != nil {
+		tx.Rollback()
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	order_id, err := strconv.Atoi(reqData.OrderID)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	err = AddWithdrawToHistory(request, order_id, reqData.Sum, name, tx)
+	if err != nil {
+		tx.Rollback()
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	tx.Commit()
 	w.WriteHeader(http.StatusOK)
 }
 
