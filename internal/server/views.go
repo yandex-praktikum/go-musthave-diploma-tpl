@@ -335,7 +335,7 @@ func GetOrders(w http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				return err
 			}
-			if resp.StatusCode()%100 != 2 {
+			if resp.StatusCode()/100 != 2 {
 				return errors.New(string(resp.Body()))
 			}
 			err = json.Unmarshal(resp.Body(), &order)
@@ -401,6 +401,23 @@ func LoadOrder(w http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write([]byte(err.Error()))
+		return
+	}
+
+	client := resty.New()
+	resp, err := client.R().Get(*ASAdress + "/api/orders/" + order_id_str)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	if resp.StatusCode()/100 == 4 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("There is no order with number " + order_id_str))
+		return
+	} else if resp.StatusCode()/100 != 2 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(resp.Body())
 		return
 	}
 
