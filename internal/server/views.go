@@ -42,6 +42,7 @@ func CheckContentTypeHeader(request *http.Request, value string) error {
 	if request.Header.Get("Content-Type") != value {
 		return errors.New("Wrong type on header Content-Type")
 	}
+	fmt.Println("Hello World")
 	return nil
 }
 
