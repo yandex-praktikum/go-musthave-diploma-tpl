@@ -33,6 +33,7 @@ func ServerRouter(s *zap.SugaredLogger) http.Handler {
 	r.Post("/api/user/orders", WithLogging(http.HandlerFunc(RequireAuth(LoadOrder)), s))
 	r.Get("/api/user/orders", WithLogging(http.HandlerFunc(RequireAuth(GetOrders)), s))
 	r.Get("/api/user/balance", WithLogging(http.HandlerFunc(RequireAuth(GetBalance)), s))
+	r.Post("/api/user/balance/withdraw", WithLogging(http.HandlerFunc(RequireAuth(GetWithdraw)), s))
 	return r
 }
 
@@ -421,6 +422,59 @@ func GetBalance(w http.ResponseWriter, request *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
+}
+
+func GetWithdraw(w http.ResponseWriter, request *http.Request) {
+	err := CheckContentTypeHeader(request, "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	name, err := GetNameFromToken(request.Header.Get("Authorization"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Bad token value"))
+		return
+	}
+	var buf bytes.Buffer
+	defer request.Body.Close()
+	_, err = buf.ReadFrom(request.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Problem with reading body"))
+		return
+	}
+	var reqData WithdrawRequest
+	err = json.Unmarshal(buf.Bytes(), &reqData)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Problem with reading body"))
+		return
+	}
+	if reqData.Sum <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Negative or zero value of sum imposible"))
+		return
+	}
+	wallet, err := GetWallet(request, name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Problem with extracting wallet values. " + err.Error()))
+		return
+	}
+	if wallet.Current < float32(reqData.Sum) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		w.Write([]byte("Insufficient balance"))
+		return
+	}
+	err = ChangeAccrual(request, &reqData, name)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func LoadOrder(w http.ResponseWriter, request *http.Request) {

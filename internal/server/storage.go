@@ -62,6 +62,10 @@ type RegisterData struct {
 	Password string `json:"pwd"`
 }
 
+type WithdrawRequest struct {
+	Sum     float64 `json:"sum"`
+	OrderID string  `json:"order"`
+}
 type Token struct {
 	Token       string `json:"token"`
 	ExpiredDate int64  `json:"expired_time"`
