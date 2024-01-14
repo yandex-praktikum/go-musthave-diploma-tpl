@@ -1,0 +1,16 @@
+title Регистрация пользователя
+
+participant Client
+participant handler
+participant usecase
+participant repository
+
+Client->handler: POST /api/user/register (register)
+note over Client,handler:{\n    "login": "<login>",\n    "password": "<password>"\n} 
+handler-->Client: Status Code 500
+handler->usecase: register
+usecase-->handler: user already exist
+handler-->Client:Status Code 409
+
+usecase->repository: register new user (register)
+repository->Client: Status Code 200
