@@ -83,7 +83,7 @@ func CheckDBConnection(db *pgx.Conn) http.Handler {
 }
 
 func CreateTablesForGopherStore(db *pgx.Conn) {
-	query := `CREATE TABLE IF NOT EXISTS users (id SERIAL NOT NULL PRIMARY KEY, login text NOT NULL, password text NOT NULL, accural_points, created timestamp )`
+	query := `CREATE TABLE IF NOT EXISTS users (id SERIAL NOT NULL PRIMARY KEY, login text NOT NULL, password text NOT NULL, accural_points bigint, created timestamp )`
 	ctx := context.Background()
 
 	_, err := db.Exec(ctx, query)
@@ -106,30 +106,28 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 func CreateNewUser(db *pgx.Conn, data UserData) error {
 	ctx := context.Background()
 	encodedPW := utils.ShaData(data.Password, SecretKey)
-	_, err := db.Exec(ctx, `insert into users (login, password, created) values ($1, $2, $3);`, data.Login, encodedPW, data.Date)
+	_, err := db.Exec(ctx, `INSERT into users (login, password, created) values ($1, $2, $3);`, data.Login, encodedPW, data.Date)
+	fmt.Println(err)
 	return err
 }
 
 func CheckUserExists(db *pgx.Conn, data UserData) (bool, error) {
 	ctx := context.Background()
-	rows, err := db.Query(ctx, "SELECT login FROM users WHERE login = ?", data.Login)
+	var login string
+	sqlQuery := fmt.Sprintf(`SELECT login FROM users WHERE login = '%s'`, data.Login)
+	err := db.QueryRow(ctx, sqlQuery).Scan(&login)
+
+	if err == pgx.ErrNoRows {
+
+		return true, nil
+	}
+
 	if err != nil {
 		return false, err
 	}
 
-	defer rows.Close()
-	var login string
-	for rows.Next() {
-		if err := rows.Scan(&login); err != nil {
-			return false, err
-		}
+	return false, nil
 
-	}
-	if len(login) > 0 {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {

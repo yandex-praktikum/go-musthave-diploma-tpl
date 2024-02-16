@@ -9,7 +9,7 @@ import (
 )
 
 type RegisterRequest struct {
-	Name     string `json:"login"`
+	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
@@ -30,7 +30,7 @@ func Registration() http.Handler {
 			return
 		}
 		userData := storage.UserData{}
-		userData.Login = regData.Name
+		userData.Login = regData.Login
 		userData.Password = regData.Password
 		result, err := storage.CheckUserExists(storage.DB, userData)
 		if err != nil {
