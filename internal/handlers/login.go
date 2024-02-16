@@ -65,8 +65,8 @@ func LoginUser() http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		res.WriteHeader(http.StatusOK)
 		res.Header().Add("Authorization", authToken)
+		res.WriteHeader(http.StatusOK)
 
 	}
 	return http.HandlerFunc(login)

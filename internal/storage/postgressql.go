@@ -119,31 +119,25 @@ func CheckUserExists(db *pgx.Conn, data UserData) (bool, error) {
 
 	if err == pgx.ErrNoRows {
 
-		return true, nil
+		return false, nil
 	}
 
 	if err != nil {
 		return false, err
 	}
 
-	return false, nil
+	return true, nil
 
 }
 
 func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 	encodedPw := utils.ShaData(data.Password, SecretKey)
 	ctx := context.Background()
-	rows, err := db.Query(ctx, "SELECT login, password FROM users WHERE login = ?", data.Login)
+	sqlQuery := fmt.Sprintf(`SELECT login, password FROM users WHERE login = '%s'`, data.Login)
+	var login, pw string
+	err := db.QueryRow(ctx, sqlQuery).Scan(&login, &pw)
 	if err != nil {
 		return false, err
-	}
-	defer rows.Close()
-	var login, pw string
-	for rows.Next() {
-		if err := rows.Scan(&login, &pw); err != nil {
-			return false, err
-		}
-
 	}
 
 	if encodedPw != pw {
