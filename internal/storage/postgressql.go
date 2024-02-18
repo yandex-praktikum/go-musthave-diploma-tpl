@@ -9,11 +9,16 @@ import (
 	"time"
 
 	"github.com/Azcarot/GopherMarketProject/internal/utils"
+	"github.com/golang-jwt/jwt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const SecretKey string = "super-secret"
+
+type MyCustomClaims struct {
+	jwt.MapClaims
+}
 
 type UserData struct {
 	Login       string
@@ -22,8 +27,9 @@ type UserData struct {
 	Date        time.Time
 }
 type OrderData struct {
-	OrderNumber int
-	Reward      int
+	OrderNumber uint64
+	Accural     int
+	User        string
 	Date        time.Time
 }
 
@@ -93,7 +99,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		log.Printf("Error %s when creating user table", err)
 
 	}
-	query = `CREATE TABLE IF NOT EXISTS orders (id SERIAL NOT NULL PRIMARY KEY, order_number bigint, accural_points bigint, created timestamp )`
+	query = `CREATE TABLE IF NOT EXISTS orders (id SERIAL NOT NULL PRIMARY KEY, order_number bigint, accural_points bigint, user text NOT NULL, created timestamp )`
 	_, err = db.Exec(ctx, query)
 
 	if err != nil {
@@ -146,9 +152,9 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 	return true, nil
 }
 
-func CreateOrder(db *pgx.Conn, data OrderData) error {
+func CreateNewOrder(db *pgx.Conn, data OrderData) error {
 	ctx := context.Background()
-	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, created) values ($1, $2, $3);`, data.OrderNumber, data.Reward, data.Date)
+	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, user, created) values ($1, $2, $3, $4);`, data.OrderNumber, data.Accural, data.User, data.Date)
 	return err
 }
 
@@ -169,4 +175,41 @@ func GetBalance(db *pgx.Conn, data OrderData) (int, int, error) {
 	}
 
 	return totalReward, withdrawn, nil
+}
+
+func VerifyToken(token string) (jwt.MapClaims, bool) {
+	hmacSecretString := SecretKey
+	hmacSecret := []byte(hmacSecretString)
+	gettoken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		return hmacSecret, nil
+	})
+
+	if err != nil {
+		return nil, false
+	}
+
+	if claims, ok := gettoken.Claims.(jwt.MapClaims); ok && gettoken.Valid {
+		return claims, true
+
+	} else {
+		log.Printf("Invalid JWT Token")
+		return nil, false
+	}
+}
+
+func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
+	query := fmt.Sprintf(`SELECT order_number, user  FROM orders WHERE order_number = %d`, data.OrderNumber)
+	ctx := context.Background()
+	var number uint64
+	var login string
+	err := db.QueryRow(ctx, query).Scan(&number, &login)
+	if err == pgx.ErrNoRows {
+
+		return true, false
+	}
+
+	if login != data.User {
+		return true, true
+	}
+	return true, false
 }

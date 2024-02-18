@@ -66,6 +66,7 @@ func LoginUser() http.Handler {
 			return
 		}
 		res.Header().Add("Authorization", authToken)
+
 		res.WriteHeader(http.StatusOK)
 
 	}

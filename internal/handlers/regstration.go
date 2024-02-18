@@ -15,6 +15,11 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
+type Payload struct {
+	Login string
+	Exp   int64
+}
+
 func Registration() http.Handler {
 	register := func(res http.ResponseWriter, req *http.Request) {
 		var buf bytes.Buffer
@@ -48,9 +53,12 @@ func Registration() http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		payloadData := Payload{}
+		payloadData.Login = userData.Login
+		payloadData.Exp = time.Now().Add(time.Hour * 72).Unix()
 		payload := jwt.MapClaims{
-			"sub": userData.Login,
-			"exp": time.Now().Add(time.Hour * 72).Unix(),
+			"sub": payloadData.Login,
+			"exp": payloadData.Exp,
 		}
 
 		// Создаем новый JWT-токен и подписываем его по алгоритму HS256
