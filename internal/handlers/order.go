@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/binary"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Azcarot/GopherMarketProject/internal/storage"
@@ -16,7 +16,7 @@ type OrderRequest struct {
 
 func Order() http.Handler {
 	order := func(res http.ResponseWriter, req *http.Request) {
-		var buf bytes.Buffer
+		// var buf bytes.Buffer
 		token := req.Header.Get("Authorization")
 		claims, ok := storage.VerifyToken(token)
 		if !ok {
@@ -35,13 +35,19 @@ func Order() http.Handler {
 			return
 		}
 		// читаем тело запроса
-		_, err = buf.ReadFrom(req.Body)
+		data, err := io.ReadAll(req.Body)
+		asString := string(data)
+		// _, err = buf.ReadFrom(req.Body)
 		if err != nil {
 			res.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		data := buf.Bytes()
-		orderNumber := binary.BigEndian.Uint64(data)
+		// data := buf.Bytes()
+		orderNumber, err := strconv.ParseUint(asString, 10, 64)
+		if err != nil {
+			res.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		ok = utils.IsOrderNumberValid(orderNumber)
 		if !ok {
 			res.WriteHeader(http.StatusUnprocessableEntity)

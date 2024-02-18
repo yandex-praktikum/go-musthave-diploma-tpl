@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/caarlos0/env"
@@ -62,12 +63,13 @@ func ParseFlagsAndENV() Flags {
 }
 
 func IsOrderNumberValid(number uint64) bool {
+	fmt.Println("number1 ", number)
 	return (number%10+orderChecksum(number/10))%10 == 0
 }
 
 func orderChecksum(number uint64) uint64 {
 	var luhn uint64
-
+	fmt.Println("number ", number)
 	for i := 0; number > 0; i++ {
 		cur := number % 10
 

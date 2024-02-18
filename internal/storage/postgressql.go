@@ -89,7 +89,12 @@ func CheckDBConnection(db *pgx.Conn) http.Handler {
 }
 
 func CreateTablesForGopherStore(db *pgx.Conn) {
-	query := `CREATE TABLE IF NOT EXISTS users (id SERIAL NOT NULL PRIMARY KEY, login text NOT NULL, password text NOT NULL, accural_points bigint, created timestamp )`
+	query := `CREATE TABLE IF NOT EXISTS users (
+		id SERIAL NOT NULL PRIMARY KEY, 
+		login text NOT NULL, 
+		password text NOT NULL, 
+		accural_points bigint, 
+		created timestamp )`
 	ctx := context.Background()
 
 	_, err := db.Exec(ctx, query)
@@ -99,7 +104,15 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		log.Printf("Error %s when creating user table", err)
 
 	}
-	query = `CREATE TABLE IF NOT EXISTS orders (id SERIAL NOT NULL PRIMARY KEY, order_number bigint, accural_points bigint, user text NOT NULL, created timestamp )`
+	queryForFun := `DROP TABLE IF EXISTS orders CASCADE`
+	db.Exec(ctx, queryForFun)
+	query = `CREATE TABLE IF NOT EXISTS orders(
+		id SERIAL NOT NULL PRIMARY KEY,
+		order_number BIGINT,
+		accural_points BIGINT,
+		customer TEXT NOT NULL,
+		created TIMESTAMP
+	)`
 	_, err = db.Exec(ctx, query)
 
 	if err != nil {
@@ -154,7 +167,7 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 
 func CreateNewOrder(db *pgx.Conn, data OrderData) error {
 	ctx := context.Background()
-	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, user, created) values ($1, $2, $3, $4);`, data.OrderNumber, data.Accural, data.User, data.Date)
+	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, customer, created) values ($1, $2, $3, $4);`, data.OrderNumber, data.Accural, data.User, data.Date)
 	return err
 }
 
@@ -198,7 +211,7 @@ func VerifyToken(token string) (jwt.MapClaims, bool) {
 }
 
 func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
-	query := fmt.Sprintf(`SELECT order_number, user  FROM orders WHERE order_number = %d`, data.OrderNumber)
+	query := fmt.Sprintf(`SELECT order_number, customer FROM orders WHERE order_number = %d`, data.OrderNumber)
 	ctx := context.Background()
 	var number uint64
 	var login string
