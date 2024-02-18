@@ -217,12 +217,13 @@ func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
 	var login string
 	err := db.QueryRow(ctx, query).Scan(&number, &login)
 	if err == pgx.ErrNoRows {
-
+		//No order
 		return true, false
 	}
-
+	// Order exists for another user
 	if login != data.User {
-		return true, true
+		return false, true
 	}
-	return true, false
+	// order already exists for current user
+	return false, false
 }

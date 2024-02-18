@@ -20,7 +20,7 @@ func Order() http.Handler {
 		token := req.Header.Get("Authorization")
 		claims, ok := storage.VerifyToken(token)
 		if !ok {
-			res.WriteHeader(http.StatusBadRequest)
+			res.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		var userData storage.UserData
