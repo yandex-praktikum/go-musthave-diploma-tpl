@@ -73,13 +73,6 @@ func Order(flag utils.Flags) http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		// orderAccData, err := GetOrderAccuralAndState(flag, order.OrderNumber)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	res.WriteHeader(http.StatusInternalServerError)
-		// 	return
-		// }
-		// fmt.Println(orderAccData)
 		res.WriteHeader(http.StatusAccepted)
 
 	}

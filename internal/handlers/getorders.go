@@ -77,6 +77,7 @@ func GetOrderAccuralAndState(flag utils.Flags, order uint64) (OrderRequest, erro
 	if err != nil {
 		return result, err
 	}
+	defer response.Body.Close()
 	var buf bytes.Buffer
 	// читаем тело запроса
 	_, err = buf.ReadFrom(response.Body)

@@ -27,7 +27,7 @@ func MakeRouter(flag utils.Flags) *chi.Mux {
 		r.Post("/login", handlers.LoginUser().ServeHTTP)
 		r.Post("/orders", handlers.Order(flag).ServeHTTP)
 		// r.Post("/balance/withdraw", Storagehandler.HandlePostMetrics().ServeHTTP)
-		// r.Get("/orders", Storagehandler.HandleGetMetrics().ServeHTTP)
+		r.Get("/orders", handlers.GetOrders().ServeHTTP)
 		// r.Get("/balance", storage.CheckDBConnection(storage.DB).ServeHTTP)
 		// r.Get("/withdrawals", storage.CheckDBConnection(storage.DB).ServeHTTP)
 	})
