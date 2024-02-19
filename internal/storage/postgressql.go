@@ -24,13 +24,14 @@ type UserData struct {
 	Login       string
 	Password    string
 	BonusPoints int
-	Date        time.Time
+	Date        string
 }
 type OrderData struct {
 	OrderNumber uint64
 	Accural     int
 	User        string
-	Date        time.Time
+	State       string
+	Date        string
 }
 
 var DB *pgx.Conn
@@ -110,6 +111,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		id SERIAL NOT NULL PRIMARY KEY,
 		order_number BIGINT,
 		accural_points BIGINT,
+		state TEXT,
 		customer TEXT NOT NULL,
 		created TIMESTAMP
 	)`
@@ -126,7 +128,6 @@ func CreateNewUser(db *pgx.Conn, data UserData) error {
 	ctx := context.Background()
 	encodedPW := utils.ShaData(data.Password, SecretKey)
 	_, err := db.Exec(ctx, `INSERT into users (login, password, created) values ($1, $2, $3);`, data.Login, encodedPW, data.Date)
-	fmt.Println(err)
 	return err
 }
 
@@ -167,7 +168,7 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 
 func CreateNewOrder(db *pgx.Conn, data OrderData) error {
 	ctx := context.Background()
-	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, customer, created) values ($1, $2, $3, $4);`, data.OrderNumber, data.Accural, data.User, data.Date)
+	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, state, customer, created) values ($1, $2, $3, $4, $5);`, data.OrderNumber, data.Accural, data.State, data.User, data.Date)
 	return err
 }
 
@@ -208,6 +209,29 @@ func VerifyToken(token string) (jwt.MapClaims, bool) {
 		log.Printf("Invalid JWT Token")
 		return nil, false
 	}
+}
+
+func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderData, error) {
+	query := fmt.Sprintf(`SELECT order_number, accural, state, create_time FROM orders WHERE customer = %s ORDER BY id DESC`, login)
+	result := []OrderData{}
+	ctx := context.Background()
+	rows, err := db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var order OrderData
+		if err := rows.Scan(&order.OrderNumber, &order.Accural, &order.State, &order.Date); err != nil {
+			return result, err
+		}
+		result = append(result, order)
+	}
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+	return result, nil
+
 }
 
 func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {

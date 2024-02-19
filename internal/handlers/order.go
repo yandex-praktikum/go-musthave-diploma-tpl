@@ -11,10 +11,12 @@ import (
 )
 
 type OrderRequest struct {
-	OrderNumber int
+	OrderNumber uint64
+	Status      string
+	Accural     int
 }
 
-func Order() http.Handler {
+func Order(flag utils.Flags) http.Handler {
 	order := func(res http.ResponseWriter, req *http.Request) {
 		// var buf bytes.Buffer
 		token := req.Header.Get("Authorization")
@@ -65,7 +67,14 @@ func Order() http.Handler {
 			res.WriteHeader(http.StatusOK)
 			return
 		}
-		order.Date = time.Now()
+		orderAccData, err := GetOrderAccuralAndState(flag, order.OrderNumber)
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		order.Accural = orderAccData.Accural
+		order.State = orderAccData.Status
+		order.Date = time.Now().Format(time.RFC3339)
 		err = storage.CreateNewOrder(storage.DB, order)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)

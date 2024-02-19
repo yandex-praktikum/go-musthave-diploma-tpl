@@ -39,6 +39,7 @@ func Registration() http.Handler {
 		userData := storage.UserData{}
 		userData.Login = regData.Login
 		userData.Password = regData.Password
+		userData.Date = time.Now().Format(time.RFC3339)
 		result, err := storage.CheckUserExists(storage.DB, userData)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
