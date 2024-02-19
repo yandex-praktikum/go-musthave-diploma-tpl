@@ -46,6 +46,7 @@ func GetOrders() http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		res.Header().Add("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		res.Write(result)
 
