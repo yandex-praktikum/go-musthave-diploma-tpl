@@ -175,7 +175,7 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 
 func CreateNewOrder(db *pgx.Conn, data OrderData) error {
 	ctx := context.Background()
-	data.State = "New"
+	data.State = "NEW"
 	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, state, customer, created) values ($1, $2, $3, $4, $5);`, data.OrderNumber, data.Accural, data.State, data.User, data.Date)
 	return err
 }
