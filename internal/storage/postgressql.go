@@ -35,7 +35,7 @@ type OrderData struct {
 }
 
 type OrderResponse struct {
-	OrderNumber uint64 `json:"number"`
+	OrderNumber string `json:"number"`
 	Accural     int    `json:"accrual"`
 	State       string `json:"state"`
 	Date        string `json:"uploaded_at"`
