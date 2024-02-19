@@ -95,7 +95,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		login text NOT NULL, 
 		password text NOT NULL, 
 		accural_points bigint, 
-		created timestamp )`
+		created text )`
 	ctx := context.Background()
 
 	_, err := db.Exec(ctx, query)
@@ -113,7 +113,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		accural_points BIGINT,
 		state TEXT,
 		customer TEXT NOT NULL,
-		created TIMESTAMP
+		created TEXT
 	)`
 	_, err = db.Exec(ctx, query)
 
@@ -213,7 +213,7 @@ func VerifyToken(token string) (jwt.MapClaims, bool) {
 }
 
 func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderData, error) {
-	query := fmt.Sprintf(`SELECT order_number, accural, state, create_time FROM orders WHERE customer = %s ORDER BY id DESC`, login)
+	query := fmt.Sprintf(`SELECT order_number, accural_points, state, created FROM orders WHERE customer = '%s' ORDER BY id DESC`, login)
 	result := []OrderData{}
 	ctx := context.Background()
 	rows, err := db.Query(ctx, query)

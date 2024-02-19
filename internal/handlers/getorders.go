@@ -23,6 +23,7 @@ func GetOrders() http.Handler {
 		var userData storage.UserData
 		userData.Login = claims["sub"].(string)
 		ok, err := storage.CheckUserExists(storage.DB, userData)
+
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
