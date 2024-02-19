@@ -52,24 +52,34 @@ func GetOrders() http.Handler {
 	}
 	return http.HandlerFunc(getorder)
 }
-func GetOrderAccuralAndState(flag utils.Flags, order uint64) (OrderRequest, error) {
+func GetOrderData(flag utils.Flags, order uint64) (*http.Response, error) {
 	pth := "http://" + flag.FlagAccuralAddr + "/api/orders/" + strconv.Itoa(int(order))
 	var b []byte
 	resp, err := http.NewRequest("GET", pth, bytes.NewBuffer(b))
-	result := OrderRequest{}
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
 	client := &http.Client{}
 	res, err := client.Do(resp)
 	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	return res, nil
+}
+
+func GetOrderAccuralAndState(flag utils.Flags, order uint64) (OrderRequest, error) {
+	result := OrderRequest{}
+	response, err := GetOrderData(flag, order)
+	if err != nil {
 		return result, err
 	}
-	defer res.Body.Close()
 	var buf bytes.Buffer
 	// читаем тело запроса
-	_, err = buf.ReadFrom(res.Body)
+	_, err = buf.ReadFrom(response.Body)
 	if err != nil {
 		return result, err
 	}

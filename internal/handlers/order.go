@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,9 +12,9 @@ import (
 )
 
 type OrderRequest struct {
-	OrderNumber uint64
-	Status      string
-	Accural     int
+	OrderNumber uint64 `json:"order"`
+	Status      string `json:"status"`
+	Accural     int    `json:"accrual"`
 }
 
 func Order(flag utils.Flags) http.Handler {
@@ -67,19 +68,19 @@ func Order(flag utils.Flags) http.Handler {
 			res.WriteHeader(http.StatusOK)
 			return
 		}
-		orderAccData, err := GetOrderAccuralAndState(flag, order.OrderNumber)
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		order.Accural = orderAccData.Accural
-		order.State = orderAccData.Status
 		order.Date = time.Now().Format(time.RFC3339)
 		err = storage.CreateNewOrder(storage.DB, order)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		orderAccData, err := GetOrderAccuralAndState(flag, order.OrderNumber)
+		if err != nil {
+			fmt.Println(err)
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		fmt.Println(orderAccData)
 		res.WriteHeader(http.StatusAccepted)
 
 	}
