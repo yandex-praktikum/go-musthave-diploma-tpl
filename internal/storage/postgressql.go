@@ -30,14 +30,14 @@ type OrderData struct {
 	OrderNumber uint64 `json:"number"`
 	Accural     int    `json:"accrual"`
 	User        string
-	State       string `json:"state"`
+	State       string `json:"status"`
 	Date        string `json:"uploaded_at"`
 }
 
 type OrderResponse struct {
 	OrderNumber string `json:"number"`
 	Accural     int    `json:"accrual"`
-	State       string `json:"state"`
+	State       string `json:"status"`
 	Date        string `json:"uploaded_at"`
 }
 
