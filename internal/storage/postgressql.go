@@ -27,11 +27,18 @@ type UserData struct {
 	Date        string
 }
 type OrderData struct {
-	OrderNumber uint64
-	Accural     int
+	OrderNumber uint64 `json:"number"`
+	Accural     int    `json:"accrual"`
 	User        string
-	State       string
-	Date        string
+	State       string `json:"state"`
+	Date        string `json:"uploaded_at"`
+}
+
+type OrderResponse struct {
+	OrderNumber uint64 `json:"number"`
+	Accural     int    `json:"accrual"`
+	State       string `json:"state"`
+	Date        string `json:"uploaded_at"`
 }
 
 var DB *pgx.Conn
@@ -212,9 +219,9 @@ func VerifyToken(token string) (jwt.MapClaims, bool) {
 	}
 }
 
-func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderData, error) {
+func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
 	query := fmt.Sprintf(`SELECT order_number, accural_points, state, created FROM orders WHERE customer = '%s' ORDER BY id DESC`, login)
-	result := []OrderData{}
+	result := []OrderResponse{}
 	ctx := context.Background()
 	rows, err := db.Query(ctx, query)
 	if err != nil {
@@ -222,7 +229,7 @@ func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderData, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var order OrderData
+		var order OrderResponse
 		if err := rows.Scan(&order.OrderNumber, &order.Accural, &order.State, &order.Date); err != nil {
 			return result, err
 		}
