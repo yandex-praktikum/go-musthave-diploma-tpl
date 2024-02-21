@@ -114,13 +114,16 @@ func CheckDBConnection(db *pgx.Conn) http.Handler {
 }
 
 func CreateTablesForGopherStore(db *pgx.Conn) {
+	ctx := context.Background()
+
+	queryForFun := `DROP TABLE IF EXISTS users CASCADE`
+	db.Exec(ctx, queryForFun)
 	query := `CREATE TABLE IF NOT EXISTS users (
 		id SERIAL NOT NULL PRIMARY KEY, 
 		login text NOT NULL, 
 		password text NOT NULL, 
 		accrual_points bigint, 
 		created text )`
-	ctx := context.Background()
 
 	_, err := db.Exec(ctx, query)
 
@@ -129,7 +132,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		log.Printf("Error %s when creating user table", err)
 
 	}
-	queryForFun := `DROP TABLE IF EXISTS orders CASCADE`
+	queryForFun = `DROP TABLE IF EXISTS orders CASCADE`
 	db.Exec(ctx, queryForFun)
 	query = `CREATE TABLE IF NOT EXISTS orders(
 		id SERIAL NOT NULL PRIMARY KEY,
