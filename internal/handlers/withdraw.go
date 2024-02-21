@@ -1,23 +1,17 @@
 package handlers
 
 import (
-	"io"
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/Azcarot/GopherMarketProject/internal/storage"
 	"github.com/Azcarot/GopherMarketProject/internal/utils"
 )
 
-type OrderRequest struct {
-	OrderNumber string `json:"order"`
-	Status      string `json:"status"`
-	Accrual     int    `json:"accrual"`
-}
-
-func Order(flag utils.Flags) http.Handler {
-	order := func(res http.ResponseWriter, req *http.Request) {
+func Withdraw() http.Handler {
+	withdraw := func(res http.ResponseWriter, req *http.Request) {
 		// var buf bytes.Buffer
 		token := req.Header.Get("Authorization")
 		claims, ok := storage.VerifyToken(token)
@@ -36,16 +30,21 @@ func Order(flag utils.Flags) http.Handler {
 			res.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		var buf bytes.Buffer
+		withdrawalData := storage.WithdrawRequest{}
 		// читаем тело запроса
-		data, err := io.ReadAll(req.Body)
-		asString := string(data)
-		// _, err = buf.ReadFrom(req.Body)
+		_, err = buf.ReadFrom(req.Body)
 		if err != nil {
 			res.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// data := buf.Bytes()
-		orderNumber, err := strconv.ParseUint(asString, 10, 64)
+		data := buf.Bytes()
+
+		if err = json.Unmarshal(data, &withdrawalData); err != nil {
+			res.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		orderNumber, err := strconv.ParseUint(withdrawalData.OrderNumber, 10, 64)
 		if err != nil {
 			res.WriteHeader(http.StatusBadRequest)
 			return
@@ -55,26 +54,23 @@ func Order(flag utils.Flags) http.Handler {
 			res.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
-		var order storage.OrderData
-		order.OrderNumber = orderNumber
-		order.User = userData.Login
-		ok, anotherUser := storage.CheckIfOrderExists(storage.DB, order)
-		if anotherUser {
-			res.WriteHeader(http.StatusConflict)
-			return
-		}
-		if !ok {
-			res.WriteHeader(http.StatusOK)
-			return
-		}
-		order.Date = time.Now().Format(time.RFC3339)
-		err = storage.CreateNewOrder(storage.DB, order)
+		var balanceData storage.BalanceResponce
+		balanceData, err = storage.GetUserBalance(storage.DB, userData)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		res.WriteHeader(http.StatusAccepted)
-		go ActualiseOrders(flag)
+		if withdrawalData.Amount > balanceData.Accrual {
+			res.WriteHeader(http.StatusPaymentRequired)
+			return
+		}
+		userData.AccrualPoints = balanceData.Accrual
+		err = storage.WitdrawFromUser(storage.DB, userData, withdrawalData)
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		res.WriteHeader(http.StatusOK)
 	}
-	return http.HandlerFunc(order)
+	return http.HandlerFunc(withdraw)
 }

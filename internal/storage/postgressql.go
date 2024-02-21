@@ -21,24 +21,30 @@ type MyCustomClaims struct {
 }
 
 type UserData struct {
-	Login       string
-	Password    string
-	BonusPoints int
-	Date        string
+	Login         string
+	Password      string
+	AccrualPoints int
+	Date          string
 }
 type OrderData struct {
 	OrderNumber uint64 `json:"number"`
-	Accural     int    `json:"accrual"`
+	Accrual     int    `json:"accrual"`
 	User        string
 	State       string `json:"status"`
 	Date        string `json:"uploaded_at"`
+	Withdrawal  int
 }
 
 type OrderResponse struct {
 	OrderNumber string `json:"number"`
-	Accural     int    `json:"accrual"`
+	Accrual     int    `json:"accrual"`
 	State       string `json:"status"`
 	Date        string `json:"uploaded_at"`
+}
+
+type BalanceResponce struct {
+	Accrual   int `json:"current"`
+	Withdrawn int `json:"withdrawn"`
 }
 
 var DB *pgx.Conn
@@ -46,6 +52,17 @@ var DB *pgx.Conn
 type pgxConnTime struct {
 	attempts          int
 	timeBeforeAttempt int
+}
+
+type WithdrawRequest struct {
+	OrderNumber string `json:"order"`
+	Amount      int    `json:"sum"`
+}
+
+type WithdrawResponse struct {
+	OrderNumber string `json:"order"`
+	Amount      int    `json:"sum"`
+	ProcessedAt string `json:"processed_at"`
 }
 
 func NewConn(f utils.Flags) error {
@@ -101,7 +118,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		id SERIAL NOT NULL PRIMARY KEY, 
 		login text NOT NULL, 
 		password text NOT NULL, 
-		accural_points bigint, 
+		accrual_points bigint, 
 		created text )`
 	ctx := context.Background()
 
@@ -117,8 +134,9 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 	query = `CREATE TABLE IF NOT EXISTS orders(
 		id SERIAL NOT NULL PRIMARY KEY,
 		order_number BIGINT,
-		accural_points BIGINT,
+		accrual_points BIGINT,
 		state TEXT,
+		withdrawal BIGINT,
 		customer TEXT NOT NULL,
 		created TEXT
 	)`
@@ -134,7 +152,9 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 func CreateNewUser(db *pgx.Conn, data UserData) error {
 	ctx := context.Background()
 	encodedPW := utils.ShaData(data.Password, SecretKey)
-	_, err := db.Exec(ctx, `INSERT into users (login, password, created) values ($1, $2, $3);`, data.Login, encodedPW, data.Date)
+	_, err := db.Exec(ctx, `INSERT into users (login, password, created) 
+	values ($1, $2, $3);`,
+		data.Login, encodedPW, data.Date)
 	return err
 }
 
@@ -176,27 +196,11 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 func CreateNewOrder(db *pgx.Conn, data OrderData) error {
 	ctx := context.Background()
 	data.State = "NEW"
-	_, err := db.Exec(ctx, `insert into orders (order_number, accural_points, state, customer, created) values ($1, $2, $3, $4, $5);`, data.OrderNumber, data.Accural, data.State, data.User, data.Date)
+	_, err := db.Exec(ctx, `INSERT INTO orders 
+	(order_number, accrual_points, state, customer, withdrawal, created) 
+	values ($1, $2, $3, $4, $5, $6);`,
+		data.OrderNumber, data.Accrual, data.State, data.User, data.Withdrawal, data.Date)
 	return err
-}
-
-func GetBalance(db *pgx.Conn, data OrderData) (int, int, error) {
-	ctx := context.Background()
-	rows, err := db.Query(ctx, "SELECT SUM(accural_points), SUM(withdrawal) FROM orders WHERE order_number = ?", data.OrderNumber)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	defer rows.Close()
-	var totalReward, withdrawn int
-	for rows.Next() {
-		if err := rows.Scan(&totalReward, &withdrawn); err != nil {
-			return 0, 0, err
-		}
-
-	}
-
-	return totalReward, withdrawn, nil
 }
 
 func VerifyToken(token string) (jwt.MapClaims, bool) {
@@ -220,7 +224,10 @@ func VerifyToken(token string) (jwt.MapClaims, bool) {
 }
 
 func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
-	query := fmt.Sprintf(`SELECT order_number, accural_points, state, created FROM orders WHERE customer = '%s' ORDER BY id DESC`, login)
+	query := fmt.Sprintf(`SELECT order_number, accrual_points, state, created 
+	FROM orders 
+	WHERE customer = '%s' 
+	ORDER BY id DESC`, login)
 	result := []OrderResponse{}
 	ctx := context.Background()
 	rows, err := db.Query(ctx, query)
@@ -230,7 +237,7 @@ func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var order OrderResponse
-		if err := rows.Scan(&order.OrderNumber, &order.Accural, &order.State, &order.Date); err != nil {
+		if err := rows.Scan(&order.OrderNumber, &order.Accrual, &order.State, &order.Date); err != nil {
 			return result, err
 		}
 		result = append(result, order)
@@ -243,7 +250,9 @@ func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
 }
 
 func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
-	query := fmt.Sprintf(`SELECT order_number, customer FROM orders WHERE order_number = %d`, data.OrderNumber)
+	query := fmt.Sprintf(`SELECT order_number, customer 
+	FROM orders 
+	WHERE order_number = %d`, data.OrderNumber)
 	ctx := context.Background()
 	var number uint64
 	var login string
@@ -258,4 +267,106 @@ func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
 	}
 	// order already exists for current user
 	return false, false
+}
+
+func GetUnfinishedOrders(db *pgx.Conn) ([]uint64, error) {
+	sqlQuery := "SELECT order_number FROM orders WHERE state IN ('NEW', 'PROCESSING')"
+	ctx := context.Background()
+	var result []uint64
+	rows, err := db.Query(ctx, sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var order uint64
+		if err := rows.Scan(&order); err != nil {
+			return result, err
+		}
+		result = append(result, order)
+	}
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+	return result, nil
+
+}
+
+func UpdateOrder(db *pgx.Conn, data OrderData) error {
+	ctx := context.Background()
+	sql := `
+	UPDATE orders 
+	SET accrual_points = $1, state = $2 
+	WHERE order_number = $3;
+`
+	_, err := db.Exec(ctx, sql, data.Accrual, data.State, data.OrderNumber)
+	return err
+}
+
+func AddBalanceToUser(db *pgx.Conn, orderData OrderData) (bool, error) {
+	ctx := context.Background()
+	sqlQuery := fmt.Sprintf(`SELECT accrual_points, login 
+	FROM user u 
+	LEFT JOIN orders or 
+	ON u.login = or.customer 
+	WHERE or.order_number = '%d'`, orderData.OrderNumber)
+	var currentBalance int
+	var login string
+	err := db.QueryRow(ctx, sqlQuery).Scan(&currentBalance, &login)
+	if err != nil {
+		return false, err
+	}
+	currentBalance += orderData.Accrual
+	sql := `UPDATE user SET accrual_point = $1 WHERE login = $2`
+	_, err = db.Exec(ctx, sql, currentBalance, login)
+	if err != nil {
+		return false, err
+	}
+	return true, err
+}
+
+func GetUserBalance(db *pgx.Conn, data UserData) (BalanceResponce, error) {
+	sql := fmt.Sprintf(`SELECT accrual_points, withdrawal FROM users WHERE login = '%s'`, data.Login)
+	ctx := context.Background()
+	var result BalanceResponce
+	err := db.QueryRow(ctx, sql).Scan(&result.Accrual, &result.Withdrawn)
+	if err != nil {
+		return result, err
+	}
+
+	return result, err
+}
+
+func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) error {
+	ctx := context.Background()
+	currentBalance := userData.AccrualPoints
+	currentBalance -= withdraw.Amount
+	sql := `UPDATE user SET accrual_point = $1 WHERE login = $2`
+	_, err := db.Exec(ctx, sql, currentBalance, userData.Login)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetWithdrawals(db *pgx.Conn, userData UserData) ([]WithdrawResponse, error) {
+	var result []WithdrawResponse
+	sqlQuery := fmt.Sprintf(`SELECT order_number, withdrawal, created FROM orders WHERE login = '%s' and withdrawal > 0 ORDER BY id, DESC`, userData.Login)
+	ctx := context.Background()
+	rows, err := db.Query(ctx, sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var order WithdrawResponse
+		if err := rows.Scan(&order.OrderNumber, &order.Amount, &order.ProcessedAt); err != nil {
+			return result, err
+		}
+		result = append(result, order)
+	}
+	if err = rows.Err(); err != nil {
+		return result, err
+	}
+	return result, nil
 }

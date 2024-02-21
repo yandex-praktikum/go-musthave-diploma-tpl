@@ -21,15 +21,16 @@ func MakeRouter(flag utils.Flags) *chi.Mux {
 	// делаем регистратор SugaredLogger
 	middleware.Sugar = *logger.Sugar()
 	r := chi.NewRouter()
+	go handlers.ActualiseOrders(flag)
 	r.Use(middleware.WithLogging)
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", handlers.Registration().ServeHTTP)
 		r.Post("/login", handlers.LoginUser().ServeHTTP)
 		r.Post("/orders", handlers.Order(flag).ServeHTTP)
-		// r.Post("/balance/withdraw", Storagehandler.HandlePostMetrics().ServeHTTP)
+		r.Post("/balance/withdraw", handlers.Withdraw().ServeHTTP)
 		r.Get("/orders", handlers.GetOrders().ServeHTTP)
-		// r.Get("/balance", storage.CheckDBConnection(storage.DB).ServeHTTP)
-		// r.Get("/withdrawals", storage.CheckDBConnection(storage.DB).ServeHTTP)
+		r.Get("/balance", handlers.GetBalance().ServeHTTP)
+		r.Get("/withdrawals", handlers.GetWithdrawals().ServeHTTP)
 	})
 	return r
 }

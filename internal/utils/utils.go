@@ -13,13 +13,13 @@ import (
 type Flags struct {
 	FlagAddr        string
 	FlagDBAddr      string
-	FlagAccuralAddr string
+	FlagAccrualAddr string
 }
 
 type ServerENV struct {
 	Address     string `env:"RUN_ADDRESS"`
 	DBAddress   string `env:"DATABASE_URI"`
-	AccuralAddr string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+	AccrualAddr string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 }
 
 func ShaData(result string, key string) string {
@@ -39,7 +39,7 @@ func ParseFlagsAndENV() Flags {
 	var Flag Flags
 	flag.StringVar(&Flag.FlagAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&Flag.FlagDBAddr, "d", "", "address for db")
-	flag.StringVar(&Flag.FlagAccuralAddr, "r", "", "accural system addr")
+	flag.StringVar(&Flag.FlagAccrualAddr, "r", "", "accrual system addr")
 	flag.Parse()
 	var envcfg ServerENV
 	err := env.Parse(&envcfg)
@@ -54,8 +54,8 @@ func ParseFlagsAndENV() Flags {
 		Flag.FlagDBAddr = envcfg.DBAddress
 	}
 
-	if len(envcfg.AccuralAddr) > 0 {
-		Flag.FlagAccuralAddr = envcfg.AccuralAddr
+	if len(envcfg.AccrualAddr) > 0 {
+		Flag.FlagAccrualAddr = envcfg.AccrualAddr
 	}
 
 	return Flag
