@@ -116,13 +116,13 @@ func CheckDBConnection(db *pgx.Conn) http.Handler {
 func CreateTablesForGopherStore(db *pgx.Conn) {
 	ctx := context.Background()
 
-	queryForFun := `DROP TABLE IF EXISTS users CASCADE`
-	db.Exec(ctx, queryForFun)
+	// queryForFun := `DROP TABLE IF EXISTS users CASCADE`
+	// _, err := db.Exec(ctx, queryForFun)
 	query := `CREATE TABLE IF NOT EXISTS users (
 		id SERIAL NOT NULL PRIMARY KEY, 
 		login text NOT NULL, 
 		password text NOT NULL, 
-		accrual_points bigint, 
+		accrual_points bigint NOT NULL, 
 		created text )`
 
 	_, err := db.Exec(ctx, query)
@@ -132,14 +132,14 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		log.Printf("Error %s when creating user table", err)
 
 	}
-	queryForFun = `DROP TABLE IF EXISTS orders CASCADE`
+	queryForFun := `DROP TABLE IF EXISTS orders CASCADE`
 	db.Exec(ctx, queryForFun)
 	query = `CREATE TABLE IF NOT EXISTS orders(
 		id SERIAL NOT NULL PRIMARY KEY,
 		order_number BIGINT,
-		accrual_points BIGINT,
+		accrual_points BIGINT NOT NULL,
 		state TEXT,
-		withdrawal BIGINT,
+		withdrawal BIGINT NOT NULL,
 		customer TEXT NOT NULL,
 		created TEXT
 	)`
@@ -155,9 +155,9 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 func CreateNewUser(db *pgx.Conn, data UserData) error {
 	ctx := context.Background()
 	encodedPW := utils.ShaData(data.Password, SecretKey)
-	_, err := db.Exec(ctx, `INSERT into users (login, password, created) 
-	values ($1, $2, $3);`,
-		data.Login, encodedPW, data.Date)
+	_, err := db.Exec(ctx, `INSERT into users (login, password, accrual_points, created) 
+	values ($1, $2, $3, $4);`,
+		data.Login, encodedPW, 0, data.Date)
 	return err
 }
 
@@ -308,11 +308,11 @@ func UpdateOrder(db *pgx.Conn, data OrderData) error {
 
 func AddBalanceToUser(db *pgx.Conn, orderData OrderData) (bool, error) {
 	ctx := context.Background()
-	sqlQuery := fmt.Sprintf(`SELECT accrual_points, login 
-	FROM user u 
-	LEFT JOIN orders or 
-	ON u.login = or.customer 
-	WHERE or.order_number = '%d'`, orderData.OrderNumber)
+	sqlQuery := fmt.Sprintf(`SELECT users.accrual_points, users.login 
+	FROM users
+	LEFT JOIN orders  
+	ON users.login = orders.customer 
+	WHERE orders.order_number = '%d'`, orderData.OrderNumber)
 	var currentBalance int
 	var login string
 	err := db.QueryRow(ctx, sqlQuery).Scan(&currentBalance, &login)
@@ -320,8 +320,9 @@ func AddBalanceToUser(db *pgx.Conn, orderData OrderData) (bool, error) {
 		return false, err
 	}
 	currentBalance += orderData.Accrual
-	sql := `UPDATE user SET accrual_point = $1 WHERE login = $2`
+	sql := `UPDATE users SET accrual_points = $1 WHERE login = $2`
 	_, err = db.Exec(ctx, sql, currentBalance, login)
+	fmt.Println(err)
 	if err != nil {
 		return false, err
 	}
@@ -344,7 +345,7 @@ func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) 
 	ctx := context.Background()
 	currentBalance := userData.AccrualPoints
 	currentBalance -= withdraw.Amount
-	sql := `UPDATE user SET accrual_point = $1 WHERE login = $2`
+	sql := `UPDATE users SET accrual_points = $1 WHERE login = $2`
 	_, err := db.Exec(ctx, sql, currentBalance, userData.Login)
 	if err != nil {
 		return err
@@ -354,7 +355,7 @@ func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) 
 
 func GetWithdrawals(db *pgx.Conn, userData UserData) ([]WithdrawResponse, error) {
 	var result []WithdrawResponse
-	sqlQuery := fmt.Sprintf(`SELECT order_number, withdrawal, created FROM orders WHERE login = '%s' and withdrawal > 0 ORDER BY id, DESC`, userData.Login)
+	sqlQuery := fmt.Sprintf(`SELECT order_number, withdrawal, created FROM orders WHERE customer = '%s' and withdrawal > 0 ORDER BY id DESC`, userData.Login)
 	ctx := context.Background()
 	rows, err := db.Query(ctx, sqlQuery)
 	if err != nil {
