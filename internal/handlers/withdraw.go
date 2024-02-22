@@ -65,6 +65,7 @@ func Withdraw() http.Handler {
 			return
 		}
 		userData.AccrualPoints = balanceData.Accrual
+		userData.Withdrawal = balanceData.Withdrawn
 		err = storage.WitdrawFromUser(storage.DB, userData, withdrawalData)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)

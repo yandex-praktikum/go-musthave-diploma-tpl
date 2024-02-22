@@ -24,6 +24,7 @@ type UserData struct {
 	Login         string
 	Password      string
 	AccrualPoints int
+	Withdrawal    int
 	Date          string
 }
 type OrderData struct {
@@ -116,13 +117,14 @@ func CheckDBConnection(db *pgx.Conn) http.Handler {
 func CreateTablesForGopherStore(db *pgx.Conn) {
 	ctx := context.Background()
 
-	// queryForFun := `DROP TABLE IF EXISTS users CASCADE`
-	// _, err := db.Exec(ctx, queryForFun)
+	queryForFun := `DROP TABLE IF EXISTS users CASCADE`
+	db.Exec(ctx, queryForFun)
 	query := `CREATE TABLE IF NOT EXISTS users (
 		id SERIAL NOT NULL PRIMARY KEY, 
 		login text NOT NULL, 
 		password text NOT NULL, 
 		accrual_points bigint NOT NULL, 
+		withdrawal BIGINT NOT NULL,
 		created text )`
 
 	_, err := db.Exec(ctx, query)
@@ -132,7 +134,7 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 		log.Printf("Error %s when creating user table", err)
 
 	}
-	queryForFun := `DROP TABLE IF EXISTS orders CASCADE`
+	queryForFun = `DROP TABLE IF EXISTS orders CASCADE`
 	db.Exec(ctx, queryForFun)
 	query = `CREATE TABLE IF NOT EXISTS orders(
 		id SERIAL NOT NULL PRIMARY KEY,
@@ -155,9 +157,9 @@ func CreateTablesForGopherStore(db *pgx.Conn) {
 func CreateNewUser(db *pgx.Conn, data UserData) error {
 	ctx := context.Background()
 	encodedPW := utils.ShaData(data.Password, SecretKey)
-	_, err := db.Exec(ctx, `INSERT into users (login, password, accrual_points, created) 
-	values ($1, $2, $3, $4);`,
-		data.Login, encodedPW, 0, data.Date)
+	_, err := db.Exec(ctx, `INSERT into users (login, password, accrual_points, withdrawal, created) 
+	values ($1, $2, $3, $4, $5);`,
+		data.Login, encodedPW, 0, 0, data.Date)
 	return err
 }
 
@@ -345,8 +347,9 @@ func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) 
 	ctx := context.Background()
 	currentBalance := userData.AccrualPoints
 	currentBalance -= withdraw.Amount
-	sql := `UPDATE users SET accrual_points = $1 WHERE login = $2`
-	_, err := db.Exec(ctx, sql, currentBalance, userData.Login)
+	currentWithdrawn := userData.Withdrawal + withdraw.Amount
+	sql := `UPDATE users SET (accrual_points = $1, withdrawal = $3) WHERE login = $2`
+	_, err := db.Exec(ctx, sql, currentBalance, currentWithdrawn, userData.Login)
 	if err != nil {
 		return err
 	}
