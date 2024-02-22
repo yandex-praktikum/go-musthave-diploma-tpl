@@ -325,7 +325,6 @@ func AddBalanceToUser(db *pgx.Conn, orderData OrderData) (bool, error) {
 	currentBalance += orderData.Accrual
 	sql := `UPDATE users SET accrual_points = $1 WHERE login = $2`
 	_, err = db.Exec(ctx, sql, currentBalance, login)
-	fmt.Println(err)
 	if err != nil {
 		return false, err
 	}

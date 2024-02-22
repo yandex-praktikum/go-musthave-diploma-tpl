@@ -74,7 +74,6 @@ func Order(flag utils.Flags) http.Handler {
 			return
 		}
 		res.WriteHeader(http.StatusAccepted)
-		go ActualiseOrders(flag)
 	}
 	return http.HandlerFunc(order)
 }

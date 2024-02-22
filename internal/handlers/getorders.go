@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -92,17 +93,16 @@ func CheckStatus(resp *http.Request) (*http.Response, error) {
 	if err != nil {
 		return res, err
 	}
+	fmt.Println("StatusCode", res.StatusCode)
 	if res.StatusCode == http.StatusTooManyRequests {
-		time.Sleep(time.Duration(time.Duration(60).Seconds()))
+		time.Sleep(time.Duration(1 * time.Second))
 		res, _ = CheckStatus(resp)
 
-	} else {
-		return res, err
 	}
 	return res, err
 }
 
-func ActualiseOrders(flag utils.Flags) {
+func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 	orderNumbers, err := storage.GetUnfinishedOrders(storage.DB)
 	if err != nil {
 		time.Sleep(time.Duration(time.Duration(5).Seconds()))
@@ -111,12 +111,14 @@ func ActualiseOrders(flag utils.Flags) {
 			return
 		}
 	}
+	fmt.Println("ActualiseStart")
 	var wg sync.WaitGroup
 	for i, order := range orderNumbers {
 		ind := i
 		ord := order
 		wg.Add(1)
 		go func(int, uint64) {
+			fmt.Println("goroutine")
 			defer wg.Done()
 			orderReq, err := GetOrderData(flag, ord)
 			if err != nil {
@@ -150,4 +152,5 @@ func ActualiseOrders(flag utils.Flags) {
 		}(ind, ord)
 	}
 	wg.Wait()
+
 }

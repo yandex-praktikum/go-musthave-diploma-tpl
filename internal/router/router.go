@@ -1,6 +1,8 @@
 package router
 
 import (
+	"time"
+
 	"github.com/Azcarot/GopherMarketProject/internal/handlers"
 	"github.com/Azcarot/GopherMarketProject/internal/middleware"
 	"github.com/Azcarot/GopherMarketProject/internal/utils"
@@ -21,7 +23,19 @@ func MakeRouter(flag utils.Flags) *chi.Mux {
 	// делаем регистратор SugaredLogger
 	middleware.Sugar = *logger.Sugar()
 	r := chi.NewRouter()
-	go handlers.ActualiseOrders(flag)
+	ticker := time.NewTicker(2 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				handlers.ActualiseOrders(flag, quit)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 	r.Use(middleware.WithLogging)
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", handlers.Registration().ServeHTTP)
