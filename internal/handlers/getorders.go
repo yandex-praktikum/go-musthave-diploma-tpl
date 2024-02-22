@@ -63,15 +63,17 @@ func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	result := OrderRequest{}
 	resp, err := http.NewRequest("GET", pth, bytes.NewBuffer(b))
 	if err != nil {
+		fmt.Println("req err", err)
 		return result, err
 	}
 
 	var res *http.Response
 	res, err = CheckStatus(resp)
 	if err != nil {
+		fmt.Println("responce err", err)
 		return result, err
 	}
-
+	fmt.Println("Status code", res.StatusCode)
 	defer res.Body.Close()
 
 	var buf bytes.Buffer
@@ -83,6 +85,7 @@ func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	data := buf.Bytes()
 
 	if err = json.Unmarshal(data, &result); err != nil {
+		fmt.Println("Unmarshal err", err)
 		return result, err
 	}
 	return result, err
@@ -106,7 +109,6 @@ func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 	orderNumbers, err := storage.GetUnfinishedOrders(storage.DB)
 	fmt.Println("Order number", orderNumbers)
 	if err != nil {
-		fmt.Println("error in GetUnfinishedOrders")
 		time.Sleep(time.Duration(time.Duration(5).Seconds()))
 		orderNumbers, err = storage.GetUnfinishedOrders(storage.DB)
 		if err != nil {
