@@ -57,7 +57,7 @@ func GetOrders() http.Handler {
 	return http.HandlerFunc(getorder)
 }
 func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
-	pth := "http://" + flag.FlagAccrualAddr + "/api/orders/" + strconv.Itoa(int(order))
+	pth := flag.FlagAccrualAddr + "/api/orders/" + strconv.Itoa(int(order))
 	fmt.Println("Path", pth)
 	var b []byte
 	result := OrderRequest{}
