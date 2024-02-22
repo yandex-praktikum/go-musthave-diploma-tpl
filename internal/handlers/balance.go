@@ -33,6 +33,8 @@ func GetBalance() http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		balanceData.Accrual = balanceData.Accrual / 100
+		balanceData.Withdrawn = balanceData.Withdrawn / 100
 		result, err := json.Marshal(balanceData)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)

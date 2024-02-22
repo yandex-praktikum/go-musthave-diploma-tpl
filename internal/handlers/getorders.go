@@ -124,7 +124,7 @@ func ActualiseOrders(flag utils.Flags) {
 			}
 			if (orderReq.Status != "NEW") && (orderReq.Status != "PROCESSING") {
 				var orderData storage.OrderData
-				orderData.Accrual = orderReq.Accrual
+				orderData.Accrual = int(orderReq.Accrual * 100)
 				orderNumber, err := strconv.Atoi(orderReq.OrderNumber)
 				if err != nil {
 					return

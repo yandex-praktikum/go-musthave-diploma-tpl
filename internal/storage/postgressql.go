@@ -37,15 +37,15 @@ type OrderData struct {
 }
 
 type OrderResponse struct {
-	OrderNumber string `json:"number"`
-	Accrual     int    `json:"accrual"`
-	State       string `json:"status"`
-	Date        string `json:"uploaded_at"`
+	OrderNumber string  `json:"number"`
+	Accrual     float64 `json:"accrual"`
+	State       string  `json:"status"`
+	Date        string  `json:"uploaded_at"`
 }
 
 type BalanceResponce struct {
-	Accrual   int `json:"current"`
-	Withdrawn int `json:"withdrawn"`
+	Accrual   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 var DB *pgx.Conn
@@ -61,9 +61,9 @@ type WithdrawRequest struct {
 }
 
 type WithdrawResponse struct {
-	OrderNumber string `json:"order"`
-	Amount      int    `json:"sum"`
-	ProcessedAt string `json:"processed_at"`
+	OrderNumber string  `json:"order"`
+	Amount      float64 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
 }
 
 func NewConn(f utils.Flags) error {
@@ -245,6 +245,7 @@ func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
 		if err := rows.Scan(&order.OrderNumber, &order.Accrual, &order.State, &order.Date); err != nil {
 			return result, err
 		}
+		order.Accrual = order.Accrual / 100
 		result = append(result, order)
 	}
 	if err = rows.Err(); err != nil {
@@ -370,6 +371,7 @@ func GetWithdrawals(db *pgx.Conn, userData UserData) ([]WithdrawResponse, error)
 		if err := rows.Scan(&order.OrderNumber, &order.Amount, &order.ProcessedAt); err != nil {
 			return result, err
 		}
+		order.Amount = order.Amount / 100
 		result = append(result, order)
 	}
 	if err = rows.Err(); err != nil {

@@ -60,12 +60,14 @@ func Withdraw() http.Handler {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if withdrawalData.Amount > balanceData.Accrual {
+		intAccBalanceData := int(balanceData.Accrual * 100)
+		intWithdData := int(balanceData.Withdrawn * 100)
+		if withdrawalData.Amount > intAccBalanceData {
 			res.WriteHeader(http.StatusPaymentRequired)
 			return
 		}
-		userData.AccrualPoints = balanceData.Accrual
-		userData.Withdrawal = balanceData.Withdrawn
+		userData.AccrualPoints = intAccBalanceData
+		userData.Withdrawal = intWithdData
 		err = storage.WitdrawFromUser(storage.DB, userData, withdrawalData)
 		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)

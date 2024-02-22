@@ -11,9 +11,9 @@ import (
 )
 
 type OrderRequest struct {
-	OrderNumber string `json:"order"`
-	Status      string `json:"status"`
-	Accrual     int    `json:"accrual"`
+	OrderNumber string  `json:"order"`
+	Status      string  `json:"status"`
+	Accrual     float64 `json:"accrual"`
 }
 
 func Order(flag utils.Flags) http.Handler {
