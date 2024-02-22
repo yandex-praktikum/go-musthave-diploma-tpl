@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -57,6 +58,7 @@ func GetOrders() http.Handler {
 }
 func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	pth := "http://" + flag.FlagAccrualAddr + "/api/orders/" + strconv.Itoa(int(order))
+	fmt.Println("Path", pth)
 	var b []byte
 	result := OrderRequest{}
 	resp, err := http.NewRequest("GET", pth, bytes.NewBuffer(b))
@@ -102,7 +104,9 @@ func CheckStatus(resp *http.Request) (*http.Response, error) {
 
 func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 	orderNumbers, err := storage.GetUnfinishedOrders(storage.DB)
+	fmt.Println("Order number", orderNumbers)
 	if err != nil {
+		fmt.Println("error in GetUnfinishedOrders")
 		time.Sleep(time.Duration(time.Duration(5).Seconds()))
 		orderNumbers, err = storage.GetUnfinishedOrders(storage.DB)
 		if err != nil {
@@ -116,6 +120,7 @@ func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 		wg.Add(1)
 		go func(int, uint64) {
 			defer wg.Done()
+			fmt.Println("GetOrderData")
 			orderReq, err := GetOrderData(flag, ord)
 			if err != nil {
 				return
