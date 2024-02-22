@@ -62,7 +62,7 @@ func Withdraw() http.Handler {
 		}
 		intAccBalanceData := int(balanceData.Accrual * 100)
 		intWithdData := int(balanceData.Withdrawn * 100)
-		if withdrawalData.Amount > intAccBalanceData {
+		if int(withdrawalData.Amount*100) > intAccBalanceData {
 			res.WriteHeader(http.StatusPaymentRequired)
 			return
 		}

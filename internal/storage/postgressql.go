@@ -56,8 +56,8 @@ type pgxConnTime struct {
 }
 
 type WithdrawRequest struct {
-	OrderNumber string `json:"order"`
-	Amount      int    `json:"sum"`
+	OrderNumber string  `json:"order"`
+	Amount      float64 `json:"sum"`
 }
 
 type WithdrawResponse struct {
@@ -346,8 +346,8 @@ func GetUserBalance(db *pgx.Conn, data UserData) (BalanceResponce, error) {
 func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) error {
 	ctx := context.Background()
 	currentBalance := userData.AccrualPoints
-	currentBalance -= withdraw.Amount
-	currentWithdrawn := userData.Withdrawal + withdraw.Amount
+	currentBalance -= int(withdraw.Amount * 100)
+	currentWithdrawn := userData.Withdrawal + int(withdraw.Amount*100)
 	sql := `UPDATE users SET (accrual_points = $1, withdrawal = $3) WHERE login = $2`
 	_, err := db.Exec(ctx, sql, currentBalance, currentWithdrawn, userData.Login)
 	if err != nil {
