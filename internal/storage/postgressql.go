@@ -346,9 +346,11 @@ func GetUserBalance(db *pgx.Conn, data UserData) (BalanceResponce, error) {
 func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) error {
 	ctx := context.Background()
 	currentBalance := userData.AccrualPoints
+	fmt.Println("userData", userData)
+	fmt.Println("withdraw", withdraw)
 	currentBalance -= int(withdraw.Amount * 100)
 	currentWithdrawn := userData.Withdrawal + int(withdraw.Amount*100)
-	sql := `UPDATE users SET (accrual_points = $1, withdrawal = $3) WHERE login = $2`
+	sql := `UPDATE users SET accrual_points = $1, withdrawal = $2 WHERE login = $3`
 	_, err := db.Exec(ctx, sql, currentBalance, currentWithdrawn, userData.Login)
 	if err != nil {
 		return err

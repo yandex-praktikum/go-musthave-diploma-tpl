@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -58,22 +57,18 @@ func GetOrders() http.Handler {
 }
 func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	pth := flag.FlagAccrualAddr + "/api/orders/" + strconv.Itoa(int(order))
-	fmt.Println("Path", pth)
 	var b []byte
 	result := OrderRequest{}
 	resp, err := http.NewRequest("GET", pth, bytes.NewBuffer(b))
 	if err != nil {
-		fmt.Println("req err", err)
 		return result, err
 	}
 
 	var res *http.Response
 	res, err = CheckStatus(resp)
 	if err != nil {
-		fmt.Println("responce err", err)
 		return result, err
 	}
-	fmt.Println("Status code", res.StatusCode)
 	defer res.Body.Close()
 
 	var buf bytes.Buffer
@@ -85,7 +80,6 @@ func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	data := buf.Bytes()
 
 	if err = json.Unmarshal(data, &result); err != nil {
-		fmt.Println("Unmarshal err", err)
 		return result, err
 	}
 	return result, err
@@ -107,7 +101,6 @@ func CheckStatus(resp *http.Request) (*http.Response, error) {
 
 func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 	orderNumbers, err := storage.GetUnfinishedOrders(storage.DB)
-	fmt.Println("Order number", orderNumbers)
 	if err != nil {
 		time.Sleep(time.Duration(time.Duration(5).Seconds()))
 		orderNumbers, err = storage.GetUnfinishedOrders(storage.DB)
@@ -122,7 +115,6 @@ func ActualiseOrders(flag utils.Flags, quit chan struct{}) {
 		wg.Add(1)
 		go func(int, uint64) {
 			defer wg.Done()
-			fmt.Println("GetOrderData")
 			orderReq, err := GetOrderData(flag, ord)
 			if err != nil {
 				return
