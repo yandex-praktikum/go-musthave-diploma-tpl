@@ -20,6 +20,11 @@ type MyCustomClaims struct {
 	jwt.MapClaims
 }
 
+type CtxKey string
+
+const UserLoginCtxKey CtxKey = "userLogin"
+const OrderNumberCtxKey CtxKey = "orderNumber"
+
 type UserData struct {
 	Login         string
 	Password      string
@@ -169,7 +174,7 @@ func CheckUserExists(db *pgx.Conn, data UserData) (bool, error) {
 	sqlQuery := fmt.Sprintf(`SELECT login FROM users WHERE login = '%s'`, data.Login)
 	err := db.QueryRow(ctx, sqlQuery).Scan(&login)
 
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 
 		return false, nil
 	}
@@ -198,14 +203,19 @@ func CheckUserPassword(db *pgx.Conn, data UserData) (bool, error) {
 	return true, nil
 }
 
-func CreateNewOrder(db *pgx.Conn, data OrderData) error {
-	ctx := context.Background()
+func CreateNewOrder(db *pgx.Conn, data OrderData, ctx context.Context) error {
 	data.State = "NEW"
-	_, err := db.Exec(ctx, `INSERT INTO orders 
+	if orderNumber, ok := ctx.Value(OrderNumberCtxKey).(uint64); ok {
+		_, err := db.Exec(ctx, `INSERT INTO orders 
 	(order_number, accrual_points, state, customer, withdrawal, created) 
 	values ($1, $2, $3, $4, $5, $6);`,
-		data.OrderNumber, data.Accrual, data.State, data.User, data.Withdrawal, data.Date)
-	return err
+			orderNumber, data.Accrual, data.State, data.User, data.Withdrawal, data.Date)
+		return err
+	} else {
+		err := errors.New("no order number in context")
+		return err
+	}
+
 }
 
 func VerifyToken(token string) (jwt.MapClaims, bool) {
@@ -255,24 +265,28 @@ func GetCustomerOrders(db *pgx.Conn, login string) ([]OrderResponse, error) {
 
 }
 
-func CheckIfOrderExists(db *pgx.Conn, data OrderData) (bool, bool) {
-	query := fmt.Sprintf(`SELECT order_number, customer 
+func CheckIfOrderExists(db *pgx.Conn, data OrderData, ctx context.Context) (bool, bool, error) {
+	var query string
+	if orderNumber, ok := ctx.Value(OrderNumberCtxKey).(uint64); ok {
+		query = fmt.Sprintf(`SELECT order_number, customer 
 	FROM orders 
-	WHERE order_number = %d`, data.OrderNumber)
-	ctx := context.Background()
-	var number uint64
-	var login string
-	err := db.QueryRow(ctx, query).Scan(&number, &login)
-	if err == pgx.ErrNoRows {
-		//No order
-		return true, false
+	WHERE order_number = %d`, orderNumber)
+		var number uint64
+		var login string
+		err := db.QueryRow(ctx, query).Scan(&number, &login)
+		if errors.Is(err, pgx.ErrNoRows) {
+			//No order
+			return true, false, err
+		}
+		// Order exists for another user
+		if login != data.User {
+			return false, true, err
+		}
+		// order already exists for current user
+		return false, false, err
 	}
-	// Order exists for another user
-	if login != data.User {
-		return false, true
-	}
-	// order already exists for current user
-	return false, false
+	err := errors.New("no order number in context")
+	return false, false, err
 }
 
 func GetUnfinishedOrders(db *pgx.Conn) ([]uint64, error) {
@@ -331,31 +345,37 @@ func AddBalanceToUser(db *pgx.Conn, orderData OrderData) (bool, error) {
 	return true, err
 }
 
-func GetUserBalance(db *pgx.Conn, data UserData) (BalanceResponce, error) {
-	sql := fmt.Sprintf(`SELECT accrual_points, withdrawal FROM users WHERE login = '%s'`, data.Login)
-	ctx := context.Background()
+func GetUserBalance(db *pgx.Conn, data UserData, ctx context.Context) (BalanceResponce, error) {
+	var sql string
 	var result BalanceResponce
-	err := db.QueryRow(ctx, sql).Scan(&result.Accrual, &result.Withdrawn)
-	if err != nil {
-		return result, err
-	}
+	if userLogin, ok := ctx.Value(UserLoginCtxKey).(string); ok {
+		sql = fmt.Sprintf(`SELECT accrual_points, withdrawal FROM users WHERE login = '%s'`, userLogin)
 
+		err := db.QueryRow(ctx, sql).Scan(&result.Accrual, &result.Withdrawn)
+		if err != nil {
+			return result, err
+		}
+		return result, nil
+	}
+	err := errors.New("no login in context")
 	return result, err
 }
 
-func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest) error {
-	ctx := context.Background()
-	currentBalance := userData.AccrualPoints
-	fmt.Println("userData", userData)
-	fmt.Println("withdraw", withdraw)
-	currentBalance -= int(withdraw.Amount * 100)
-	currentWithdrawn := userData.Withdrawal + int(withdraw.Amount*100)
-	sql := `UPDATE users SET accrual_points = $1, withdrawal = $2 WHERE login = $3`
-	_, err := db.Exec(ctx, sql, currentBalance, currentWithdrawn, userData.Login)
-	if err != nil {
-		return err
+func WitdrawFromUser(db *pgx.Conn, userData UserData, withdraw WithdrawRequest, ctx context.Context) error {
+	if userLogin, ok := ctx.Value(UserLoginCtxKey).(string); ok {
+		currentBalance := userData.AccrualPoints
+
+		currentBalance -= int(withdraw.Amount * 100)
+		currentWithdrawn := userData.Withdrawal + int(withdraw.Amount*100)
+		sql := `UPDATE users SET accrual_points = $1, withdrawal = $2 WHERE login = $3`
+		_, err := db.Exec(ctx, sql, currentBalance, currentWithdrawn, userLogin)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
+	err := errors.New("no userLogin in context")
+	return err
 }
 
 func GetWithdrawals(db *pgx.Conn, userData UserData) ([]WithdrawResponse, error) {

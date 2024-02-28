@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
@@ -24,51 +24,45 @@ type LoginResponse struct {
 
 var jwtSecretKey = []byte(storage.SecretKey)
 
-func LoginUser() http.Handler {
-	login := func(res http.ResponseWriter, req *http.Request) {
-		var buf bytes.Buffer
-		loginData := LoginRequest{}
-		// читаем тело запроса
-		_, err := buf.ReadFrom(req.Body)
-		if err != nil {
-			res.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		data := buf.Bytes()
+func LoginUser(res http.ResponseWriter, req *http.Request) {
 
-		if err = json.Unmarshal(data, &loginData); err != nil {
-			res.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		var userData storage.UserData
-		userData.Login = loginData.Login
-		userData.Password = loginData.Password
-		result, err := storage.CheckUserPassword(storage.DB, userData)
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if !result {
-			res.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		payload := jwt.MapClaims{
-			"sub": loginData.Login,
-			"exp": time.Now().Add(time.Hour * 72).Unix(),
-		}
-
-		// Создаем новый JWT-токен и подписываем его по алгоритму HS256
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-
-		authToken, err := token.SignedString(jwtSecretKey)
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		res.Header().Add("Authorization", authToken)
-
-		res.WriteHeader(http.StatusOK)
-
+	loginData := LoginRequest{}
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	return http.HandlerFunc(login)
+	if err = json.Unmarshal(data, &loginData); err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var userData storage.UserData
+	userData.Login = loginData.Login
+	userData.Password = loginData.Password
+	result, err := storage.CheckUserPassword(storage.DB, userData)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !result {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	payload := jwt.MapClaims{
+		"sub": loginData.Login,
+		"exp": time.Now().Add(time.Hour * 72).Unix(),
+	}
+
+	// Создаем новый JWT-токен и подписываем его по алгоритму HS256
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+
+	authToken, err := token.SignedString(jwtSecretKey)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	res.Header().Add("Authorization", authToken)
+
+	res.WriteHeader(http.StatusOK)
+
 }

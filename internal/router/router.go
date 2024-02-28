@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/Azcarot/GopherMarketProject/internal/handlers"
@@ -16,11 +17,9 @@ func MakeRouter(flag utils.Flags) *chi.Mux {
 
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		// вызываем панику, если ошибка
 		panic(err)
 	}
 	defer logger.Sync()
-	// делаем регистратор SugaredLogger
 	middleware.Sugar = *logger.Sugar()
 	r := chi.NewRouter()
 	ticker := time.NewTicker(2 * time.Second)
@@ -38,13 +37,13 @@ func MakeRouter(flag utils.Flags) *chi.Mux {
 	}()
 	r.Use(middleware.WithLogging)
 	r.Route("/api/user", func(r chi.Router) {
-		r.Post("/register", handlers.Registration().ServeHTTP)
-		r.Post("/login", handlers.LoginUser().ServeHTTP)
-		r.Post("/orders", handlers.Order(flag).ServeHTTP)
-		r.Post("/balance/withdraw", handlers.Withdraw().ServeHTTP)
-		r.Get("/orders", handlers.GetOrders().ServeHTTP)
-		r.Get("/balance", handlers.GetBalance().ServeHTTP)
-		r.Get("/withdrawals", handlers.GetWithdrawals().ServeHTTP)
+		r.Post("/register", http.HandlerFunc(handlers.Registration))
+		r.With(middleware.CheckAuthorization).Post("/login", http.HandlerFunc(handlers.LoginUser))
+		r.With(middleware.CheckAuthorization).Post("/orders", http.HandlerFunc(handlers.Order))
+		r.With(middleware.CheckAuthorization).Post("/balance/withdraw", http.HandlerFunc(handlers.Withdraw))
+		r.With(middleware.CheckAuthorization).Get("/orders", http.HandlerFunc(handlers.GetOrders))
+		r.With(middleware.CheckAuthorization).Get("/balance", http.HandlerFunc(handlers.GetBalance))
+		r.With(middleware.CheckAuthorization).Get("/withdrawals", http.HandlerFunc(handlers.GetWithdrawals))
 	})
 	return r
 }

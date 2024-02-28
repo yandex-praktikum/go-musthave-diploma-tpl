@@ -3,6 +3,8 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -13,48 +15,34 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func GetOrders() http.Handler {
-	getorder := func(res http.ResponseWriter, req *http.Request) {
-		// var buf bytes.Buffer
-		token := req.Header.Get("Authorization")
-		claims, ok := storage.VerifyToken(token)
-		if !ok {
-			res.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		var userData storage.UserData
-		userData.Login = claims["sub"].(string)
-		ok, err := storage.CheckUserExists(storage.DB, userData)
-
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if !ok {
-			res.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		orders, err := storage.GetCustomerOrders(storage.DB, userData.Login)
-		if err == pgx.ErrNoRows {
-			res.WriteHeader(http.StatusNoContent)
-			return
-		}
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		result, err := json.Marshal(orders)
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		res.Header().Add("Content-Type", "application/json")
-		res.WriteHeader(http.StatusOK)
-		res.Write(result)
-
+func GetOrders(res http.ResponseWriter, req *http.Request) {
+	var userData storage.UserData
+	data, ok := req.Context().Value("UserLogin").(string)
+	if !ok {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	return http.HandlerFunc(getorder)
+	userData.Login = data
+	orders, err := storage.GetCustomerOrders(storage.DB, userData.Login)
+	if errors.Is(err, pgx.ErrNoRows) {
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	result, err := json.Marshal(orders)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	res.Header().Add("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write(result)
+
 }
+
 func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	pth := flag.FlagAccrualAddr + "/api/orders/" + strconv.Itoa(int(order))
 	var b []byte
@@ -69,15 +57,11 @@ func GetOrderData(flag utils.Flags, order uint64) (OrderRequest, error) {
 	if err != nil {
 		return result, err
 	}
-	defer res.Body.Close()
-
-	var buf bytes.Buffer
-	// читаем тело запроса
-	_, err = buf.ReadFrom(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return result, err
 	}
-	data := buf.Bytes()
+	defer res.Body.Close()
 
 	if err = json.Unmarshal(data, &result); err != nil {
 		return result, err
