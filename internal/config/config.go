@@ -10,6 +10,7 @@ type Config struct {
 	ServerAddress  string
 	AccrualAddress string
 	DBdsn          string
+	MigrationsPath string
 	LogLevel       logrus.Level
 	SecretKey      string
 }
@@ -49,6 +50,8 @@ func loadEnvVariables(cfg *Config) {
 		logrus.Fatalf("Invalid log level: %s", loggingLevel)
 	}
 	cfg.LogLevel = level
+	migrationsPath := getEnv("MIGRATION_PATH", "internal/storage/postgres/migrate")
+	cfg.MigrationsPath = migrationsPath
 }
 
 func getEnv(key string, defaultValue ...string) string {
