@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/SmoothWay/gophermart/internal/model"
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 const (
@@ -39,14 +42,16 @@ type HTTPClient interface {
 }
 
 type Service struct {
+	logger     *slog.Logger
 	storage    Storage
 	client     HTTPClient
 	secret     []byte
 	accrualURL string
 }
 
-func New(storage Storage, client HTTPClient, secret []byte, url string) *Service {
+func New(logger *slog.Logger, storage Storage, client HTTPClient, secret []byte, url string) *Service {
 	return &Service{
+		logger:     logger,
 		storage:    storage,
 		secret:     secret,
 		accrualURL: url,
@@ -73,7 +78,7 @@ func (s *Service) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum fl
 func (s *Service) UploadOrder(userID uuid.UUID, orderNumber string) error {
 	_, err := s.storage.GetOrder(userID, orderNumber)
 	if err == nil {
-		return ErrOrderAlreadyExists
+		return ErrOrderAlreadyExistThisUser
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return err

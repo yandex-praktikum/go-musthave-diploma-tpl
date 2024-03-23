@@ -11,9 +11,8 @@ type ServerConfig struct {
 	DSN            string `env:"DATABASE_DSN"`
 	LogLevel       string `env:"LOG_LEVEL"`
 	StoragePath    string `env:"STORAGE_PATH"`
-	Key            string `env:"KEY"`
+	Secret         string `env:"SECRET" envDefault:"key"`
 	AccuralSysAddr string `env:"RESTORE"`
-	StoreInvterval int64  `env:"STORE_INTERVAL"`
 }
 
 func NewServerConfig() *ServerConfig {
@@ -37,8 +36,8 @@ func NewServerConfig() *ServerConfig {
 		serverConfig.StoragePath = config.StoragePath
 	}
 
-	if serverConfig.Key == "" {
-		serverConfig.Key = config.Key
+	if serverConfig.Secret == "" {
+		serverConfig.Secret = config.Secret
 	}
 
 	return serverConfig
@@ -51,10 +50,8 @@ func parseServerFlags() *ServerConfig {
 	flag.StringVar(&config.DSN, "d", "", "DB connection string")
 	flag.StringVar(&config.LogLevel, "l", "info", "log level")
 	flag.StringVar(&config.StoragePath, "f", "/tmp/metrics-db.json", "path to file to store metrics")
-	flag.StringVar(&config.Key, "k", "", "secret key for signing data")
+	flag.StringVar(&config.Secret, "s", "", "secret key for signing data")
 	flag.StringVar(&config.AccuralSysAddr, "r", "", "store metrics in file")
-
-	flag.Int64Var(&config.StoreInvterval, "i", 2, "interval of storing metrics")
 
 	flag.Parse()
 

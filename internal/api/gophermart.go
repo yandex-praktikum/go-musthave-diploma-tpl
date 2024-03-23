@@ -10,6 +10,9 @@ import (
 	"log/slog"
 
 	"github.com/SmoothWay/gophermart/internal/model"
+	postgresrepo "github.com/SmoothWay/gophermart/internal/repository/postgres"
+	"github.com/SmoothWay/gophermart/internal/service"
+	"github.com/SmoothWay/gophermart/internal/util"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -32,7 +35,7 @@ type Gophermart struct {
 
 var _ StrictServerInterface = (*Gophermart)(nil)
 
-var MessageInternalError = "Internal server error"
+var MessageInternalError = "internal server error"
 
 func NewGophermart(logger *slog.Logger, service Service, secret []byte) *Gophermart {
 	return &Gophermart{
@@ -50,7 +53,7 @@ func (g *Gophermart) RegisterUser(ctx context.Context, request RegisterUserReque
 		if errors.As(err, &pqErr) {
 			if pqErr.Code.Name() == "unique_violation" {
 				return RegisterUser409JSONResponse{
-					Message: "User already exist",
+					Message: "user already exist",
 				}, nil
 			}
 		}
@@ -82,7 +85,7 @@ func (g *Gophermart) LoginUser(ctx context.Context, request LoginUserRequestObje
 
 		if errors.Is(err, sql.ErrNoRows) {
 			return LoginUser401JSONResponse{
-				Message: "Unauthorized",
+				Message: "unauthorized",
 			}, nil
 		}
 
@@ -130,11 +133,113 @@ func (g *Gophermart) GetOrders(ctx context.Context, _ GetOrdersRequestObject) (G
 }
 
 func (g *Gophermart) UploadOrder(ctx context.Context, request UploadOrderRequestObject) (UploadOrderResponseObject, error) {
+	userID := FromContext(ctx)
+
+	if valid := util.IsValid(*request.Body); !valid {
+		return UploadOrder422JSONResponse{
+			Message: "invalid order number",
+		}, nil
+	}
+
+	err := g.service.UploadOrder(ctx, userID, *request.Body)
+	if err != nil {
+		g.logger.Info("Upload order error", slog.String("error", err.Error()))
+		var pgErr *pq.Error
+
+		if errors.As(err, &pgErr) {
+			if pgErr.Code.Name() == "unique_violation" {
+				return UploadOrder409JSONResponse{
+					Message: "order already exists",
+				}, nil
+			}
+		}
+		if errors.Is(err, service.ErrOrderAlreadyExistThisUser) {
+			return UploadOrder200Response{}, nil
+		}
+
+		return UploadOrder500JSONResponse{
+			Message: MessageInternalError,
+		}, nil
+	}
+
+	return UploadOrder202Response{}, nil
+}
+func (g *Gophermart) GetBalance(ctx context.Context, _ GetBalanceRequestObject) (GetBalanceResponseObject, error) {
+	userID := FromContext(ctx)
+
+	balance, withdrawn, err := g.service.GetBalance(ctx, userID)
+	if err != nil {
+		g.logger.Info("GetBalance error", slog.String("error", err.Error()))
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetBalance200JSONResponse{}, nil
+		}
+
+		return GetBalance500JSONResponse{
+			Message: MessageInternalError,
+		}, nil
+	}
+
+	return GetBalance200JSONResponse{
+		Current:   balance,
+		Withdrawn: withdrawn,
+	}, nil
 
 }
-func (g *Gophermart) GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error) {
+
+func (g *Gophermart) WithdrawalRequest(ctx context.Context, request WithdrawalRequestRequestObject) (WithdrawalRequestResponseObject, error) {
+
+	userID := FromContext(ctx)
+
+	if valid := util.IsValid(request.Body.Order); !valid {
+		return WithdrawalRequest422JSONResponse{
+			Message: "invalid order number",
+		}, nil
+	}
+
+	err := g.service.WithdrawalRequest(ctx, userID, request.Body.Order, request.Body.Sum)
+	if err != nil {
+		g.logger.Info("WithdrwalRequest error", slog.String("error", err.Error()))
+		if errors.Is(err, postgresrepo.ErrNotEnoughFunds) {
+			return WithdrawalRequest402JSONResponse{
+				Message: postgresrepo.ErrNotEnoughFunds.Error(),
+			}, nil
+		}
+
+		return WithdrawalRequest500JSONResponse{
+			Message: MessageInternalError,
+		}, nil
+	}
+
+	return WithdrawalRequest200Response{}, nil
 
 }
-func (g *Gophermart) GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error) {
 
+func (g *Gophermart) GetWithdrawals(ctx context.Context, request GetWithdrawalsRequestObject) (GetWithdrawalsResponseObject, error) {
+	userID := FromContext(ctx)
+
+	withdrwals, err := g.service.GetWithdrawals(ctx, userID)
+	if err != nil {
+		g.logger.Info("GetWithdrawls error", slog.String("error", err.Error()))
+		if errors.Is(err, sql.ErrNoRows) {
+			return GetWithdrawals204Response{}, nil
+		}
+
+		return GetWithdrawals500JSONResponse{
+			Message: MessageInternalError,
+		}, nil
+	}
+
+	ws := make(GetWithdrawals200JSONResponse, len(withdrwals))
+
+	for i, withdrawl := range withdrwals {
+		processedAt := withdrawl.ProcessedAt
+
+		ws[i] = Withdrawal{
+			Order:       withdrawl.Order,
+			Sum:         withdrawl.Sum,
+			ProcessedAt: &processedAt,
+		}
+	}
+
+	return ws, nil
 }
