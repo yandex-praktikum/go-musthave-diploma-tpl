@@ -2,8 +2,9 @@ package config
 
 import (
 	"flag"
-	"github.com/sirupsen/logrus"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {

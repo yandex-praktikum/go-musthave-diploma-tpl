@@ -7,7 +7,7 @@ SET statement_timeout to '20s';
 
 CREATE TABLE IF NOT EXISTS gophermart.withdrawals
 (
-    id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id   bigint      NOT NULL REFERENCES gophermart.orders(id),
     user_id    uuid        NOT NULL REFERENCES gophermart.users(id),
     amount     bigint      NOT NULL,
     created_at timestamptz NOT NULL DEFAULT current_timestamp

@@ -2,30 +2,32 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
-	"github.com/A-Kuklin/gophermart/internal/config"
+
 	"github.com/pressly/goose"
 	"github.com/sirupsen/logrus"
+
+	"github.com/A-Kuklin/gophermart/internal/config"
 )
 
 type Storage struct {
-	conn *sql.DB
+	DB *sql.DB
 }
 
 func NewStorage(dsn string) (*Storage, error) {
-	conn, err := sql.Open("pgx", dsn)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create connection db: %w", err)
+		logrus.WithError(err).Fatal("failed to make DB connection")
+		return nil, err
 	}
 
-	storage := &Storage{conn: conn}
-
-	logrus.Info("DB conn was initiated")
-	return storage, nil
+	strg := &Storage{
+		DB: db,
+	}
+	return strg, nil
 }
 
-func (s Storage) MigrateUP(cfg *config.Config) error {
-	if err := goose.Run("up", s.conn, cfg.MigrationsPath); err != nil {
+func (s Storage) Migrate(cfg *config.Config, cmd string) error {
+	if err := goose.Run(cmd, s.DB, cfg.MigrationsPath); err != nil {
 		logrus.WithError(err).Fatal("migration error")
 		return err
 	}

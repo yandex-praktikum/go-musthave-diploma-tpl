@@ -7,8 +7,9 @@ SET statement_timeout to '20s';
 
 CREATE TABLE IF NOT EXISTS gophermart.users
 (
-    id    uuid UNIQUE PRIMARY KEY DEFAULT gen_random_uuid(),
-    login text UNIQUE NOT NULL
+    id        uuid UNIQUE PRIMARY KEY DEFAULT gen_random_uuid(),
+    login     text UNIQUE NOT NULL,
+    pass_hash bytea NOT NULL
 );
 
 -- +goose StatementEnd
