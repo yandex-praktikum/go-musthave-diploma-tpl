@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/SmoothWay/gophermart/internal/model"
@@ -24,17 +27,19 @@ var (
 	ErrNoContent                    = errors.New("no content")
 	ErrOrderAlreadyExistThisUser    = errors.New("order number already exist for this user")
 	ErrOrderAlreadyExistAnotherUser = errors.New("order number already exist for another user")
+	ErrHittingRateLimit             = errors.New("hitting rate limit")
 )
 
-type Storage interface {
-	AddUser(login, password string) error
-	GetUser(login, password string) (*model.User, error)
-	AddOrder(userID uuid.UUID, order model.Order) error
-	GetOrder(userID uuid.UUID, orderNumber string) (*model.Order, error)
-	GetOrders(userID uuid.UUID) ([]model.Order, error)
-	WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error
-	GetBalance(uuid.UUID) (float64, float64, error)
-	GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error)
+type Repository interface {
+	AddUser(ctx context.Context, login, password string) error
+	GetUser(ctx context.Context, login, password string) (*model.User, error)
+	AddOrder(ctx context.Context, userID uuid.UUID, order model.Order) error
+	UpdateOrder(ctx context.Context, userID uuid.UUID, order model.Order) error
+	GetOrder(ctx context.Context, userID uuid.UUID, orderNumber string) (*model.Order, error)
+	GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error)
+	WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, sum float64) error
+	GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error)
+	GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error)
 }
 
 type HTTPClient interface {
@@ -43,13 +48,14 @@ type HTTPClient interface {
 
 type Service struct {
 	logger     *slog.Logger
-	storage    Storage
+	storage    Repository
 	client     HTTPClient
 	secret     []byte
 	accrualURL string
+	timeout    atomic.Int64
 }
 
-func New(logger *slog.Logger, storage Storage, client HTTPClient, secret []byte, url string) *Service {
+func New(logger *slog.Logger, storage Repository, client HTTPClient, secret []byte, url string) *Service {
 	return &Service{
 		logger:     logger,
 		storage:    storage,
@@ -59,24 +65,24 @@ func New(logger *slog.Logger, storage Storage, client HTTPClient, secret []byte,
 	}
 }
 
-func (s *Service) GetWithdrawals(userID uuid.UUID) ([]model.Withdrawal, error) {
-	return s.storage.GetWithdrawals(userID)
+func (s *Service) GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]model.Withdrawal, error) {
+	return s.storage.GetWithdrawals(ctx, userID)
 }
 
-func (s *Service) GetBalance(userID uuid.UUID) (float64, float64, error) {
-	return s.storage.GetBalance(userID)
+func (s *Service) GetBalance(ctx context.Context, userID uuid.UUID) (float64, float64, error) {
+	return s.storage.GetBalance(ctx, userID)
 }
 
-func (s *Service) GetOrders(userID uuid.UUID) ([]model.Order, error) {
-	return s.storage.GetOrders(userID)
+func (s *Service) GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error) {
+	return s.storage.GetOrders(ctx, userID)
 }
 
-func (s *Service) WithdrawalRequest(userID uuid.UUID, orderNumber string, sum float64) error {
-	return s.storage.WithdrawalRequest(userID, orderNumber, sum)
+func (s *Service) WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, sum float64) error {
+	return s.storage.WithdrawalRequest(ctx, userID, orderNumber, sum)
 }
 
-func (s *Service) UploadOrder(userID uuid.UUID, orderNumber string) error {
-	_, err := s.storage.GetOrder(userID, orderNumber)
+func (s *Service) UploadOrder(ctx context.Context, userID uuid.UUID, orderNumber string) error {
+	_, err := s.storage.GetOrder(ctx, userID, orderNumber)
 	if err == nil {
 		return ErrOrderAlreadyExistThisUser
 	}
@@ -85,7 +91,7 @@ func (s *Service) UploadOrder(userID uuid.UUID, orderNumber string) error {
 	}
 
 	var order model.Order
-	o, err := s.fetchOrder(orderNumber)
+	o, err := s.fetchOrder(ctx, orderNumber)
 	if err != nil {
 		if errors.Is(err, ErrNoContent) {
 			order = model.Order{
@@ -93,21 +99,21 @@ func (s *Service) UploadOrder(userID uuid.UUID, orderNumber string) error {
 				Status: "NEW",
 			}
 
-			return s.storage.AddOrder(userID, order)
+			return s.storage.AddOrder(ctx, userID, order)
 		}
 
 		return err
 	}
 
-	return s.storage.AddOrder(userID, *o)
+	return s.storage.AddOrder(ctx, userID, *o)
 }
 
-func (s *Service) RegisterUser(login, password string) error {
-	return s.storage.AddUser(login, password)
+func (s *Service) RegisterUser(ctx context.Context, login, password string) error {
+	return s.storage.AddUser(ctx, login, password)
 }
 
-func (s *Service) Authenticate(login, password string) (string, error) {
-	user, err := s.storage.GetUser(login, password)
+func (s *Service) Authenticate(ctx context.Context, login, password string) (string, error) {
+	user, err := s.storage.GetUser(ctx, login, password)
 	if err != nil {
 		return "", err
 	}
@@ -129,7 +135,7 @@ func (s *Service) generateAccessToken(id uuid.UUID) (string, error) {
 	return string(signedToken), nil
 }
 
-func (s *Service) fetchOrder(orderNumber string) (*model.Order, error) {
+func (s *Service) fetchOrder(ctx context.Context, orderNumber string) (*model.Order, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(accrualAPIURL, s.accrualURL, orderNumber), nil)
 	if err != nil {
 		return nil, err
@@ -159,4 +165,58 @@ func (s *Service) fetchOrder(orderNumber string) (*model.Order, error) {
 	}
 
 	return &o, nil
+}
+
+func (s *Service) FetchOrders(ctx context.Context, order <-chan model.Order) {
+	var wg sync.WaitGroup
+
+	wg.Add(5)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	go s.worker(ctx, &wg, order)
+	wg.Wait()
+}
+
+func (s *Service) worker(ctx context.Context, wg *sync.WaitGroup, order <-chan model.Order) {
+	defer wg.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			s.logger.Info("Worker has been stopped", slog.String("reason", ctx.Err().Error()))
+			return
+		default:
+			o, ok := <-order
+			if !ok {
+				return
+			}
+			o1, err := s.retryForRateLimit(ctx, o.Number, s.fetchOrder)
+			if err != nil {
+				s.logger.Info("Worker error", slog.String("error", err.Error()))
+				continue
+			}
+			if o1.Status == o.Status {
+				continue
+			}
+			err = s.storage.UpdateOrder(ctx, o.UserID, *o1)
+			if err != nil {
+				continue
+			}
+		}
+	}
+}
+
+func (s *Service) retryForRateLimit(ctx context.Context, order string, fn func(context.Context, string) (*model.Order, error)) (*model.Order, error) {
+	o, err := fn(ctx, order)
+	if err == nil {
+		return o, nil
+	}
+	if !errors.Is(err, ErrHittingRateLimit) {
+		return nil, err
+	}
+	time.Sleep(time.Duration(s.timeout.Load()) * time.Second)
+
+	return fn(ctx, order)
 }

@@ -14,7 +14,7 @@ type User struct {
 
 type Order struct {
 	Number     string    `json:"order"`
-	UserID     string    `json:"user_id,omitempty"`
+	UserID     uuid.UUID `json:"user_id,omitempty"`
 	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual"`
 	UploadedAt time.Time `json:"uploaded_at"`

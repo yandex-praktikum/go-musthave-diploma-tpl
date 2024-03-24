@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"log"
 	"log/slog"
 	"sync"
 	"time"
@@ -22,35 +21,14 @@ type Repository struct {
 	db *sql.DB
 }
 
-func New(dsn string, logger *slog.Logger) (*Repository, error) {
-	var counts int
-	var connection *sql.DB
-	var err error
-	for {
-		connection, err = openDB(dsn)
-		if err != nil {
-			log.Println("Database not ready...")
-			counts++
-		} else {
-			log.Println("Connected to database")
-			break
-		}
-		if counts > 2 {
-			return nil, err
-		}
-		log.Printf("Retrying to connect after %d seconds\n", counts+2)
-		time.Sleep(time.Duration(2+counts) * time.Second)
-	}
-
-	// TODO: DB INIT MIGRATION
-
+func New(connection *sql.DB, logger *slog.Logger) *Repository {
 	return &Repository{
 		db: connection,
 		l:  logger,
-	}, nil
+	}
 }
 
-func (r *Repository) WithdrawalRequest(userID uuid.UUID, orderNumber string, amount float64) error {
+func (r *Repository) WithdrawalRequest(ctx context.Context, userID uuid.UUID, orderNumber string, amount float64) error {
 	withdrawID, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -200,7 +178,7 @@ func (r *Repository) GetOrder(ctx context.Context, userID uuid.UUID, orderNumber
 	}, nil
 }
 
-func (r *Repository) GetOrders(ctx context.Context, userID uuid.UUID, orderNumber string) ([]model.Order, error) {
+func (r *Repository) GetOrders(ctx context.Context, userID uuid.UUID) ([]model.Order, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT order_number, status, accrual, uploaded_at FROM orders WHERE user_id = $1`, userID)
 	if err != nil {
 		return nil, err
@@ -224,7 +202,7 @@ func (r *Repository) GetOrders(ctx context.Context, userID uuid.UUID, orderNumbe
 	return orders, nil
 }
 
-func (r *Repository) Adduser(ctx context.Context, login, password string) error {
+func (r *Repository) AddUser(ctx context.Context, login, password string) error {
 	userID, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -322,16 +300,4 @@ func (r *Repository) ScanOrders(ctx context.Context) <-chan model.Order {
 func hash(value string) string {
 	hash := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(hash[:])
-}
-
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return nil, err
-	}
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
 }
