@@ -252,11 +252,11 @@ func (r *Repository) ScanOrders(ctx context.Context) <-chan model.Order {
 
 	go func() {
 		defer wg.Done()
-
+		r.l.Info("Scanning orders")
 		for {
 			select {
 			case <-time.After(5 * time.Second):
-				r.l.Info("Scanning orders")
+
 				rows, err := r.db.QueryContext(ctx, `SELECT order_number, status, user_id FROM orders WHERE status != $1 and status != $2`, "PROCESSED", "INVALID")
 				if err != nil {
 					r.l.Info("Scanning orders error", slog.String("error", err.Error()))

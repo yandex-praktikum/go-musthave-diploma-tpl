@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -13,7 +15,7 @@ import (
 
 type key string
 
-const keyUserId = "userID"
+const keyUserId key = "userID"
 
 func NewContext(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, keyUserId, userID)
@@ -61,8 +63,17 @@ func Authenticate(secret []byte) func(http.Handler) http.Handler {
 					return
 				}
 			}
-
 			next.ServeHTTP(w, r.WithContext(NewContext(r.Context(), userID)))
+		})
+	}
+}
+
+func LogRequest(logger *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
+			logger.Info("request", slog.Any("URL", r.URL.Path), slog.String("RemoteAddr", r.RemoteAddr), slog.Int("status", ww.Status()))
 		})
 	}
 }

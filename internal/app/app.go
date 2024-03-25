@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 )
@@ -51,6 +52,7 @@ func (s *Server) RegisterHandlers(cfg *config.ServerConfig, svc api.Service) {
 	r := chi.NewRouter()
 	r.Use(middleware.OapiRequestValidator(swagger))
 	r.Use(api.Authenticate([]byte(cfg.Secret)))
+	r.Use(api.LogRequest(s.logger))
 
 	gophermart := api.NewGophermart(s.logger, svc, []byte(cfg.Secret))
 	strictHandler := api.NewStrictHandler(gophermart, nil)
@@ -71,10 +73,6 @@ func Run() {
 	defer db.Close()
 
 	repo := postgresrepo.New(db, logger)
-	if err != nil {
-		logger.Info("DB connection err", slog.String("error", err.Error()))
-		return
-	}
 	client := &http.Client{}
 	svc := service.New(logger, repo, client, []byte(cfg.Secret), cfg.AccuralSysAddr)
 
@@ -110,7 +108,7 @@ func ConnectDB(dsn string, l *slog.Logger) (*sql.DB, error) {
 	for {
 		connection, err = openDB(dsn)
 		if err != nil {
-			l.Info("Database not ready...")
+			l.Info("Database not ready...", slog.String("error", err.Error()))
 			counts++
 		} else {
 			l.Info("Connected to database")
@@ -141,7 +139,7 @@ func ConnectDB(dsn string, l *slog.Logger) (*sql.DB, error) {
 }
 
 func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dsn)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}

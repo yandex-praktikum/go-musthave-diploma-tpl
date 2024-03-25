@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -89,20 +90,14 @@ func (s *Service) UploadOrder(ctx context.Context, userID uuid.UUID, orderNumber
 	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-
-	var order model.Order
-	o, err := s.fetchOrder(ctx, orderNumber)
+	var o *model.Order
+	o, err = s.fetchOrder(ctx, orderNumber)
 	if err != nil {
-		if errors.Is(err, ErrNoContent) {
-			order = model.Order{
-				Number: orderNumber,
-				Status: "NEW",
-			}
-
-			return s.storage.AddOrder(ctx, userID, order)
+		s.logger.Info("Failed to fetch order status, creating NEW order", slog.String("error", err.Error()))
+		o = &model.Order{
+			Number: orderNumber,
+			Status: "NEW",
 		}
-
-		return err
 	}
 
 	return s.storage.AddOrder(ctx, userID, *o)
@@ -148,7 +143,15 @@ func (s *Service) fetchOrder(ctx context.Context, orderNumber string) (*model.Or
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		if res.StatusCode == http.StatusNoContent {
+		if res.StatusCode == http.StatusTooManyRequests {
+			retryAfter := res.Header.Get("Retry-After")
+			ra, err := strconv.ParseInt(retryAfter, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			s.timeout.Store(ra)
+			return nil, ErrHittingRateLimit
+		} else if res.StatusCode == http.StatusNoContent {
 			return nil, ErrNoContent
 		}
 		return nil, fmt.Errorf("failed to fetch order info, status code %d", res.StatusCode)
@@ -194,6 +197,9 @@ func (s *Service) worker(ctx context.Context, wg *sync.WaitGroup, order <-chan m
 			}
 			o1, err := s.retryForRateLimit(ctx, o.Number, s.fetchOrder)
 			if err != nil {
+				if errors.Is(err, ErrNoContent) {
+
+				}
 				s.logger.Info("Worker error", slog.String("error", err.Error()))
 				continue
 			}
