@@ -14,7 +14,7 @@ type auth struct {
 	// salt []byte
 }
 
-func (a *auth) Register(ctx context.Context, regData *domain.RegisterData) error {
+func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) error {
 	// TODO
 	return nil
 }
