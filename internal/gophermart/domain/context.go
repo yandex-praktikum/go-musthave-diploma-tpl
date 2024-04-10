@@ -26,9 +26,17 @@ type Logger interface {
 }
 
 func EnrichContext(ctx context.Context, authData *AuthData, requestID uuid.UUID, logger Logger) context.Context {
-	loggerCtx := context.WithValue(ctx, KeyLogger, newLogger(authData.UserID, requestID, logger))
-	authDataCtx := context.WithValue(loggerCtx, KeyAuthData, authData)
-	return authDataCtx
+	var userId int
+	if authData != nil {
+		userId = authData.UserID
+	}
+	loggerCtx := context.WithValue(ctx, KeyLogger, newLogger(userId, requestID, logger))
+
+	resultCtx := loggerCtx
+	if authData != nil {
+		resultCtx = context.WithValue(loggerCtx, KeyAuthData, authData)
+	}
+	return resultCtx
 }
 
 func GetAuthData(ctx context.Context) (*AuthData, error) {
@@ -45,7 +53,7 @@ func GetAuthData(ctx context.Context) (*AuthData, error) {
 func GetUserID(ctx context.Context) (int, error) {
 	a, err := GetAuthData(ctx)
 	if err != nil {
-		return -1, fmt.Errorf("can't get userID: %w", err)
+		return -1, fmt.Errorf("%w: can't get userID", err)
 	}
 	return a.UserID, nil
 }
@@ -78,11 +86,20 @@ type logger struct {
 }
 
 func (l *logger) Infow(msg string, keysAndValues ...any) {
-	keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
+	if l.userID > 0 {
+		keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
+	} else {
+		keysAndValues = append(keysAndValues, LoggerKeyRequestID, l.requestID.String())
+	}
+
 	l.internalLogger.Infow(msg, keysAndValues...)
 }
 
 func (l *logger) Errorw(msg string, keysAndValues ...any) {
-	keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
+	if l.userID > 0 {
+		keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
+	} else {
+		keysAndValues = append(keysAndValues, LoggerKeyRequestID, l.requestID.String())
+	}
 	l.internalLogger.Infow(msg, keysAndValues...)
 }

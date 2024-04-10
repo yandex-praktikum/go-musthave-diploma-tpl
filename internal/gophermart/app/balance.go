@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/StasMerzlyakov/go-musthave-diploma-tpl/internal/gophermart/domain"
+	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
 )
 
 func NewBalance() *balance {

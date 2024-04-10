@@ -1,5 +1,10 @@
-# Логирование 
-нормально ли делаю (internal/gophermart/domain/context.go) - убрал в логгер в контекс, в логгер добавил вывод userID и requestID? 
+# Контекст - нормально ли делаю (internal/gophermart/domain/context.go) :
+- убрал в логгер в контекс, в логгер добавил вывод userID и requestID
+- передаю через контекст данные пользователя
+
+
+
+
 
 
 

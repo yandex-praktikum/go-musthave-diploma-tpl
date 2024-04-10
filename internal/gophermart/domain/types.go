@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -31,15 +29,10 @@ type RegistrationData struct {
 }
 
 type LoginData struct {
-	Login    string
-	Password string
-}
-
-type TokenString string
-
-type Claims struct {
-	jwt.RegisteredClaims
 	UserID int
+	Login  string
+	Hash   string
+	Salt   string
 }
 
 type AuthData struct {
