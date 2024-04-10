@@ -1,4 +1,4 @@
-module github.com/StasMerzlyakov/go-musthave-diploma-tpl
+module github.com/StasMerzlyakov/gophermart
 
 go 1.19
 

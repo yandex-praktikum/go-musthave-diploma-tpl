@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/StasMerzlyakov/go-musthave-diploma-tpl/internal/gophermart/domain"
-	"github.com/StasMerzlyakov/go-musthave-diploma-tpl/internal/gophermart/domain/mocks"
+	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
+	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func TestEnrichContext(t *testing.T) {
 		for id, v := range keysAndValues {
 			switch v := v.(type) {
 			case string:
-				if v == "userID" {
+				if v == domain.LoggerKeyUserID {
 					require.True(t, id+1 < len(keysAndValues), "userID is not set")
 					k := keysAndValues[id+1]
 					id, ok := k.(string)
@@ -44,7 +44,7 @@ func TestEnrichContext(t *testing.T) {
 					require.Equal(t, userID, id, "unexpecred userID value")
 					userIDIsChecked = true
 				}
-				if v == "requestID" {
+				if v == domain.LoggerKeyRequestID {
 					require.True(t, id+1 < len(keysAndValues), "requestID is not set")
 					k := keysAndValues[id+1]
 					id, ok := k.(string)

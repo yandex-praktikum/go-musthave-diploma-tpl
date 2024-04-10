@@ -16,6 +16,9 @@ type ContextKey string
 const KeyLogger = ContextKey("Logger")
 const KeyAuthData = ContextKey("AuthData")
 
+const LoggerKeyRequestID = "requestID"
+const LoggerKeyUserID = "userID"
+
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . Logger
 type Logger interface {
 	Infow(msg string, keysAndValues ...any)
@@ -75,11 +78,11 @@ type logger struct {
 }
 
 func (l *logger) Infow(msg string, keysAndValues ...any) {
-	keysAndValues = append(keysAndValues, "userID", strconv.Itoa(l.userID), "requestID", l.requestID.String())
+	keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
 	l.internalLogger.Infow(msg, keysAndValues...)
 }
 
 func (l *logger) Errorw(msg string, keysAndValues ...any) {
-	keysAndValues = append(keysAndValues, "userID", strconv.Itoa(l.userID), "requestID", l.requestID.String())
+	keysAndValues = append(keysAndValues, LoggerKeyUserID, strconv.Itoa(l.userID), LoggerKeyRequestID, l.requestID.String())
 	l.internalLogger.Infow(msg, keysAndValues...)
 }

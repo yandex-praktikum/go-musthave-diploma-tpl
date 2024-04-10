@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/StasMerzlyakov/go-musthave-diploma-tpl/internal/gophermart/domain"
+	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
