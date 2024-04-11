@@ -63,7 +63,10 @@ func TestEnrichContext(t *testing.T) {
 
 	ctx := context.Background()
 
-	enrichedCtx := domain.EnrichContext(ctx, authData, requestUUID, m)
+	enrichedCtx := domain.EnrichWithRequestIDLogger(ctx, requestUUID, m)
+
+	enrichedCtx, err := domain.EnrichWithAuthData(enrichedCtx, authData)
+	require.NoError(t, err)
 
 	aData, err := domain.GetAuthData(enrichedCtx)
 
@@ -128,7 +131,11 @@ func TestEnrichContextNotAuthorized(t *testing.T) {
 
 	ctx := context.Background()
 
-	enrichedCtx := domain.EnrichContext(ctx, nil, requestUUID, m)
+	enrichedCtx := domain.EnrichWithRequestIDLogger(ctx, requestUUID, m)
+
+	enrichedCtx, err := domain.EnrichWithAuthData(enrichedCtx, nil)
+
+	require.ErrorIs(t, err, domain.ErrServerInternal)
 
 	aData, err := domain.GetAuthData(enrichedCtx)
 

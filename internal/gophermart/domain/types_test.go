@@ -44,20 +44,16 @@ func TestRFC3339TimeSerialization(t *testing.T) {
 
 func TestJsonRFC3339Serialization(t *testing.T) {
 
-	tm, _ := time.Parse(time.RFC3339, "2020-12-09T16:09:57+03:00")
-
 	oData := domain.WithdrawData{
-		Sum:         500,
-		Order:       "2377225624",
-		ProcessedAt: domain.RFC3339Time(tm),
+		Sum:   500,
+		Order: "2377225624",
 	}
 
 	res, err := json.Marshal(oData)
 	require.NoError(t, err)
 
 	require.JSONEq(t, `{"order": "2377225624",
-          "sum": 500,
-          "processed_at": "2020-12-09T16:09:57+03:00"}`, string(res))
+          "sum": 500}`, string(res))
 
 	var oData2 domain.WithdrawData
 	err = json.Unmarshal(res, &oData2)

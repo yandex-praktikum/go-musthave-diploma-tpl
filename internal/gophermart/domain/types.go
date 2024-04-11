@@ -56,6 +56,12 @@ type Balance struct {
 	WithDrawn float64 `json:"withdrawn"`
 }
 
+type UserBalance struct {
+	Balance
+	UserID int
+	Score  uint
+}
+
 type WithdrawData struct {
 	Order OrderNumber `json:"order"`
 	Sum   float64     `json:"sum"`

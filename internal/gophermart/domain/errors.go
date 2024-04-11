@@ -9,7 +9,7 @@ var (
 	ErrAuthDataIncorrect   = errors.New("AuthDataIsIncorrect") // Неверная пара логин/пароль
 	ErrUserIsNotAuthorized = errors.New("UserIsNotAuthorized") // Пользователь не авторизован
 	ErrDublicateUserData   = errors.New("DublicateUserData")   // Данные пользователя уже были приняты в обработку
-	ErrNotEnoughFunds      = errors.New("NotEnoughFunds")      // Средств не достаточно
+	ErrNotEnoughPoints     = errors.New("NotEnoughPoints")     // Средств не достаточно
 	ErrNotFound            = errors.New("NotFoundError")
 	ErrDBConnection        = errors.New("DatabaseConnectionError")
 )

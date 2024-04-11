@@ -17,5 +17,5 @@ func (testLogger) Errorw(msg string, keysAndValues ...any) {}
 
 func EnrichTestContext(ctx context.Context) context.Context {
 	requestUUID := uuid.New()
-	return domain.EnrichContext(ctx, nil, requestUUID, &testLogger{})
+	return domain.EnrichWithRequestIDLogger(ctx, requestUUID, &testLogger{})
 }
