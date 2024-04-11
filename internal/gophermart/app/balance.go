@@ -14,17 +14,20 @@ func NewBalance() *balance {
 type balance struct {
 }
 
-func (b *balance) Get(ctx context.Context) (*domain.Balance, error) {
+// получение текущего баланса счёта баллов лояльности пользователя;
+func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 	// TODO
 	return nil, nil
 }
 
+// запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа;
 func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) error {
 	// TODO
 	return nil
 }
 
-func (b *balance) List(ctx context.Context, withdraw *domain.WithdrawData) ([]domain.WithdrawData, error) {
+// получение информации о выводе средств с накопительного счёта пользователем.
+func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalsData, error) {
 	// TODO
 	return nil, nil
 }

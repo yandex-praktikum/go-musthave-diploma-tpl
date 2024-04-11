@@ -28,6 +28,11 @@ type RegistrationData struct {
 	Password string
 }
 
+type AuthentificationData struct {
+	Login    string
+	Password string
+}
+
 type LoginData struct {
 	UserID int
 	Login  string
@@ -52,6 +57,11 @@ type Balance struct {
 }
 
 type WithdrawData struct {
+	Order OrderNumber `json:"order"`
+	Sum   float64     `json:"sum"`
+}
+
+type WithdrawalsData struct {
 	Order       OrderNumber `json:"order"`
 	Sum         float64     `json:"sum"`
 	ProcessedAt RFC3339Time `json:"processed_at,omitempty"`

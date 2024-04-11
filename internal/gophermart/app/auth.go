@@ -107,7 +107,7 @@ func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) e
 	return nil
 }
 
-func (a *auth) Authentificate(ctx context.Context, userData *domain.RegistrationData) (domain.TokenString, error) {
+func (a *auth) Authentificate(ctx context.Context, userData *domain.AuthentificationData) (domain.TokenString, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
 		log.Printf("%v: can't authentificate - logger not found in context", domain.ErrServerInternal)
@@ -118,12 +118,17 @@ func (a *auth) Authentificate(ctx context.Context, userData *domain.Registration
 	data, err := a.authStorage.GetUserData(ctx, login)
 	if err != nil {
 		logger.Errorw("Authentificate", "err", err.Error(), "login", login)
-		return "", fmt.Errorf("can't authentificate user: %w", err)
+		if errors.Is(err, domain.ErrAuthDataIncorrect) || errors.Is(err, domain.ErrServerInternal) {
+			return "", fmt.Errorf("can't authentificate user: %w", err)
+		}
+
+		// неизвестная ошибка, все равно вернем ErrServerInternal
+		return "", fmt.Errorf("%w: can't authentificate user: %v", domain.ErrServerInternal, err.Error())
 	}
 
 	if data == nil {
 		logger.Errorw("Authentificate", "err", "data is null", "login", login)
-		return "", fmt.Errorf("can't find data: %w", domain.ErrServerInternal)
+		return "", fmt.Errorf("can't find data: %w", domain.ErrAuthDataIncorrect)
 	}
 
 	salt, err := base64.URLEncoding.DecodeString(data.Salt)

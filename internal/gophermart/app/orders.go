@@ -14,11 +14,13 @@ func NewOrders() *orders {
 type orders struct {
 }
 
-func (ord *orders) Upload(ctx context.Context, orderData *domain.OrderData) error {
+// загрузка пользователем номера заказа для расчёта
+func (ord *orders) Upload(ctx context.Context, number domain.OrderNumber) error {
 	// TODO
 	return nil
 }
 
+// получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях;
 func (ord *orders) Orders(ctx context.Context) ([]domain.OrderData, error) {
 	// TODO
 	return nil, nil
