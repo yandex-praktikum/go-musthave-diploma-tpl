@@ -45,7 +45,7 @@ func TestBalanceNoErr(t *testing.T) {
 
 	balance := app.NewBalance(mockStorage)
 
-	res, err := balance.Balance(ctx)
+	res, err := balance.Get(ctx)
 	require.NotNil(t, res)
 
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestBalanceErrUserIsNotAuthorized(t *testing.T) {
 
 	balance := app.NewBalance(mockStorage)
 
-	res, err := balance.Balance(ctx)
+	res, err := balance.Get(ctx)
 	require.Nil(t, res)
 
 	require.ErrorIs(t, err, domain.ErrUserIsNotAuthorized)
@@ -98,7 +98,7 @@ func TestBalanceErrServerInternal(t *testing.T) {
 
 	balance := app.NewBalance(mockStorage)
 
-	res, err := balance.Balance(ctx)
+	res, err := balance.Get(ctx)
 	require.Nil(t, res)
 
 	require.ErrorIs(t, err, domain.ErrServerInternal)

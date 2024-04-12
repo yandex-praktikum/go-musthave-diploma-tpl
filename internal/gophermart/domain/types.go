@@ -45,6 +45,7 @@ type AuthData struct {
 }
 
 type OrderData struct {
+	UserID     int         `json:"-"`
 	Number     OrderNumber `json:"number"`
 	Status     OrderStatus `json:"status,omitempty"`
 	Accrual    *float64    `json:"accrual,omitempty"`
@@ -105,7 +106,7 @@ func (r *RFC3339Time) UnmarshalJSON(b []byte) error {
 
 func (n *OrderNumber) UnmarshalJSON(b []byte) error {
 	val := strings.Trim(string(b), `"`)
-	if !CheckLuhn(val) {
+	if !CheckLuhn(OrderNumber(val)) {
 		return fmt.Errorf("%w: %v wrong value", ErrDataFormat, val)
 	}
 	*n = OrderNumber(val)
@@ -138,7 +139,7 @@ func (s *AccrualStatus) UnmarshalJSON(b []byte) error {
 	}
 }
 
-func CheckLuhn(on string) bool {
+func CheckLuhn(on OrderNumber) bool {
 	sum := 0
 	nDigits := len(on)
 	parity := nDigits % 2

@@ -13,10 +13,10 @@ import (
 )
 
 func TestCheckLuhn(t *testing.T) {
-	number := "5062821234567892"
+	number := domain.OrderNumber("5062821234567892")
 	require.True(t, domain.CheckLuhn(number))
 
-	number = "5062821234567893"
+	number = domain.OrderNumber("5062821234567893")
 	require.False(t, domain.CheckLuhn(number))
 }
 

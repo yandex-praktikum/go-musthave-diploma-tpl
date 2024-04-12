@@ -29,7 +29,7 @@ type balance struct {
 // Возвращает ошибки:
 //   - domain.ErrServerInternal
 //   - domain.ErrUserIsNotAuthorized
-func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
+func (b *balance) Get(ctx context.Context) (*domain.Balance, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
 		log.Printf("%v: can't get balance - logger not found in context", domain.ErrServerInternal)
@@ -87,7 +87,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return domain.ErrServerInternal
 	}
 
-	if !domain.CheckLuhn(string(withdraw.Order)) {
+	if !domain.CheckLuhn(withdraw.Order) {
 		logger.Errorw("balance.Withdraw", "err", "wrong order value")
 		return fmt.Errorf("%w: wrong order value", domain.ErrWrongOrderNumber)
 	}
