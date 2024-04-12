@@ -26,7 +26,7 @@ type balance struct {
 }
 
 // Получение текущего баланса счёта баллов лояльности пользователя
-// Возвращает:
+// Возвращает ошибки:
 //   - domain.ErrServerInternal
 //   - domain.ErrUserIsNotAuthorized
 func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
@@ -42,7 +42,7 @@ func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 		return nil, domain.ErrUserIsNotAuthorized
 	}
 
-	uBalance, err := b.getBalance(logger, userID)
+	uBalance, err := b.getBalance(userID)
 	if err != nil {
 		logger.Errorw("balance.Balance", "err", err.Error())
 		return nil, fmt.Errorf("get balance err: %w", err)
@@ -51,7 +51,7 @@ func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 	return &uBalance.Balance, nil
 }
 
-func (b *balance) getBalance(logger domain.Logger, userID int) (*domain.UserBalance, error) {
+func (b *balance) getBalance(userID int) (*domain.UserBalance, error) {
 	uBalance, err := b.balanceStorage.Balance(userID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
@@ -64,7 +64,7 @@ func (b *balance) getBalance(logger domain.Logger, userID int) (*domain.UserBala
 }
 
 // Запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
-// Возвращает:
+// Возвращает ошибки:
 //   - domain.ErrServerInternal
 //   - domain.ErrUserIsNotAuthorized
 //   - domain.ErrNotEnoughPoints
@@ -97,7 +97,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return fmt.Errorf("%w: wrong sum value", domain.ErrDataFormat)
 	}
 
-	uBalance, err := b.getBalance(logger, userID)
+	uBalance, err := b.getBalance(userID)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return fmt.Errorf("withdraw err: %w", err)
@@ -109,14 +109,14 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return domain.ErrNotEnoughPoints
 	}
 
-	newWithdrawn := uBalance.WithDrawn + withdraw.Sum
+	newWithdrawn := uBalance.Balance.Withdrawn + withdraw.Sum
 
 	newBalance := &domain.UserBalance{
 		UserID: uBalance.UserID,
 		Score:  uBalance.Score + 1,
 		Balance: domain.Balance{
 			Current:   newCurrentValue,
-			WithDrawn: newWithdrawn,
+			Withdrawn: newWithdrawn,
 		},
 	}
 

@@ -53,13 +53,13 @@ type OrderData struct {
 
 type Balance struct {
 	Current   float64 `json:"current"`
-	WithDrawn float64 `json:"withdrawn"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 type UserBalance struct {
-	Balance
 	UserID int
-	Score  uint
+	Score  int
+	Balance
 }
 
 type WithdrawData struct {

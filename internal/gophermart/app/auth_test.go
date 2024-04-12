@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegisterSuccess(t *testing.T) {
+func TestRegisterNoErr(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)
@@ -63,7 +63,7 @@ func TestRegisterSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestRegisterLoginBusy(t *testing.T) {
+func TestRegisterErrLoginIsBusy(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)
@@ -92,7 +92,7 @@ func TestRegisterLoginBusy(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrLoginIsBusy)
 }
 
-func TestRegisterAnyError(t *testing.T) {
+func TestRegisterErrServerInternal(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)
@@ -121,7 +121,7 @@ func TestRegisterAnyError(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrServerInternal)
 }
 
-func TestAuthentificateSuccess(t *testing.T) {
+func TestAuthentificateNoErr(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)
@@ -199,7 +199,7 @@ func TestAuthentificateSuccess(t *testing.T) {
 	require.Nil(t, aData)
 }
 
-func TestAuthentificateNotFound1(t *testing.T) {
+func TestAuthentificateErrWrongLoginPassword(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)
@@ -232,40 +232,7 @@ func TestAuthentificateNotFound1(t *testing.T) {
 	require.Equal(t, domain.TokenString(""), tokenString)
 }
 
-func TestAuthentificateInternalError(t *testing.T) {
-	ctx := EnrichTestContext(context.Background())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockStorage := mocks.NewMockAuthStorage(ctrl)
-	tokenSecret := "secret"
-
-	gConf := &config.GophermartConfig{
-		TokenExp:    time.Second * 10,
-		TokenSecret: tokenSecret,
-	}
-
-	auth := app.NewAuth(gConf, mockStorage)
-
-	login := "user"
-	pass := "!eraasd*{1}"
-	authData := &domain.AuthentificationData{
-		Login:    login,
-		Password: pass,
-	}
-
-	mockStorage.EXPECT().GetUserData(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, lg string) (*domain.LoginData, error) {
-		require.Equal(t, login, lg)
-		return nil, domain.ErrServerInternal
-	}).Times(1)
-
-	tokenString, err := auth.Login(ctx, authData)
-	require.ErrorIs(t, err, domain.ErrServerInternal)
-	require.Equal(t, domain.TokenString(""), tokenString)
-}
-
-func TestAuthentificateInternalAnyError(t *testing.T) {
+func TestAuthentificateErrServerInternal(t *testing.T) {
 	ctx := EnrichTestContext(context.Background())
 
 	ctrl := gomock.NewController(t)

@@ -55,7 +55,8 @@ var LoginRegexp = regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_]*$")
 // https://github.com/wagslane/go-password-validator
 const minPassEntropyBits = 60
 
-// Возвращает:
+// Регистрация пользователя
+// Возвращает ошибки:
 //   - domain.ErrDataFormat
 //   - domain.ErrServerInternal
 //   - domain.ErrLoginIsBusy
@@ -119,6 +120,7 @@ func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) e
 	return nil
 }
 
+// Аутентификация пользователя
 // Возвращает:
 //   - domain.ErrServerInternal
 //   - domain.ErrDataFormat
@@ -180,7 +182,8 @@ func (a *auth) Login(ctx context.Context, userData *domain.AuthentificationData)
 	return domain.TokenString(tokenString), nil
 }
 
-// Возвращает:
+// Авторизация пользователя(проверка JWT)
+// Возвращает ошибки:
 //   - domain.ErrServerInternal
 //   - domain.ErrAuthDataIncorrect
 func (a *auth) Authorize(ctx context.Context, tokenString domain.TokenString) (*domain.AuthData, error) {
