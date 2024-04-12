@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -26,7 +25,10 @@ type balance struct {
 	balanceStorage BalanceStorage
 }
 
-// получение текущего баланса счёта баллов лояльности пользователя
+// Получение текущего баланса счёта баллов лояльности пользователя
+// Возвращает:
+//   - domain.ErrServerInternal
+//   - domain.ErrUserIsNotAuthorized
 func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
@@ -34,13 +36,13 @@ func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 		return nil, fmt.Errorf("%w: logger not found in context", domain.ErrServerInternal)
 	}
 
-	userId, err := domain.GetUserID(ctx)
+	userID, err := domain.GetUserID(ctx)
 	if err != nil {
 		logger.Errorw("balance.Balance", "err", err.Error())
 		return nil, domain.ErrUserIsNotAuthorized
 	}
 
-	uBalance, err := b.getBalance(logger, userId)
+	uBalance, err := b.getBalance(logger, userID)
 	if err != nil {
 		logger.Errorw("balance.Balance", "err", err.Error())
 		return nil, fmt.Errorf("get balance err: %w", err)
@@ -49,25 +51,24 @@ func (b *balance) Balance(ctx context.Context) (*domain.Balance, error) {
 	return &uBalance.Balance, nil
 }
 
-func (b *balance) getBalance(logger domain.Logger, userId int) (*domain.UserBalance, error) {
-	uBalance, err := b.balanceStorage.Balance(userId)
+func (b *balance) getBalance(logger domain.Logger, userID int) (*domain.UserBalance, error) {
+	uBalance, err := b.balanceStorage.Balance(userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil, domain.ErrUserIsNotAuthorized
-		}
-		if errors.Is(err, domain.ErrDBConnection) {
-			return nil, domain.ErrUserIsNotAuthorized
-		}
 		return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
 
 	if uBalance == nil {
-		return nil, domain.ErrUserIsNotAuthorized
+		return nil, fmt.Errorf("%w: balance by id %v not found", domain.ErrServerInternal, userID)
 	}
 	return uBalance, nil
 }
 
-// запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
+// Запрос на списание баллов с накопительного счёта в счёт оплаты нового заказа
+// Возвращает:
+//   - domain.ErrServerInternal
+//   - domain.ErrUserIsNotAuthorized
+//   - domain.ErrNotEnoughPoints
+//   - domain.ErrWrongOrderNumber
 func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) error {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
@@ -75,7 +76,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return fmt.Errorf("%w: logger not found in context", domain.ErrServerInternal)
 	}
 
-	userId, err := domain.GetUserID(ctx)
+	userID, err := domain.GetUserID(ctx)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return domain.ErrUserIsNotAuthorized
@@ -88,7 +89,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 
 	if !domain.CheckLuhn(string(withdraw.Order)) {
 		logger.Errorw("balance.Withdraw", "err", "wrong order value")
-		return fmt.Errorf("%w: wrong order value", domain.ErrDataFormat)
+		return fmt.Errorf("%w: wrong order value", domain.ErrWrongOrderNumber)
 	}
 
 	if withdraw.Sum <= 0 {
@@ -96,7 +97,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return fmt.Errorf("%w: wrong sum value", domain.ErrDataFormat)
 	}
 
-	uBalance, err := b.getBalance(logger, userId)
+	uBalance, err := b.getBalance(logger, userID)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return fmt.Errorf("withdraw err: %w", err)
@@ -128,7 +129,11 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 	return nil
 }
 
-// получение информации о выводе средств с накопительного счёта пользователем
+// Получение информации о выводе средств с накопительного счёта пользователем
+// Возвращает:
+//   - domain.ErrServerInternal
+//   - domain.ErrUserIsNotAuthorized
+//   - domain.ErrNotFound
 func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalsData, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
@@ -144,21 +149,13 @@ func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalsData, er
 
 	withdrawals, err := b.balanceStorage.Withdrawals(userId)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			logger.Errorw("balance.Withdrawals", "err", err.Error())
-			return nil, fmt.Errorf("%w: %v", domain.ErrUserIsNotAuthorized, err.Error())
-		}
-		if errors.Is(err, domain.ErrDBConnection) {
-			logger.Errorw("balance.Withdrawals", "err", err.Error())
-			return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
-		}
 		logger.Errorw("balance.Withdrawals", "err", err.Error())
 		return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
 
 	if withdrawals == nil {
 		logger.Errorw("balance.Withdrawals", "err", fmt.Sprintf("user by id %v not found", userId))
-		return nil, fmt.Errorf("%w: user by id %v not found", domain.ErrUserIsNotAuthorized, userId)
+		return nil, fmt.Errorf("%w: user by id %v not found", domain.ErrNotFound, userId)
 	}
 
 	return withdrawals, nil

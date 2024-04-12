@@ -84,12 +84,12 @@ func TestRegisterLoginBusy(t *testing.T) {
 	}
 
 	mockStorage.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, loginData *domain.LoginData) error {
-		return fmt.Errorf("err %w", domain.ErrDataIsBusy)
+		return fmt.Errorf("err %w", domain.ErrLoginIsBusy)
 	}).Times(1)
 
 	err := auth.Register(ctx, regData)
 	require.Error(t, err)
-	require.ErrorIs(t, err, domain.ErrDataIsBusy)
+	require.ErrorIs(t, err, domain.ErrLoginIsBusy)
 }
 
 func TestRegisterAnyError(t *testing.T) {
@@ -167,7 +167,7 @@ func TestAuthentificateSuccess(t *testing.T) {
 		return loginData, nil
 	}).Times(1)
 
-	tokenString, err := auth.Authentificate(ctx, authData)
+	tokenString, err := auth.Login(ctx, authData)
 	require.NoError(t, err)
 
 	claims := &domain.Claims{}
@@ -227,41 +227,8 @@ func TestAuthentificateNotFound1(t *testing.T) {
 		return nil, nil
 	}).Times(1)
 
-	tokenString, err := auth.Authentificate(ctx, authData)
-	require.ErrorIs(t, err, domain.ErrAuthDataIncorrect)
-	require.Equal(t, domain.TokenString(""), tokenString)
-}
-
-func TestAuthentificateNotFound2(t *testing.T) {
-	ctx := EnrichTestContext(context.Background())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockStorage := mocks.NewMockAuthStorage(ctrl)
-	tokenSecret := "secret"
-
-	gConf := &config.GophermartConfig{
-		TokenExp:    time.Second * 10,
-		TokenSecret: tokenSecret,
-	}
-
-	auth := app.NewAuth(gConf, mockStorage)
-
-	login := "user"
-	pass := "!eraasd*{1}"
-	authData := &domain.AuthentificationData{
-		Login:    login,
-		Password: pass,
-	}
-
-	mockStorage.EXPECT().GetUserData(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, lg string) (*domain.LoginData, error) {
-		require.Equal(t, login, lg)
-		return nil, domain.ErrAuthDataIncorrect
-	}).Times(1)
-
-	tokenString, err := auth.Authentificate(ctx, authData)
-	require.ErrorIs(t, err, domain.ErrAuthDataIncorrect)
+	tokenString, err := auth.Login(ctx, authData)
+	require.ErrorIs(t, err, domain.ErrWrongLoginPassword)
 	require.Equal(t, domain.TokenString(""), tokenString)
 }
 
@@ -293,7 +260,7 @@ func TestAuthentificateInternalError(t *testing.T) {
 		return nil, domain.ErrServerInternal
 	}).Times(1)
 
-	tokenString, err := auth.Authentificate(ctx, authData)
+	tokenString, err := auth.Login(ctx, authData)
 	require.ErrorIs(t, err, domain.ErrServerInternal)
 	require.Equal(t, domain.TokenString(""), tokenString)
 }
@@ -326,7 +293,7 @@ func TestAuthentificateInternalAnyError(t *testing.T) {
 		return nil, fmt.Errorf("any error")
 	}).Times(1)
 
-	tokenString, err := auth.Authentificate(ctx, authData)
+	tokenString, err := auth.Login(ctx, authData)
 	require.ErrorIs(t, err, domain.ErrServerInternal)
 	require.Equal(t, domain.TokenString(""), tokenString)
 }

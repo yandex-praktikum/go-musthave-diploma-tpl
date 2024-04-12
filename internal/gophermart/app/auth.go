@@ -20,7 +20,9 @@ import (
 
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . AuthStorage
 type AuthStorage interface {
+	// ErrLoginIsBusy, ErrServerInternal
 	RegisterUser(ctx context.Context, loginData *domain.LoginData) error
+	// ErrServerInternal
 	GetUserData(ctx context.Context, login string) (*domain.LoginData, error)
 }
 
@@ -49,9 +51,14 @@ type saltFn func(b []byte) (n int, err error)
 
 var LoginRegexp = regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9_]*$")
 
+// Минимальный уровень сложности пароля
 // https://github.com/wagslane/go-password-validator
 const minPassEntropyBits = 60
 
+// Возвращает:
+//   - domain.ErrDataFormat
+//   - domain.ErrServerInternal
+//   - domain.ErrLoginIsBusy
 func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) error {
 
 	logger, err := domain.GetLogger(ctx)
@@ -60,23 +67,28 @@ func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) e
 		return fmt.Errorf("%w: logger not found in context", domain.ErrServerInternal)
 	}
 
+	if regData == nil {
+		logger.Errorw("auth.Register", "err", "data is null")
+		return fmt.Errorf("null register data: %w", domain.ErrServerInternal)
+	}
+
 	login := regData.Login
 	if !LoginRegexp.MatchString(login) {
-		logger.Errorw("Register", "err", "login is bad", "login", regData.Login)
+		logger.Errorw("auth.Register", "err", "login is bad", "login", regData.Login)
 		return fmt.Errorf("%w: login is bad", domain.ErrDataFormat)
 	}
 
 	pass := regData.Password
 	err = passwordValidator.Validate(pass, minPassEntropyBits)
 	if err != nil {
-		logger.Errorw("Register", "err", "password is too simple", "login", regData.Login)
+		logger.Errorw("auth.Register", "err", "password is too simple", "login", regData.Login)
 		return fmt.Errorf("%w: login is bad", domain.ErrDataFormat)
 	}
 
 	salt := make([]byte, 16)
 	_, err = a.saltFn(salt)
 	if err != nil {
-		logger.Errorw("Register", "err", fmt.Sprintf("server error %v", err.Error()), "login", regData.Login)
+		logger.Errorw("auth.Register", "err", fmt.Sprintf("server error %v", err.Error()), "login", regData.Login)
 		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
 
@@ -95,19 +107,23 @@ func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) e
 	})
 
 	if err != nil {
-		logger.Errorw("Register", "err", err.Error(), "login", regData.Login)
-		if errors.Is(err, domain.ErrDataIsBusy) || errors.Is(err, domain.ErrServerInternal) {
-			return fmt.Errorf("can't register user: %w", err)
-		} else {
-			return fmt.Errorf("%w: can't register user: %v", domain.ErrServerInternal, err.Error())
+		if errors.Is(err, domain.ErrLoginIsBusy) {
+			logger.Errorw("auth.Register", "err", err.Error(), "login", regData.Login)
+			return fmt.Errorf("%w: can't register user", err)
 		}
+		logger.Errorw("auth.Register", "err", err.Error(), "login", regData.Login)
+		return fmt.Errorf("%w: can't register user: %v", domain.ErrServerInternal, err.Error())
 	}
 
 	logger.Infow("Register", "status", "ok", "login", regData.Login)
 	return nil
 }
 
-func (a *auth) Authentificate(ctx context.Context, userData *domain.AuthentificationData) (domain.TokenString, error) {
+// Возвращает:
+//   - domain.ErrServerInternal
+//   - domain.ErrDataFormat
+//   - domain.ErrWrongLoginPassword
+func (a *auth) Login(ctx context.Context, userData *domain.AuthentificationData) (domain.TokenString, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
 		log.Printf("%v: can't authentificate - logger not found in context", domain.ErrServerInternal)
@@ -117,29 +133,24 @@ func (a *auth) Authentificate(ctx context.Context, userData *domain.Authentifica
 	login := userData.Login
 	data, err := a.authStorage.GetUserData(ctx, login)
 	if err != nil {
-		logger.Errorw("Authentificate", "err", err.Error(), "login", login)
-		if errors.Is(err, domain.ErrAuthDataIncorrect) || errors.Is(err, domain.ErrServerInternal) {
-			return "", fmt.Errorf("can't authentificate user: %w", err)
-		}
-
-		// неизвестная ошибка, все равно вернем ErrServerInternal
+		logger.Errorw("auth.Authentificate", "err", err.Error(), "login", login)
 		return "", fmt.Errorf("%w: can't authentificate user: %v", domain.ErrServerInternal, err.Error())
 	}
 
 	if data == nil {
-		logger.Errorw("Authentificate", "err", "data is null", "login", login)
-		return "", fmt.Errorf("can't find data: %w", domain.ErrAuthDataIncorrect)
+		logger.Errorw("auth.Authentificate", "err", "data is null", "login", login)
+		return "", fmt.Errorf("wrong login/password: %w", domain.ErrWrongLoginPassword)
 	}
 
 	salt, err := base64.URLEncoding.DecodeString(data.Salt)
 	if err != nil {
-		logger.Errorw("Authentificate", "err", fmt.Sprintf("can't extract salt: %v", err.Error()), "login", login)
+		logger.Errorw("auth.Authentificate", "err", fmt.Sprintf("can't extract salt: %v", err.Error()), "login", login)
 		return "", fmt.Errorf("%w: can't extract salt %v", domain.ErrServerInternal, err.Error())
 	}
 
 	hash, err := base64.URLEncoding.DecodeString(data.Hash)
 	if err != nil {
-		logger.Errorw("Authentificate", "err", fmt.Sprintf("can't extract hash: %v", err.Error()), "login", login)
+		logger.Errorw("auth.Authentificate", "err", fmt.Sprintf("can't extract hash: %v", err.Error()), "login", login)
 		return "", fmt.Errorf("%w: can't extract hash %v", domain.ErrServerInternal, err.Error())
 	}
 
@@ -149,8 +160,8 @@ func (a *auth) Authentificate(ctx context.Context, userData *domain.Authentifica
 	hex := h.Sum(nil)
 
 	if !bytes.Equal(hash, hex) {
-		logger.Errorw("Authentificate", "err", "authentification failed", "login", login)
-		return "", fmt.Errorf("%w: authentification failed", domain.ErrAuthDataIncorrect)
+		logger.Errorw("auth.Authentificate", "err", "authentification failed", "login", login)
+		return "", fmt.Errorf("%w: authentification failed", domain.ErrWrongLoginPassword)
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, domain.Claims{
@@ -162,13 +173,16 @@ func (a *auth) Authentificate(ctx context.Context, userData *domain.Authentifica
 
 	tokenString, err := token.SignedString([]byte(a.tokenSecret))
 	if err != nil {
-		logger.Errorw("Authentificate", "err", err.Error(), "login", login)
+		logger.Errorw("auth.Authentificate", "err", err.Error(), "login", login)
 		return "", fmt.Errorf("%w: can't sign token %v", domain.ErrServerInternal, err.Error())
 	}
 
 	return domain.TokenString(tokenString), nil
 }
 
+// Возвращает:
+//   - domain.ErrServerInternal
+//   - domain.ErrAuthDataIncorrect
 func (a *auth) Authorize(ctx context.Context, tokenString domain.TokenString) (*domain.AuthData, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
@@ -183,7 +197,7 @@ func (a *auth) Authorize(ctx context.Context, tokenString domain.TokenString) (*
 	})
 
 	if err != nil {
-		logger.Infow("Authorize", "err", err.Error())
+		logger.Infow("auth.Authorize", "err", err.Error())
 		return nil, fmt.Errorf("%w: authorization failed", domain.ErrAuthDataIncorrect)
 	}
 

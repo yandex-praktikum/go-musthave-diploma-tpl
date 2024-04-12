@@ -4,12 +4,15 @@ import "errors"
 
 var (
 	ErrServerInternal      = errors.New("InternalError")       // Ошибка на сервере
-	ErrDataFormat          = errors.New("DataFormatError")     // Ошибка в данных
-	ErrDataIsBusy          = errors.New("DataIsAlreadyTaken")  // Данные уже были использованы(логин занят/номер заказа уже был загружен другим пользователем)
-	ErrAuthDataIncorrect   = errors.New("AuthDataIsIncorrect") // Неверная пара логин/пароль
-	ErrUserIsNotAuthorized = errors.New("UserIsNotAuthorized") // Пользователь не авторизован
-	ErrDublicateUserData   = errors.New("DublicateUserData")   // Данные пользователя уже были приняты в обработку
+	ErrDataFormat          = errors.New("DataFormatError")     // Неверный формат запроса
+	ErrWrongOrderNumber    = errors.New("WrongOrderNumber")    // Неверный номера заказа
+	ErrUserNotFound        = errors.New("UserNotFound")        // Пользователь не найден
+	ErrLoginIsBusy         = errors.New("LoginIsBusy")         // Логин занят
+	ErrWrongLoginPassword  = errors.New("WrongLoginPassword")  // Не верный логин/пароль
+	ErrAuthDataIncorrect   = errors.New("AuthDataIncorrect")   // Неверный JWT
 	ErrNotEnoughPoints     = errors.New("NotEnoughPoints")     // Средств не достаточно
-	ErrNotFound            = errors.New("NotFoundError")
-	ErrDBConnection        = errors.New("DatabaseConnectionError")
+	ErrNotFound            = errors.New("NotFoundError")       // Данные не найдены
+	ErrDublicateUserData   = errors.New("DublicateUserData")   // Данные пользователя уже были приняты в обработку
+	ErrDublicateData       = errors.New("DublicateData")       // Данные уже были приняты в обработку
+	ErrUserIsNotAuthorized = errors.New("UserIsNotAuthorized") // Пользователь не авторизован
 )
