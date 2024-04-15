@@ -12,6 +12,7 @@ var _ domain.Logger = (*testLogger)(nil)
 type testLogger struct {
 }
 
+func (testLogger) Debugw(msg string, keysAndValues ...any) {}
 func (testLogger) Infow(msg string, keysAndValues ...any)  {}
 func (testLogger) Errorw(msg string, keysAndValues ...any) {}
 
