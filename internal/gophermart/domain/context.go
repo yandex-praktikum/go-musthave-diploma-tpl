@@ -22,6 +22,7 @@ const LoggerKeyUserID = "userID"
 
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . Logger
 type Logger interface {
+	Debugw(msg string, keysAndValues ...any)
 	Infow(msg string, keysAndValues ...any)
 	Errorw(msg string, keysAndValues ...any)
 }
@@ -102,6 +103,11 @@ type requestIDLogger struct {
 	internalLogger Logger
 }
 
+func (l *requestIDLogger) Debugw(msg string, keysAndValues ...any) {
+	keysAndValues = append(keysAndValues, LoggerKeyRequestID, l.requestID)
+	l.internalLogger.Debugw(msg, keysAndValues...)
+}
+
 func (l *requestIDLogger) Infow(msg string, keysAndValues ...any) {
 	keysAndValues = append(keysAndValues, LoggerKeyRequestID, l.requestID)
 	l.internalLogger.Infow(msg, keysAndValues...)
@@ -120,6 +126,11 @@ type userIDLogger struct {
 }
 
 func (l *userIDLogger) Infow(msg string, keysAndValues ...any) {
+	keysAndValues = append(keysAndValues, LoggerKeyUserID, l.userID)
+	l.internalLogger.Infow(msg, keysAndValues...)
+}
+
+func (l *userIDLogger) Debugw(msg string, keysAndValues ...any) {
 	keysAndValues = append(keysAndValues, LoggerKeyUserID, l.userID)
 	l.internalLogger.Infow(msg, keysAndValues...)
 }

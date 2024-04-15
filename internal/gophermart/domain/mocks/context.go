@@ -33,6 +33,23 @@ func (m *MockLogger) EXPECT() *MockLoggerMockRecorder {
 	return m.recorder
 }
 
+// Debugw mocks base method.
+func (m *MockLogger) Debugw(arg0 string, arg1 ...interface{}) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "Debugw", varargs...)
+}
+
+// Debugw indicates an expected call of Debugw.
+func (mr *MockLoggerMockRecorder) Debugw(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Debugw", reflect.TypeOf((*MockLogger)(nil).Debugw), varargs...)
+}
+
 // Errorw mocks base method.
 func (m *MockLogger) Errorw(arg0 string, arg1 ...interface{}) {
 	m.ctrl.T.Helper()

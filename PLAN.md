@@ -1,10 +1,10 @@
 # iter1 (12.04):
-разработка domain + use_case + port
+разработка domain + use_case
 
 https://excalidraw.com/#json=MATixU1PqTw5AQ3arX8II,R-BbMPCb1beMa2y0s3FdwA
 
 # iter2 (19.04):
-adapters, database
+database, ports, refresh process
 
 # iter3 (26.04):
-mw
+mw, build app
