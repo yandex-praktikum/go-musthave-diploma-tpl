@@ -84,7 +84,8 @@ func (st *storage) init(ctx context.Context) error {
 		login text not null,
 		hash text not null,
 		salt text not null,
-		primary key(userId)
+		primary key(userId),
+		unique (login)
 	);	
 	`)
 
@@ -136,13 +137,13 @@ func (st *storage) RegisterUser(ctx context.Context, ld *domain.LoginData) error
 		st.logger.Infow("pgx.RegisterUser", "status", "success", "userID", userID)
 		return nil
 	} else {
-		st.logger.Errorw("pgx.Register", "err", err.Error())
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 				return domain.ErrLoginIsBusy
 			}
 		}
+		st.logger.Errorw("pgx.Register", "err", err.Error())
 		return domain.ErrServerInternal
 	}
 }

@@ -2,7 +2,10 @@ package pgx_test
 
 import (
 	"context"
+	"log"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/StasMerzlyakov/gophermart/internal/config"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/adapter/storage/pgx"
@@ -10,29 +13,34 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	//"github.com/testcontainers/testcontainers-go"
-	//	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	//"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
 )
 
-func TestAuthFunctions(t *testing.T) {
-	ctx, cancelFN := context.WithCancel(context.Background())
-	/*postgresContainer, err := createContainer(ctx)
-	if err != nil {
-		log.Fatalf("failed to start container: %s", err)
-	}
+var postgresContainer *postgres.PostgresContainer
 
-	// Clean up the container
+func TestMain(m *testing.M) {
+	ctx, cancelFN := context.WithCancel(context.Background())
 	defer func() {
-		if err := postgresContainer.Terminate(ctx); err != nil {
-			log.Fatalf("failed to terminate container: %s", err)
-		}
+		cancelFN()
 	}()
 
-	connString, err := postgresContainer.ConnectionString(ctx) */
+	setup(ctx)
+	code := m.Run()
+	shutdown(ctx)
+	os.Exit(code)
+}
 
-	connString := "postgres://postgres:postgres@localhost:5432/gophermarket"
+func TestAuthFunctions(t *testing.T) {
+	ctx, cancelFN := context.WithCancel(context.Background())
+
+	defer cancelFN()
+
+	connString, err := postgresContainer.ConnectionString(ctx)
+
+	require.NoError(t, err)
 
 	logger := createLogger()
 	storage := pgx.NewStorage(ctx, logger, &config.GophermartConfig{
@@ -40,7 +48,7 @@ func TestAuthFunctions(t *testing.T) {
 		DatabaseUri: connString,
 	})
 
-	err := storage.Ping(ctx)
+	err = storage.Ping(ctx)
 	require.NoError(t, err)
 
 	login := "user"
@@ -70,17 +78,23 @@ func TestAuthFunctions(t *testing.T) {
 	assert.Equal(t, passHash, ldata.Hash)
 	assert.Equal(t, salt, ldata.Salt)
 	assert.True(t, ldata.UserID > 0)
-
-	cancelFN()
 }
 
-/*
-func createContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
+func shutdown(ctx context.Context) {
+	if postgresContainer != nil {
+		if err := postgresContainer.Terminate(ctx); err != nil {
+			log.Fatalf("failed to terminate container: %s", err)
+		}
+	}
+}
+
+func setup(ctx context.Context) {
 	dbName := "users"
 	dbUser := "user"
 	dbPassword := "password"
 
-	return postgres.RunContainer(ctx,
+	var err error
+	postgresContainer, err = postgres.RunContainer(ctx,
 		testcontainers.WithImage("docker.io/postgres:15.2-alpine"),
 		postgres.WithDatabase(dbName),
 		postgres.WithUsername(dbUser),
@@ -91,7 +105,11 @@ func createContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 				WithStartupTimeout(5*time.Second)),
 	)
 
-} */
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+}
 
 func createLogger() *zap.SugaredLogger {
 	logger, err := zap.NewDevelopment()
