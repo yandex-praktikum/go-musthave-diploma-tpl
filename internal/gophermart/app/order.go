@@ -19,7 +19,7 @@ func NewOrder(storage OrderStorage) *order {
 type OrderStorage interface {
 	Upload(data *domain.OrderData) error
 	Orders(userID int) ([]domain.OrderData, error)
-	GetOrder(number domain.OrderNumber) (*domain.OrderData, error)
+	Update(number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error
 	ForProcessing(statuses []domain.OrderStatus) ([]domain.OrderData, error)
 }
 
@@ -54,32 +54,16 @@ func (ord *order) New(ctx context.Context, number domain.OrderNumber) error {
 		return fmt.Errorf("%w: %v wrong value", domain.ErrWrongOrderNumber, number)
 	}
 
-	data, err := ord.storage.GetOrder(number)
-	if err != nil {
-		logger.Errorw("order.New", "err", err.Error())
-		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
-	}
-
-	if data != nil {
-		if data.UserID == userID {
-			logger.Infow("order.New", "err", domain.ErrOrderNumberAlreadyUploaded.Error())
-			return domain.ErrOrderNumberAlreadyUploaded
-		} else {
-			logger.Infow("order.New", "err", domain.ErrDublicateOrderNumber.Error())
-			return domain.ErrDublicateOrderNumber
-		}
-	}
-
-	data = &domain.OrderData{
+	orderData := &domain.OrderData{
 		UserID:     userID,
 		Number:     number,
 		Status:     domain.OrderStratusNew,
 		UploadedAt: domain.RFC3339Time(time.Now()),
 	}
 
-	err = ord.storage.Upload(data)
+	err = ord.storage.Upload(orderData)
 	if err != nil {
-		logger.Errorw("order.New", "err", err.Error())
+		logger.Infow("order.New", "err", err.Error())
 		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
 

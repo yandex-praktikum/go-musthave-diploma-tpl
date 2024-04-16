@@ -93,7 +93,7 @@ func (st *storage) init(ctx context.Context) error {
 		unique (login)
 	);`)
 
-	// TODO индекс по status
+	// TODO индексы по status, userId
 	tx.Exec(ctx, `
 	create table if not exists orderData(
 		number varchar(255),
@@ -192,9 +192,11 @@ func (st *storage) Upload(ctx context.Context, data *domain.OrderData) error {
 func (st *storage) Orders(ctx context.Context, userID int) ([]domain.OrderData, error) {
 	return nil, nil
 }
-func (st *storage) GetOrder(ctx context.Context, number domain.OrderNumber) (*domain.OrderData, error) {
-	return nil, nil
+
+func (st *storage) Update(number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error {
+	return nil
 }
+
 func (st *storage) ForProcessing(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
 
 	var forProcessing []domain.OrderData
