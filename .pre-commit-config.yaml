@@ -1,0 +1,11 @@
+repos:
+  - repo: https://github.com/Bahjat/pre-commit-golang
+    rev: v1.0.2
+    hooks:
+      - id: go-fmt-import
+      - id: go-vet
+      - id: go-lint
+      - id: go-unit-tests
+      #      - id: gofumpt # requires github.com/mvdan/gofumpt
+      #      - id: go-err-check # requires github.com/kisielk/errcheck
+      - id: go-static-check # install https://staticcheck.io/docs/
