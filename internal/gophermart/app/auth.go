@@ -21,7 +21,7 @@ import (
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . AuthStorage
 type AuthStorage interface {
 	// ErrLoginIsBusy, ErrServerInternal
-	RegisterUser(ctx context.Context, loginData *domain.LoginData) error
+	RegisterUser(ctx context.Context, loginData *domain.LoginData) (int, error)
 	// ErrServerInternal
 	GetUserData(ctx context.Context, login string) (*domain.LoginData, error)
 }
@@ -101,7 +101,7 @@ func (a *auth) Register(ctx context.Context, regData *domain.RegistrationData) e
 	hex := h.Sum(nil)
 	hexB64 := base64.URLEncoding.EncodeToString(hex)
 
-	err = a.authStorage.RegisterUser(ctx, &domain.LoginData{
+	_, err = a.authStorage.RegisterUser(ctx, &domain.LoginData{
 		Login: login,
 		Hash:  hexB64,
 		Salt:  saltB64,

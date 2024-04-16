@@ -88,7 +88,7 @@ func TestNewErrOrderNumberAlreadyProcessed(t *testing.T) {
 
 	err = order.New(ctx, number)
 
-	require.ErrorIs(t, err, domain.ErrOrderNumberAlreadyProcessed)
+	require.ErrorIs(t, err, domain.ErrOrderNumberAlreadyUploaded)
 }
 
 func TestNewErrDublicateOrderNumber(t *testing.T) {

@@ -34,6 +34,21 @@ func (m *MockOrderStorage) EXPECT() *MockOrderStorageMockRecorder {
 	return m.recorder
 }
 
+// ForProcessing mocks base method.
+func (m *MockOrderStorage) ForProcessing(arg0 []domain.OrderStatus) ([]domain.OrderData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ForProcessing", arg0)
+	ret0, _ := ret[0].([]domain.OrderData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ForProcessing indicates an expected call of ForProcessing.
+func (mr *MockOrderStorageMockRecorder) ForProcessing(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForProcessing", reflect.TypeOf((*MockOrderStorage)(nil).ForProcessing), arg0)
+}
+
 // GetOrder mocks base method.
 func (m *MockOrderStorage) GetOrder(arg0 domain.OrderNumber) (*domain.OrderData, error) {
 	m.ctrl.T.Helper()

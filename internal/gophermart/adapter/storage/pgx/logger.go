@@ -23,15 +23,12 @@ func (la *loggerAdapter) Log(ctx context.Context, level tracelog.LogLevel, msg s
 	}
 
 	switch level {
-	case tracelog.LogLevelTrace:
-	case tracelog.LogLevelDebug:
+	case tracelog.LogLevelTrace, tracelog.LogLevelDebug:
 		la.logger.Debugw(msg, keyAndValues...)
-	case tracelog.LogLevelInfo:
-	case tracelog.LogLevelWarn:
+	case tracelog.LogLevelInfo, tracelog.LogLevelWarn:
 		la.logger.Infow(msg, keyAndValues...)
 	case tracelog.LogLevelError:
 		la.logger.Errorw(msg, keyAndValues...)
-	case tracelog.LogLevelNone:
 	default:
 		log.Printf("invalid level %d", la)
 	}

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+type OrderStatus string
+
 const (
 	OrderStratusNew        OrderStatus = "NEW"
 	OrderStratusProcessing OrderStatus = "PROCESSING"
@@ -79,8 +81,6 @@ type AccrualData struct {
 	Status  AccrualStatus `json:"status"`
 	Accrual *float64      `jsin:"accrual,omitempty"`
 }
-
-type OrderStatus string
 
 type OrderNumber string
 

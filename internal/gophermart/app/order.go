@@ -20,6 +20,7 @@ type OrderStorage interface {
 	Upload(data *domain.OrderData) error
 	Orders(userID int) ([]domain.OrderData, error)
 	GetOrder(number domain.OrderNumber) (*domain.OrderData, error)
+	ForProcessing(statuses []domain.OrderStatus) ([]domain.OrderData, error)
 }
 
 type order struct {
@@ -61,8 +62,8 @@ func (ord *order) New(ctx context.Context, number domain.OrderNumber) error {
 
 	if data != nil {
 		if data.UserID == userID {
-			logger.Infow("order.New", "err", domain.ErrOrderNumberAlreadyProcessed.Error())
-			return domain.ErrOrderNumberAlreadyProcessed
+			logger.Infow("order.New", "err", domain.ErrOrderNumberAlreadyUploaded.Error())
+			return domain.ErrOrderNumberAlreadyUploaded
 		} else {
 			logger.Infow("order.New", "err", domain.ErrDublicateOrderNumber.Error())
 			return domain.ErrDublicateOrderNumber

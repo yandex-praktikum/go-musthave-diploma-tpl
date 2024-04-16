@@ -14,6 +14,8 @@ type GophermartConfig struct {
 	RunAddress           string        `env:"RUN_ADDRESS"`
 	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	MaxConns             int           `env:"DATABASE_MAX_CONNS"`
+	ProcessingLimit      int           `env:"ORDER_PROCESSING_LIMIT"`
+	ProcessingScoreDelta time.Duration `env:"ORDER_PROCESSING_DELTA"`
 }
 
 func LoadGophermartConfig() (*GophermartConfig, error) {
@@ -22,6 +24,9 @@ func LoadGophermartConfig() (*GophermartConfig, error) {
 	flag.StringVar(&srvConf.TokenSecret, "jwtSec", "secret", "jwt secret")
 	flag.DurationVar(&srvConf.TokenExp, "jwtExp", 3*time.Hour, "jwt expiration period")
 	flag.IntVar(&srvConf.MaxConns, "dbMaxCon", 5, "database max connections")
+
+	flag.IntVar(&srvConf.ProcessingLimit, "pLimit", 10, "order processing limit")
+	flag.DurationVar(&srvConf.ProcessingScoreDelta, "pDelta", 20*time.Second, "order processing delta")
 
 	flag.StringVar(&srvConf.RunAddress, "a", ":8080", "server address (format \":PORT\")")
 	flag.StringVar(&srvConf.DatabaseUri, "d", "", "PostgreSQL URL like 'postgres://username:password@localhost:5432/database_name'")

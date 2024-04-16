@@ -83,8 +83,8 @@ func TestRegisterErrLoginIsBusy(t *testing.T) {
 		Password: pass,
 	}
 
-	mockStorage.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, loginData *domain.LoginData) error {
-		return fmt.Errorf("err %w", domain.ErrLoginIsBusy)
+	mockStorage.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, loginData *domain.LoginData) (int, error) {
+		return -1, fmt.Errorf("err %w", domain.ErrLoginIsBusy)
 	}).Times(1)
 
 	err := auth.Register(ctx, regData)
@@ -112,8 +112,8 @@ func TestRegisterErrServerInternal(t *testing.T) {
 		Password: pass,
 	}
 
-	mockStorage.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, loginData *domain.LoginData) error {
-		return errors.New("custom error")
+	mockStorage.EXPECT().RegisterUser(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, loginData *domain.LoginData) (int, error) {
+		return -1, errors.New("custom error")
 	}).Times(1)
 
 	err := auth.Register(ctx, regData)

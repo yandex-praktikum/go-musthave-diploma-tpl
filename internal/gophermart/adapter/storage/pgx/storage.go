@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/StasMerzlyakov/gophermart/internal/config"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
@@ -54,8 +55,10 @@ func initializePGXConf(ctx context.Context, logger domain.Logger, gConf *config.
 	}
 
 	st = &storage{
-		pPool:  pPool,
-		logger: logger,
+		pPool:                pPool,
+		logger:               logger,
+		processingLimit:      gConf.ProcessingLimit,
+		processingScoreDelta: gConf.ProcessingScoreDelta,
 	}
 
 	st.init(ctx)
@@ -65,8 +68,10 @@ func initializePGXConf(ctx context.Context, logger domain.Logger, gConf *config.
 }
 
 type storage struct {
-	pPool  *pgxpool.Pool
-	logger domain.Logger
+	pPool                *pgxpool.Pool
+	logger               domain.Logger
+	processingLimit      int
+	processingScoreDelta time.Duration
 }
 
 func (st *storage) init(ctx context.Context) error {
@@ -86,46 +91,29 @@ func (st *storage) init(ctx context.Context) error {
 		salt text not null,
 		primary key(userId),
 		unique (login)
-	);	
-	`)
+	);`)
+
+	// TODO индекс по status
+	tx.Exec(ctx, `
+	create table if not exists orderData(
+		number varchar(255),
+		userId int not null,
+		status varchar(255),
+		accrual float8,
+		uploaded_at timestamptz,
+		score timestamptz not null default now(),
+		primary key(number),
+		foreign key (userId) references userInfo(userId)
+	);`)
 
 	return tx.Commit(ctx)
-
-	/*if db, err := sql.Open("pgx", st.databaseURL); err != nil {
-		st.logger.Infow("Bootstrap", "status", "error", "msg", err.Error())
-		return err
-	} else {
-		st.db = db
-		tx, err := db.BeginTx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-
-		tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS counter(
-			name text not null,
-			value bigint,
-			PRIMARY KEY(name)
-		);`)
-
-		tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS gauge(
-			name text not null,
-			value double precision,
-			PRIMARY KEY(name)
-		);`)
-
-		return tx.Commit()
-	} */
-
 }
 
 func (st *storage) Ping(ctx context.Context) error {
 	return st.pPool.Ping(ctx)
 }
 
-func (st *storage) RegisterUser(ctx context.Context, ld *domain.LoginData) error {
+func (st *storage) RegisterUser(ctx context.Context, ld *domain.LoginData) (int, error) {
 	st.logger.Infow("pgx.RegisterUser", "status", "start")
 
 	var userID int
@@ -135,16 +123,16 @@ func (st *storage) RegisterUser(ctx context.Context, ld *domain.LoginData) error
 		ld.Hash,
 		ld.Salt).Scan(&userID); err == nil {
 		st.logger.Infow("pgx.RegisterUser", "status", "success", "userID", userID)
-		return nil
+		return userID, nil
 	} else {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-				return domain.ErrLoginIsBusy
+				return -1, domain.ErrLoginIsBusy
 			}
 		}
 		st.logger.Errorw("pgx.Register", "err", err.Error())
-		return domain.ErrServerInternal
+		return -1, domain.ErrServerInternal
 	}
 }
 
@@ -164,4 +152,94 @@ func (st *storage) GetUserData(ctx context.Context, login string) (*domain.Login
 	}
 
 	return &data, nil
+}
+
+func (st *storage) Upload(ctx context.Context, data *domain.OrderData) error {
+
+	if data == nil {
+		st.logger.Errorw("pgx.Upload", "err", "data is nil")
+		return domain.ErrServerInternal
+	}
+
+	var number domain.OrderNumber
+
+	if err := st.pPool.QueryRow(ctx,
+		`insert into orderData(number, userId, status, uploaded_at) values ($1, $2, $3, $4) 
+		on conflict("number") do nothing returning number;
+	  `, data.Number, data.UserID, data.Status, time.Now()).Scan(&number); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// запись с таким number уже есть; проверим какому пользователю принадлежит
+			var userId int
+			err = st.pPool.QueryRow(ctx, `select userId from orderData where number = $1`, data.Number).Scan(&userId)
+			if err != nil {
+				st.logger.Infow("pgx.Upload", "err", err.Error())
+				return domain.ErrServerInternal
+			}
+			if userId == data.UserID {
+				return domain.ErrOrderNumberAlreadyUploaded
+			} else {
+				return domain.ErrDublicateOrderNumber
+			}
+		} else {
+			st.logger.Infow("pgx.Upload", "err", err.Error())
+			return domain.ErrServerInternal
+		}
+	}
+
+	return nil
+}
+
+func (st *storage) Orders(ctx context.Context, userID int) ([]domain.OrderData, error) {
+	return nil, nil
+}
+func (st *storage) GetOrder(ctx context.Context, number domain.OrderNumber) (*domain.OrderData, error) {
+	return nil, nil
+}
+func (st *storage) ForProcessing(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+
+	var forProcessing []domain.OrderData
+
+	var sStatus []string
+	for _, s := range statuses {
+		sStatus = append(sStatus, string(s))
+	}
+
+	rows, err := st.pPool.Query(ctx,
+		`update orderData set score = $1 
+		 where number in 
+		   (select number from orderdata where status = ANY($2) and score < $3 limit $4) 
+		 returning 
+		    number, userId, status, accrual, uploaded_at;`,
+		time.Now().Add(st.processingScoreDelta),
+		sStatus,
+		time.Now(),
+		st.processingLimit,
+	)
+
+	if err != nil {
+		st.logger.Infow("pgx.ForProcessing", "err", err.Error())
+		return nil, domain.ErrServerInternal
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var data domain.OrderData
+		var uploaded time.Time
+		err = rows.Scan(&data.Number, &data.UserID, &data.Status, &data.Accrual, &uploaded)
+		if err != nil {
+			st.logger.Infow("pgx.ForProcessing", "err", err.Error())
+			return nil, domain.ErrServerInternal
+		}
+		data.UploadedAt = domain.RFC3339Time(uploaded)
+		forProcessing = append(forProcessing, data)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		st.logger.Infow("pgx.ForProcessing", "err", err.Error())
+		return nil, domain.ErrServerInternal
+	}
+
+	return forProcessing, nil
 }
