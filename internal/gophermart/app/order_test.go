@@ -33,11 +33,6 @@ func TestNewNoErr(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().GetOrder(gomock.Any()).DoAndReturn(func(nm domain.OrderNumber) (*domain.OrderData, error) {
-		require.Equal(t, number, nm)
-		return nil, nil
-	})
-
 	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
 		require.NotNil(t, oData)
 		require.Equal(t, userID, oData.UserID)
@@ -73,15 +68,13 @@ func TestNewErrOrderNumberAlreadyProcessed(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().GetOrder(gomock.Any()).DoAndReturn(func(nm domain.OrderNumber) (*domain.OrderData, error) {
-		require.Equal(t, number, nm)
-		return &domain.OrderData{
-			UserID:     userID,
-			Number:     number,
-			Status:     domain.OrderStratusProcessed,
-			Accrual:    domain.Float64Ptr(60.),
-			UploadedAt: domain.RFC3339Time(time.Now()),
-		}, nil
+	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+		require.NotNil(t, oData)
+		require.Equal(t, userID, oData.UserID)
+		require.Equal(t, number, oData.Number)
+		require.Equal(t, domain.OrderStratusNew, oData.Status)
+		require.Nil(t, oData.Accrual)
+		return domain.ErrOrderNumberAlreadyUploaded
 	})
 
 	order := app.NewOrder(mockStorage)
@@ -110,18 +103,16 @@ func TestNewErrDublicateOrderNumber(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().GetOrder(gomock.Any()).DoAndReturn(func(nm domain.OrderNumber) (*domain.OrderData, error) {
-		require.Equal(t, number, nm)
-		return &domain.OrderData{
-			UserID:     userID + 1,
-			Number:     number,
-			Status:     domain.OrderStratusProcessed,
-			Accrual:    domain.Float64Ptr(60.),
-			UploadedAt: domain.RFC3339Time(time.Now()),
-		}, nil
-	})
-
 	order := app.NewOrder(mockStorage)
+
+	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+		require.NotNil(t, oData)
+		require.Equal(t, userID, oData.UserID)
+		require.Equal(t, number, oData.Number)
+		require.Equal(t, domain.OrderStratusNew, oData.Status)
+		require.Nil(t, oData.Accrual)
+		return domain.ErrDublicateOrderNumber
+	})
 
 	err = order.New(ctx, number)
 
@@ -164,9 +155,8 @@ func TestNewErrServerInternal(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().GetOrder(gomock.Any()).DoAndReturn(func(nm domain.OrderNumber) (*domain.OrderData, error) {
-		require.Equal(t, number, nm)
-		return nil, errors.New("any err")
+	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+		return errors.New("err")
 	})
 
 	order := app.NewOrder(mockStorage)

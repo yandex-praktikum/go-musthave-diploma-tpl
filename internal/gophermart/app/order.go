@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -64,6 +65,11 @@ func (ord *order) New(ctx context.Context, number domain.OrderNumber) error {
 	err = ord.storage.Upload(orderData)
 	if err != nil {
 		logger.Infow("order.New", "err", err.Error())
+
+		if errors.Is(err, domain.ErrOrderNumberAlreadyUploaded) || errors.Is(err, domain.ErrDublicateOrderNumber) {
+			return err
+		}
+
 		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
 

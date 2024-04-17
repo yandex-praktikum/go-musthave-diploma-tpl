@@ -49,21 +49,6 @@ func (mr *MockOrderStorageMockRecorder) ForProcessing(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForProcessing", reflect.TypeOf((*MockOrderStorage)(nil).ForProcessing), arg0)
 }
 
-// GetOrder mocks base method.
-func (m *MockOrderStorage) GetOrder(arg0 domain.OrderNumber) (*domain.OrderData, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrder", arg0)
-	ret0, _ := ret[0].(*domain.OrderData)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOrder indicates an expected call of GetOrder.
-func (mr *MockOrderStorageMockRecorder) GetOrder(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrder", reflect.TypeOf((*MockOrderStorage)(nil).GetOrder), arg0)
-}
-
 // Orders mocks base method.
 func (m *MockOrderStorage) Orders(arg0 int) ([]domain.OrderData, error) {
 	m.ctrl.T.Helper()
@@ -77,6 +62,20 @@ func (m *MockOrderStorage) Orders(arg0 int) ([]domain.OrderData, error) {
 func (mr *MockOrderStorageMockRecorder) Orders(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Orders", reflect.TypeOf((*MockOrderStorage)(nil).Orders), arg0)
+}
+
+// Update mocks base method.
+func (m *MockOrderStorage) Update(arg0 domain.OrderNumber, arg1 domain.OrderStatus, arg2 *float64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockOrderStorageMockRecorder) Update(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockOrderStorage)(nil).Update), arg0, arg1, arg2)
 }
 
 // Upload mocks base method.
