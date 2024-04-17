@@ -3,6 +3,7 @@ package pgx
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -40,6 +41,9 @@ func initializePGXConf(ctx context.Context, logger domain.Logger, gConf *config.
 	pConf.MaxConns = int32(gConf.MaxConns)
 	pConf.ConnConfig.RuntimeParams["standard_conforming_strings"] = "on"
 	pConf.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	pConf.MaxConnLifetime = 5 * time.Minute
+	pConf.MaxConnIdleTime = 5 * time.Minute
 
 	pConf.ConnConfig.Tracer = &tracelog.TraceLog{
 		Logger: &loggerAdapter{
@@ -166,7 +170,7 @@ func (st *storage) Upload(ctx context.Context, data *domain.OrderData) error {
 	if err := st.pPool.QueryRow(ctx,
 		`insert into orderData(number, userId, status, uploaded_at) values ($1, $2, $3, $4) 
 		on conflict("number") do nothing returning number;
-	  `, data.Number, data.UserID, data.Status, time.Now()).Scan(&number); err != nil {
+	  `, data.Number, data.UserID, data.Status, time.Time(data.UploadedAt).UTC()).Scan(&number); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// запись с таким number уже есть; проверим какому пользователю принадлежит
 			var userId int
@@ -190,10 +194,70 @@ func (st *storage) Upload(ctx context.Context, data *domain.OrderData) error {
 }
 
 func (st *storage) Orders(ctx context.Context, userID int) ([]domain.OrderData, error) {
-	return nil, nil
+	var orders []domain.OrderData
+
+	rows, err := st.pPool.Query(ctx,
+		`select number, userId, status, accrual, uploaded_at from orderData where userId = $1`,
+		userID,
+	)
+
+	if err != nil {
+		st.logger.Infow("pgx.Orders", "err", err.Error())
+		return nil, domain.ErrServerInternal
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var data domain.OrderData
+		var uploaded time.Time
+		err = rows.Scan(&data.Number, &data.UserID, &data.Status, &data.Accrual, &uploaded)
+		if err != nil {
+			st.logger.Infow("pgx.ForProcessing", "err", err.Error())
+			return nil, domain.ErrServerInternal
+		}
+		data.UploadedAt = domain.RFC3339Time(uploaded)
+		orders = append(orders, data)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			st.logger.Infow("pgx.Orders", "status", "not found")
+			return nil, domain.ErrNotFound
+		}
+		st.logger.Infow("pgx.Orders", "err", err.Error())
+		return nil, domain.ErrServerInternal
+	}
+
+	return orders, nil
 }
 
-func (st *storage) Update(number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error {
+func (st *storage) Update(ctx context.Context, number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error {
+	rows, err := st.pPool.Query(ctx,
+		`update orderData set status = $1, accrual = $2 where number = $3`,
+		string(status), accrual, string(number),
+	)
+
+	if err != nil {
+		st.logger.Infow("pgx.Update", "err", err.Error())
+		return domain.ErrServerInternal
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		return nil
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			st.logger.Infow("pgx.Update", "status", "not found")
+			return domain.ErrNotFound
+		}
+		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
+	}
 	return nil
 }
 
@@ -239,9 +303,14 @@ func (st *storage) ForProcessing(ctx context.Context, statuses []domain.OrderSta
 
 	err = rows.Err()
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			st.logger.Infow("pgx.ForProcessing", "status", "not found")
+			return nil, nil
+		}
 		st.logger.Infow("pgx.ForProcessing", "err", err.Error())
 		return nil, domain.ErrServerInternal
 	}
+	st.logger.Infow("pgx.ForProcessing", "status", "found", "count", len(forProcessing))
 
 	return forProcessing, nil
 }

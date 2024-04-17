@@ -22,4 +22,12 @@ pConf.ConnConfig.RuntimeParams["standard_conforming_strings"] = "on"
 [Протокол Simple Query](https://www.postgresql.org/docs/15/protocol-flow.html#id-1.10.6.7.4)
 
 
+На основе статьи [Работаем с PostgreSQL в Go. Опыт Авито](https://habr.com/ru/companies/avito/articles/716516/) ещё добавил
+```go
+	pConf.MaxConnLifetime = 5 * time.Minute
+	pConf.MaxConnIdleTime = 5 * time.Minute
+```
+
+
+
 
