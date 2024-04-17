@@ -23,7 +23,8 @@ create table if not exists orderData(
 		score timestamptz not null default now(),
 		primary key(number),
 		foreign key (userId) references userInfo(userId)
-	);```
+	);
+```
 
 ```sql
 -- запрос на получение данных
@@ -31,6 +32,10 @@ update orderData set score = $1
 		 where number in 
 		   (select number from orderdata where status = ANY($2) and score < $3 limit $4) 
 		 returning 
-		    number, userId, status, accrual, uploaded_at;```
+		    number, userId, status, accrual, uploaded_at;
+```
 
+
+## Недостатки решения
+Рост размера БД при обновлении score
 
