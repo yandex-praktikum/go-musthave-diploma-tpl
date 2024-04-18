@@ -124,4 +124,18 @@ func TestOrderFunctions(t *testing.T) {
 
 	require.Empty(t, data)
 
+	ordData1 := domain.OrderData{
+		Number:  "234567",
+		Status:  domain.OrderStratusProcessed,
+		Accrual: domain.Float64Ptr(64.),
+	}
+
+	ordData2 := domain.OrderData{
+		Number:  "123456",
+		Status:  domain.OrderStratusProcessed,
+		Accrual: domain.Float64Ptr(65.),
+	}
+
+	err = storage.UpdateBatch(ctx, []domain.OrderData{ordData1, ordData2})
+	require.NoError(t, err)
 }

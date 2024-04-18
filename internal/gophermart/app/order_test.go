@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/StasMerzlyakov/gophermart/internal/config"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/app"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/app/mocks"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
@@ -33,7 +35,7 @@ func TestNewNoErr(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+	mockStorage.EXPECT().Upload(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, oData *domain.OrderData) error {
 		require.NotNil(t, oData)
 		require.Equal(t, userID, oData.UserID)
 		require.Equal(t, number, oData.Number)
@@ -42,7 +44,11 @@ func TestNewNoErr(t *testing.T) {
 		return nil
 	})
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -68,7 +74,7 @@ func TestNewErrOrderNumberAlreadyProcessed(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+	mockStorage.EXPECT().Upload(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, oData *domain.OrderData) error {
 		require.NotNil(t, oData)
 		require.Equal(t, userID, oData.UserID)
 		require.Equal(t, number, oData.Number)
@@ -77,7 +83,11 @@ func TestNewErrOrderNumberAlreadyProcessed(t *testing.T) {
 		return domain.ErrOrderNumberAlreadyUploaded
 	})
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -103,9 +113,13 @@ func TestNewErrDublicateOrderNumber(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
 
-	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
+
+	mockStorage.EXPECT().Upload(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, oData *domain.OrderData) error {
 		require.NotNil(t, oData)
 		require.Equal(t, userID, oData.UserID)
 		require.Equal(t, number, oData.Number)
@@ -129,7 +143,11 @@ func TestNewErrUserIsNotAuthorized(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	err := order.New(ctx, number)
 
@@ -155,11 +173,15 @@ func TestNewErrServerInternal(t *testing.T) {
 
 	number := domain.OrderNumber("5062821234567892")
 
-	mockStorage.EXPECT().Upload(gomock.Any()).DoAndReturn(func(oData *domain.OrderData) error {
+	mockStorage.EXPECT().Upload(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, oData *domain.OrderData) error {
 		return errors.New("err")
 	})
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -185,7 +207,11 @@ func TestNewErrWrongOrderNumber(t *testing.T) {
 
 	number := domain.OrderNumber("50628212345678921")
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -225,12 +251,16 @@ func TestAllErrNoErr(t *testing.T) {
 		},
 	}
 
-	mockStorage.EXPECT().Orders(gomock.Any()).DoAndReturn(func(uID int) ([]domain.OrderData, error) {
+	mockStorage.EXPECT().Orders(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.OrderData, error) {
 		require.Equal(t, userID, uID)
 		return ordrs, nil
 	}).Times(1)
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -247,7 +277,11 @@ func TestAllErrUserIsNotAuthorized(t *testing.T) {
 
 	mockStorage := mocks.NewMockOrderStorage(ctrl)
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -272,12 +306,15 @@ func TestAllErrNotFound(t *testing.T) {
 
 	mockStorage := mocks.NewMockOrderStorage(ctrl)
 
-	mockStorage.EXPECT().Orders(gomock.Any()).DoAndReturn(func(uID int) ([]domain.OrderData, error) {
+	mockStorage.EXPECT().Orders(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.OrderData, error) {
 		require.Equal(t, userID, uID)
 		return nil, nil
 	})
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
 
-	order := app.NewOrder(mockStorage)
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -303,16 +340,114 @@ func TestAllErrServerInternal(t *testing.T) {
 
 	mockStorage := mocks.NewMockOrderStorage(ctrl)
 
-	mockStorage.EXPECT().Orders(gomock.Any()).DoAndReturn(func(uID int) ([]domain.OrderData, error) {
+	mockStorage.EXPECT().Orders(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.OrderData, error) {
 		require.Equal(t, userID, uID)
 		return nil, errors.New("any err")
 	})
 
-	order := app.NewOrder(mockStorage)
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
 	require.Nil(t, res)
 
 	require.ErrorIs(t, err, domain.ErrServerInternal)
+}
+
+func TestPoolAcrualSystem1(t *testing.T) {
+
+	// Тест на отстуствие данных для пула системы расчета начислений
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+
+	ctx = EnrichTestContext(ctx)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStorage := mocks.NewMockOrderStorage(ctrl)
+
+	mockStorage.EXPECT().ForProcessing(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+			return nil, nil
+		}).MinTimes(5).MaxTimes(6) // Ожидаем 10 секунд; 2 секунды между вызовами
+
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, nil)
+
+	order.PoolAcrualSystem(ctx)
+
+	time.Sleep(10 * time.Second)
+}
+
+func TestPoolAcrualSystem2(t *testing.T) {
+
+	// Тест на отстуствие данных для пула системы расчета начислений
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+
+	ctx = EnrichTestContext(ctx)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStorage := mocks.NewMockOrderStorage(ctrl)
+
+	var once atomic.Int32
+
+	ordNumber := domain.OrderNumber("12345")
+
+	mockStorage.EXPECT().ForProcessing(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+			if once.CompareAndSwap(0, 1) {
+				return []domain.OrderData{
+					{
+						Number: ordNumber,
+					},
+				}, nil
+			}
+			return nil, nil
+		}).AnyTimes()
+
+	mockAccrualSystem := mocks.NewMockAcrualSystem(ctrl)
+
+	acrualVal := 64.
+
+	mockAccrualSystem.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, orderNum domain.OrderNumber) (*domain.AccrualData, error) {
+			return &domain.AccrualData{
+				Number:  orderNum,
+				Accrual: domain.Float64Ptr(acrualVal),
+				Status:  domain.AccrualStatusProcessed,
+			}, nil
+		}).Times(1)
+
+	mockStorage.EXPECT().UpdateBatch(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, orders []domain.OrderData) error {
+			require.Equal(t, 1, len(orders))
+			order := orders[0]
+			require.Equal(t, ordNumber, order.Number)
+			require.NotNil(t, order.Accrual)
+			require.Equal(t, acrualVal, *order.Accrual)
+			require.Equal(t, domain.OrderStratusProcessing, order.Status)
+			return nil
+		}).Times(1)
+
+	conf := &config.GophermartConfig{
+		AcrualSystemPoolCount: 5,
+	}
+
+	order := app.NewOrder(ctx, conf, mockStorage, mockAccrualSystem)
+
+	order.PoolAcrualSystem(ctx)
+
+	time.Sleep(10 * time.Second)
 }

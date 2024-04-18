@@ -18,12 +18,13 @@ func NewOrder(ctx context.Context, conf *config.GophermartConfig,
 		storage:               storage,
 		processingWorkerCount: conf.AcrualSystemPoolCount,
 		acrualSystem:          acrualSystem,
+		batchSize:             conf.BatchSize,
 	}
 
 	return ord
 }
 
-//go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . OrderStorage
+//go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . OrderStorage,AcrualSystem
 type OrderStorage interface {
 	Upload(ctx context.Context, data *domain.OrderData) error
 	Orders(ctx context.Context, userID int) ([]domain.OrderData, error)
@@ -32,7 +33,6 @@ type OrderStorage interface {
 	ForProcessing(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error)
 }
 
-//go:generate
 type AcrualSystem interface {
 	Update(ctx context.Context, orderNum domain.OrderNumber) (*domain.AccrualData, error)
 }
@@ -41,6 +41,8 @@ type order struct {
 	storage               OrderStorage
 	acrualSystem          AcrualSystem
 	processingWorkerCount int
+	batchSize             int
+	once                  sync.Once
 }
 
 // Загрузка пользователем номера заказа для расчёта
@@ -125,11 +127,11 @@ func (ord *order) All(ctx context.Context) ([]domain.OrderData, error) {
 
 func (ord *order) refreshOrderStatus(ctx context.Context,
 	logger domain.Logger,
-	ordNumChan <-chan domain.OrderNumber,
+	ordNumChan <-chan *domain.OrderNumber,
 	acrualDataChan chan<- *domain.AccrualData) {
 
 	// Пытаюсь осмыслить https://go.dev/blog/io2013-talk-concurrency
-	var ordNumInternalChan <-chan domain.OrderNumber
+	var ordNumInternalChan <-chan *domain.OrderNumber = ordNumChan
 	var sleepChan <-chan time.Time
 
 	for {
@@ -142,7 +144,7 @@ func (ord *order) refreshOrderStatus(ctx context.Context,
 			ordNumInternalChan = ordNumChan
 			sleepChan = nil
 		case orderNum := <-ordNumInternalChan:
-			acrData, err := ord.acrualSystem.Update(ctx, orderNum)
+			acrData, err := ord.acrualSystem.Update(ctx, *orderNum)
 			if err != nil {
 				// Произошла ошибка - запускаем sleepChan канал в надежде на восстановление
 				logger.Infow("order.refreshOrder", "num", orderNum, "err", err.Error())
@@ -160,7 +162,7 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 	var orders []domain.OrderData
 
 	// Пытаюсь осмыслить https://go.dev/blog/io2013-talk-concurrency
-	var waitAcrualsTimeoutChan <-chan time.Time
+	var waitAcrualsTimeoutChan <-chan time.Time = time.After(2 * time.Second)
 	var sleepAfterErrChan <-chan time.Time
 	var acrualDataInternalChan <-chan *domain.AccrualData = acrualDataChan
 	for {
@@ -180,8 +182,9 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 					sleepAfterErrChan = time.After(5 * time.Second)
 					acrualDataInternalChan = nil
 				}
-				clear(orders)
+				orders = nil
 			}
+			waitAcrualsTimeoutChan = time.After(2 * time.Second)
 		case acrualData := <-acrualDataInternalChan:
 			switch acrualData.Status {
 			case domain.AccrualStatusInvalid:
@@ -196,59 +199,96 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 					Accrual: acrualData.Accrual,
 				})
 			}
+
+			if len(orders) == ord.batchSize {
+				err := ord.storage.UpdateBatch(ctx, orders)
+				if err != nil {
+					// Произошла ошибка - запускаем sleepChan канал в надежде на восстановление
+					logger.Infow("order.UpdateBatch", "err", err.Error())
+					sleepAfterErrChan = time.After(5 * time.Second)
+					acrualDataInternalChan = nil
+				}
+				orders = nil
+			}
 		}
 	}
 }
 
 func (ord *order) PoolAcrualSystem(ctx context.Context) {
-	logger, err := domain.GetLogger(ctx)
-	if err != nil {
-		fmt.Printf("app.orderPool error - logger not found")
-		return
-	}
-	var wg sync.WaitGroup
-	defer wg.Done()
-
-	ordNumChan := make(chan domain.OrderNumber)
-	acrualDataChan := make(chan *domain.AccrualData)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		ord.orderStatusUpdater(ctx, logger, acrualDataChan)
-	}()
-
-	for i := 0; i < ord.processingWorkerCount; i++ {
-		wg.Add(1)
+	ord.once.Do(func() {
 		go func() {
-			defer wg.Done()
-			ord.refreshOrderStatus(ctx, logger, ordNumChan, acrualDataChan)
-		}()
-	}
-
-Loop:
-	for {
-		orders, err := ord.storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusNew})
-		if err != nil {
-			logger.Errorw("app.orderPool", "err", err.Error())
-			select {
-			case <-ctx.Done():
-				logger.Infow("app.orderPool", "status", "complete")
-				close(ordNumChan)
-				break Loop
-			case <-time.After(5 * time.Second): // Возможно все восстановится за это время
-				continue
-			}
-		}
-
-		for _, ord := range orders {
-			select {
-			case <-ctx.Done():
-				logger.Infow("app.orderPool", "status", "complete")
-				close(ordNumChan)
+			logger, err := domain.GetLogger(ctx)
+			if err != nil {
+				fmt.Printf("app.orderPool error - logger not found")
 				return
-			case ordNumChan <- ord.Number:
 			}
-		}
-	}
+			var wg sync.WaitGroup
+			defer wg.Wait()
+
+			ordNumChan := make(chan *domain.OrderNumber)
+			acrualDataChan := make(chan *domain.AccrualData)
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				ord.orderStatusUpdater(ctx, logger, acrualDataChan)
+			}()
+
+			for i := 0; i < ord.processingWorkerCount; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					ord.refreshOrderStatus(ctx, logger, ordNumChan, acrualDataChan)
+				}()
+			}
+
+			var sleepChan <-chan time.Time
+			var ordNumChanInternal chan<- *domain.OrderNumber = ordNumChan
+			var nexNum *domain.OrderNumber
+
+		Loop:
+			for {
+				orders, err := ord.storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusNew})
+				if err != nil {
+					logger.Infow("order.PoolAcrualSystem", "err", err.Error())
+					sleepChan = time.After(5 * time.Second)
+					ordNumChanInternal = nil
+					clear(orders) // для защиты от мусора
+				} else {
+					if len(orders) == 0 {
+						logger.Infow("order.PoolAcrualSystem", "status", "no record for pool")
+						sleepChan = time.After(2 * time.Second)
+						ordNumChanInternal = nil
+					} else {
+						sleepChan = nil
+						var num = orders[0].Number
+						nexNum = &num
+					}
+				}
+
+			OrderLoop:
+				for {
+					select {
+					case <-ctx.Done():
+						logger.Infow("app.orderPool", "status", "complete")
+						return
+					case <-sleepChan:
+						sleepChan = nil
+						ordNumChanInternal = ordNumChan
+						continue Loop // спим либо при ошибке, либо при отстутсвии данных
+					case ordNumChanInternal <- nexNum:
+						orders = orders[1:]
+						if len(orders) == 0 {
+							continue Loop
+						} else {
+							var num = orders[0].Number
+							nexNum = &num
+							continue OrderLoop
+						}
+
+					}
+				}
+			}
+		}()
+	})
 }

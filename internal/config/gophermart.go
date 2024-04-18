@@ -17,6 +17,7 @@ type GophermartConfig struct {
 	MaxConns              int           `env:"DATABASE_MAX_CONNS"`
 	MaxConnLifetime       time.Duration `env:"DATABASE_MAX_CONN_LIFE_TIME"`
 	MaxConnIdleTime       time.Duration `env:"DATABASE_MAX_CONN_IDLE_TIME"`
+	BatchSize             int           `env:"DATABASE_BATCH_SIZE"`
 	ProcessingLimit       int           `env:"ORDER_PROCESSING_LIMIT"`
 	ProcessingScoreDelta  time.Duration `env:"ORDER_PROCESSING_DELTA"`
 }
@@ -30,6 +31,7 @@ func LoadGophermartConfig() (*GophermartConfig, error) {
 	flag.IntVar(&srvConf.AcrualSystemPoolCount, "accrualPoolCount", 5, "accrual pool count")
 	flag.DurationVar(&srvConf.MaxConnLifetime, "dbMaxConnLifeTime", 5*time.Minute, "database max connection life time")
 	flag.DurationVar(&srvConf.MaxConnIdleTime, "dbMaxConnIdleTime", 5*time.Minute, "database max connection idle time")
+	flag.IntVar(&srvConf.BatchSize, "dbBatchSize", 10, "database batch size")
 
 	flag.IntVar(&srvConf.ProcessingLimit, "pLimit", 10, "order processing limit")
 	flag.DurationVar(&srvConf.ProcessingScoreDelta, "pDelta", 20*time.Second, "order processing delta")

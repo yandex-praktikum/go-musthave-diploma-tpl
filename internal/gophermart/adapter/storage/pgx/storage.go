@@ -314,3 +314,34 @@ func (st *storage) ForProcessing(ctx context.Context, statuses []domain.OrderSta
 
 	return forProcessing, nil
 }
+
+func (st *storage) UpdateBatch(ctx context.Context, orders []domain.OrderData) error {
+
+	tx, err := st.pPool.Begin(ctx)
+	if err != nil {
+		st.logger.Errorw("storage.UpdateBatch", "err", err.Error())
+		return domain.ErrServerInternal
+	}
+
+	defer tx.Rollback(ctx)
+
+	batch := &pgx.Batch{}
+
+	for _, ord := range orders {
+		batch.QueuedQueries = append(batch.QueuedQueries,
+			&pgx.QueuedQuery{
+				SQL:       `update orderData set status = $1, accrual = $2 where number = $3`,
+				Arguments: []any{string(ord.Status), ord.Accrual, string(ord.Number)},
+			},
+		)
+	}
+
+	err = tx.SendBatch(context.Background(), batch).Close()
+
+	if err != nil {
+		st.logger.Infow("storage.UpdateBatch", "err", err.Error())
+		return domain.ErrServerInternal
+	}
+
+	return nil
+}
