@@ -16,9 +16,9 @@ func NewBalance(balanceStorage BalanceStorage) *balance {
 
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . BalanceStorage
 type BalanceStorage interface {
-	Balance(UserID int) (*domain.UserBalance, error)
-	Withdraw(newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error
-	Withdrawals(UserID int) ([]domain.WithdrawalsData, error)
+	Balance(ctx context.Context, userID int) (*domain.UserBalance, error)
+	Update(ctx context.Context, newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error
+	Withdrawals(ctx context.Context, userID int) ([]domain.WithdrawalData, error)
 }
 
 type balance struct {
@@ -42,7 +42,7 @@ func (b *balance) Get(ctx context.Context) (*domain.Balance, error) {
 		return nil, domain.ErrUserIsNotAuthorized
 	}
 
-	uBalance, err := b.getBalance(userID)
+	uBalance, err := b.getBalance(ctx, userID)
 	if err != nil {
 		logger.Errorw("balance.Balance", "err", err.Error())
 		return nil, fmt.Errorf("get balance err: %w", err)
@@ -51,8 +51,8 @@ func (b *balance) Get(ctx context.Context) (*domain.Balance, error) {
 	return &uBalance.Balance, nil
 }
 
-func (b *balance) getBalance(userID int) (*domain.UserBalance, error) {
-	uBalance, err := b.balanceStorage.Balance(userID)
+func (b *balance) getBalance(ctx context.Context, userID int) (*domain.UserBalance, error) {
+	uBalance, err := b.balanceStorage.Balance(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
 	}
@@ -97,7 +97,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		return fmt.Errorf("%w: wrong sum value", domain.ErrDataFormat)
 	}
 
-	uBalance, err := b.getBalance(userID)
+	uBalance, err := b.getBalance(ctx, userID)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return fmt.Errorf("withdraw err: %w", err)
@@ -112,15 +112,16 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 	newWithdrawn := uBalance.Balance.Withdrawn + withdraw.Sum
 
 	newBalance := &domain.UserBalance{
-		UserID: uBalance.UserID,
-		Score:  uBalance.Score + 1,
+		BalanceId: uBalance.BalanceId,
+		UserID:    uBalance.UserID,
+		Release:   uBalance.Release,
 		Balance: domain.Balance{
 			Current:   newCurrentValue,
 			Withdrawn: newWithdrawn,
 		},
 	}
 
-	err = b.balanceStorage.Withdraw(newBalance, withdraw)
+	err = b.balanceStorage.Update(ctx, newBalance, withdraw)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
@@ -134,7 +135,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 //   - domain.ErrServerInternal
 //   - domain.ErrUserIsNotAuthorized
 //   - domain.ErrNotFound
-func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalsData, error) {
+func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalData, error) {
 	logger, err := domain.GetLogger(ctx)
 	if err != nil {
 		log.Printf("%v: withdrawals - logger not found in context", domain.ErrServerInternal)
@@ -147,7 +148,7 @@ func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalsData, er
 		return nil, domain.ErrUserIsNotAuthorized
 	}
 
-	withdrawals, err := b.balanceStorage.Withdrawals(userId)
+	withdrawals, err := b.balanceStorage.Withdrawals(ctx, userId)
 	if err != nil {
 		logger.Errorw("balance.Withdrawals", "err", err.Error())
 		return nil, fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())

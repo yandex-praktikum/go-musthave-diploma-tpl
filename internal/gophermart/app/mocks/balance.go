@@ -5,6 +5,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	domain "github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
@@ -35,45 +36,45 @@ func (m *MockBalanceStorage) EXPECT() *MockBalanceStorageMockRecorder {
 }
 
 // Balance mocks base method.
-func (m *MockBalanceStorage) Balance(arg0 int) (*domain.UserBalance, error) {
+func (m *MockBalanceStorage) Balance(arg0 context.Context, arg1 int) (*domain.UserBalance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Balance", arg0)
+	ret := m.ctrl.Call(m, "Balance", arg0, arg1)
 	ret0, _ := ret[0].(*domain.UserBalance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Balance indicates an expected call of Balance.
-func (mr *MockBalanceStorageMockRecorder) Balance(arg0 interface{}) *gomock.Call {
+func (mr *MockBalanceStorageMockRecorder) Balance(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Balance", reflect.TypeOf((*MockBalanceStorage)(nil).Balance), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Balance", reflect.TypeOf((*MockBalanceStorage)(nil).Balance), arg0, arg1)
 }
 
-// Withdraw mocks base method.
-func (m *MockBalanceStorage) Withdraw(arg0 *domain.UserBalance, arg1 *domain.WithdrawData) error {
+// Update mocks base method.
+func (m *MockBalanceStorage) Update(arg0 context.Context, arg1 *domain.UserBalance, arg2 *domain.WithdrawData) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Withdraw", arg0, arg1)
+	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Withdraw indicates an expected call of Withdraw.
-func (mr *MockBalanceStorageMockRecorder) Withdraw(arg0, arg1 interface{}) *gomock.Call {
+// Update indicates an expected call of Update.
+func (mr *MockBalanceStorageMockRecorder) Update(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdraw", reflect.TypeOf((*MockBalanceStorage)(nil).Withdraw), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockBalanceStorage)(nil).Update), arg0, arg1, arg2)
 }
 
 // Withdrawals mocks base method.
-func (m *MockBalanceStorage) Withdrawals(arg0 int) ([]domain.WithdrawalsData, error) {
+func (m *MockBalanceStorage) Withdrawals(arg0 context.Context, arg1 int) ([]domain.WithdrawalData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Withdrawals", arg0)
-	ret0, _ := ret[0].([]domain.WithdrawalsData)
+	ret := m.ctrl.Call(m, "Withdrawals", arg0, arg1)
+	ret0, _ := ret[0].([]domain.WithdrawalData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Withdrawals indicates an expected call of Withdrawals.
-func (mr *MockBalanceStorageMockRecorder) Withdrawals(arg0 interface{}) *gomock.Call {
+func (mr *MockBalanceStorageMockRecorder) Withdrawals(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdrawals", reflect.TypeOf((*MockBalanceStorage)(nil).Withdrawals), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdrawals", reflect.TypeOf((*MockBalanceStorage)(nil).Withdrawals), arg0, arg1)
 }

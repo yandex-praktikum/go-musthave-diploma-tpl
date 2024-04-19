@@ -84,7 +84,7 @@ func TestOrderFunctions(t *testing.T) {
 	// require.True(t, time.Time(now).Equal(time.Time(oD.UploadedAt)))
 
 	accrualVal := 10.9
-	err = storage.Update(ctx, orderNum, domain.OrderStratusProcessing, &accrualVal)
+	err = storage.UpdateOrder(ctx, orderNum, domain.OrderStratusProcessing, &accrualVal)
 	require.NoError(t, err)
 
 	orderDatas, err = storage.Orders(ctx, user1ID)
@@ -106,7 +106,7 @@ func TestOrderFunctions(t *testing.T) {
 	err = storage.Upload(ctx, orderData)
 	require.ErrorIs(t, err, domain.ErrDublicateOrderNumber)
 
-	data, err := storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusProcessed})
+	data, err := storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusProcessed})
 	require.NoError(t, err)
 	require.Empty(t, data)
 
@@ -114,12 +114,12 @@ func TestOrderFunctions(t *testing.T) {
 	err = storage.Upload(ctx, orderData)
 	require.NoError(t, err)
 
-	data, err = storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusNew, domain.OrderStratusProcessing})
+	data, err = storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew, domain.OrderStratusProcessing})
 	require.NoError(t, err)
 
 	require.Equal(t, 2, len(data))
 
-	data, err = storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusNew})
+	data, err = storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew})
 	require.NoError(t, err)
 
 	require.Empty(t, data)

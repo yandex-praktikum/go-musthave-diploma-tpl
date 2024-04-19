@@ -1,4 +1,4 @@
-# ADR 002
+# ADR_002
 
 ## Название
 Защита от обращений к сервису начислений с одним и тем же номером заказа при работе приложения в несколько инстансов
@@ -22,6 +22,7 @@ create table if not exists orderData(
 		uploaded_at timestamptz,
 		score timestamptz not null default now(),
 		primary key(number),
+		unique (userId),
 		foreign key (userId) references userInfo(userId)
 	);
 ```

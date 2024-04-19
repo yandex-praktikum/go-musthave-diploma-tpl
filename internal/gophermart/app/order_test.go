@@ -372,7 +372,7 @@ func TestPoolAcrualSystem1(t *testing.T) {
 
 	mockStorage := mocks.NewMockOrderStorage(ctrl)
 
-	mockStorage.EXPECT().ForProcessing(gomock.Any(), gomock.Any()).
+	mockStorage.EXPECT().GetByStatus(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
 			return nil, nil
 		}).MinTimes(5).MaxTimes(6) // Ожидаем 10 секунд; 2 секунды между вызовами
@@ -405,7 +405,7 @@ func TestPoolAcrualSystem2(t *testing.T) {
 
 	ordNumber := domain.OrderNumber("12345")
 
-	mockStorage.EXPECT().ForProcessing(gomock.Any(), gomock.Any()).
+	mockStorage.EXPECT().GetByStatus(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
 			if once.CompareAndSwap(0, 1) {
 				return []domain.OrderData{
@@ -450,4 +450,5 @@ func TestPoolAcrualSystem2(t *testing.T) {
 	order.PoolAcrualSystem(ctx)
 
 	time.Sleep(10 * time.Second)
+	cancelFn()
 }

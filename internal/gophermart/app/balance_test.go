@@ -31,11 +31,11 @@ func TestBalanceNoErr(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		require.Equal(t, userID, uID)
 		return &domain.UserBalance{
-			UserID: userID,
-			Score:  1,
+			UserID:  userID,
+			Release: 1,
 			Balance: domain.Balance{
 				Current:   100.,
 				Withdrawn: 1000.4,
@@ -62,7 +62,7 @@ func TestBalanceErrUserIsNotAuthorized(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		return nil, nil
 	}).Times(0)
 
@@ -91,7 +91,7 @@ func TestBalanceErrServerInternal(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		require.Equal(t, userID, uID)
 		return nil, fmt.Errorf("any error")
 	}).Times(1)
@@ -121,11 +121,11 @@ func TestWithdrawNoErr(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		require.Equal(t, userID, uID)
 		return &domain.UserBalance{
-			UserID: userID,
-			Score:  1,
+			UserID:  userID,
+			Release: 1,
 			Balance: domain.Balance{
 				Current:   100.,
 				Withdrawn: 1000.4,
@@ -133,19 +133,20 @@ func TestWithdrawNoErr(t *testing.T) {
 		}, nil
 	}).Times(1)
 
-	mockStorage.EXPECT().Withdraw(gomock.Any(), gomock.Any()).DoAndReturn(func(newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error {
+	mockStorage.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error {
 
-		require.NotNil(t, newBalance)
-		require.Equal(t, userID, newBalance.UserID)
-		require.Equal(t, 2, newBalance.Score)
-		require.Equal(t, 50., newBalance.Balance.Current)
-		require.Equal(t, 1050.4, newBalance.Balance.Withdrawn)
+			require.NotNil(t, newBalance)
+			require.Equal(t, userID, newBalance.UserID)
+			require.Equal(t, 1, newBalance.Release)
+			require.Equal(t, 50., newBalance.Balance.Current)
+			require.Equal(t, 1050.4, newBalance.Balance.Withdrawn)
 
-		require.NotNil(t, withdraw)
-		require.Equal(t, domain.OrderNumber("5062821234567892"), withdraw.Order)
-		require.Equal(t, 50., withdraw.Sum)
-		return nil
-	}).Times(1)
+			require.NotNil(t, withdraw)
+			require.Equal(t, domain.OrderNumber("5062821234567892"), withdraw.Order)
+			require.Equal(t, 50., withdraw.Sum)
+			return nil
+		}).Times(1)
 
 	balance := app.NewBalance(mockStorage)
 
@@ -174,7 +175,7 @@ func TestWithdrawErrServerInternal(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		require.Equal(t, userID, uID)
 		return nil, fmt.Errorf("any")
 	}).Times(1)
@@ -224,11 +225,11 @@ func TestWithdrawErrNotEnoughPoints(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Balance(gomock.Any()).DoAndReturn(func(uID int) (*domain.UserBalance, error) {
+	mockStorage.EXPECT().Balance(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) (*domain.UserBalance, error) {
 		require.Equal(t, userID, uID)
 		return &domain.UserBalance{
-			UserID: userID,
-			Score:  1,
+			UserID:  userID,
+			Release: 1,
 			Balance: domain.Balance{
 				Current:   100.,
 				Withdrawn: 1000.4,
@@ -292,7 +293,7 @@ func TestWithdrawalsNoErr(t *testing.T) {
 
 	rTime := domain.RFC3339Time(time.Now())
 
-	resData := []domain.WithdrawalsData{
+	resData := []domain.WithdrawalData{
 		{
 			Order:       "5062821234567892",
 			Sum:         50.,
@@ -305,7 +306,7 @@ func TestWithdrawalsNoErr(t *testing.T) {
 		},
 	}
 
-	mockStorage.EXPECT().Withdrawals(gomock.Any()).DoAndReturn(func(uID int) ([]domain.WithdrawalsData, error) {
+	mockStorage.EXPECT().Withdrawals(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.WithdrawalData, error) {
 		require.Equal(t, userID, uID)
 		return resData, nil
 	}).Times(1)
@@ -336,7 +337,7 @@ func TestWithdrawalsErrServerInternal(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Withdrawals(gomock.Any()).DoAndReturn(func(uID int) ([]domain.WithdrawalsData, error) {
+	mockStorage.EXPECT().Withdrawals(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.WithdrawalData, error) {
 		require.Equal(t, userID, uID)
 		return nil, fmt.Errorf("Any")
 	}).Times(1)
@@ -381,7 +382,7 @@ func TestWithdrawalsErrNotFound(t *testing.T) {
 
 	mockStorage := mocks.NewMockBalanceStorage(ctrl)
 
-	mockStorage.EXPECT().Withdrawals(gomock.Any()).DoAndReturn(func(uID int) ([]domain.WithdrawalsData, error) {
+	mockStorage.EXPECT().Withdrawals(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, uID int) ([]domain.WithdrawalData, error) {
 		require.Equal(t, userID, uID)
 		return nil, nil
 	}).Times(1)

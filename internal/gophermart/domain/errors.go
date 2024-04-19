@@ -15,4 +15,5 @@ var (
 	ErrOrderNumberAlreadyUploaded = errors.New("OrderNumberAlreadyUploaded") // Данные пользователя уже были приняты в обработку
 	ErrDublicateOrderNumber       = errors.New("DublicateOrderNumber")       // Данные уже были приняты в обработку от другого пользователя
 	ErrUserIsNotAuthorized        = errors.New("UserIsNotAuthorized")        // Пользователь не авторизован
+	ErrBalanceChanged             = errors.New("BalanceChanged")             // Внутренняя ошибка - баланс был изменен; нужно повторить операцию
 )

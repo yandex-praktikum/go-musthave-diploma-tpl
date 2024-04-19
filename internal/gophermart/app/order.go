@@ -30,7 +30,7 @@ type OrderStorage interface {
 	Orders(ctx context.Context, userID int) ([]domain.OrderData, error)
 	Update(ctx context.Context, number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error
 	UpdateBatch(ctx context.Context, orders []domain.OrderData) error
-	ForProcessing(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error)
+	GetByStatus(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error)
 }
 
 type AcrualSystem interface {
@@ -248,7 +248,7 @@ func (ord *order) PoolAcrualSystem(ctx context.Context) {
 
 		Loop:
 			for {
-				orders, err := ord.storage.ForProcessing(ctx, []domain.OrderStatus{domain.OrderStratusNew})
+				orders, err := ord.storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew})
 				if err != nil {
 					logger.Infow("order.PoolAcrualSystem", "err", err.Error())
 					sleepChan = time.After(5 * time.Second)
