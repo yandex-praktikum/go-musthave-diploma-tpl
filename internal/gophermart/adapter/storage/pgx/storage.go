@@ -103,7 +103,6 @@ func (st *storage) init(ctx context.Context) error {
 		uploaded_at timestamptz,
 		score timestamptz not null default now(),
 		primary key(number),
-		unique (userId),
 		foreign key (userId) references userInfo(userId)
 	);`)
 
