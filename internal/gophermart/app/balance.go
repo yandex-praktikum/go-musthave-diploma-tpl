@@ -168,7 +168,7 @@ func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalData, err
 	return withdrawals, nil
 }
 
-func (b *balance) orderDataUpdater(ctx context.Context, logger domain.Logger, orderDataChan <-chan *domain.OrderData) {
+func (b *balance) balanceUpdater(ctx context.Context, logger domain.Logger, orderDataChan <-chan *domain.OrderData) {
 	var sleepAfterErrChan <-chan time.Time
 	var orderDataChanInternal = orderDataChan
 	for {
@@ -286,7 +286,7 @@ func (b *balance) PoolOrders(ctx context.Context) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				b.orderDataUpdater(ctx, logger, orderDataChan)
+				b.balanceUpdater(ctx, logger, orderDataChan)
 			}()
 		}()
 	})
