@@ -56,15 +56,15 @@ func (st *storage) UpdateBalanceByOrder(ctx context.Context, balance *domain.Use
 
 	var orderNum string
 	err = tx.QueryRow(ctx,
-		`update orderData set status = $1 where number = $2 returning number`,
-		orderData.Number,
+		`update orderData set status = $1 where number = $2 and status<> $1 returning number`,
 		orderData.Status,
+		orderData.Number,
 	).Scan(&orderNum)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			st.logger.Infow("storage.UpdateBalanceByOrder", "status", "not found")
-			return domain.ErrBalanceChanged
+			return domain.ErrNotFound
 		}
 		st.logger.Errorw("storage.UpdateBalanceByOrder", "err", err.Error())
 		return domain.ErrServerInternal

@@ -25,10 +25,11 @@ func (st *storage) RegisterUser(ctx context.Context, ld *domain.LoginData) (int,
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+				st.logger.Infow("storage.RegisterUser", "err", "login is busy")
 				return -1, domain.ErrLoginIsBusy
 			}
 		}
-		st.logger.Errorw("storage.RegisterUser", "err", err.Error())
+		st.logger.Infow("storage.RegisterUser", "err", err.Error())
 		return -1, domain.ErrServerInternal
 	}
 }

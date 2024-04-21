@@ -113,23 +113,18 @@ func (st *storage) UpdateOrder(ctx context.Context, number domain.OrderNumber, s
 	return nil
 }
 
-func (st *storage) GetByStatus(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+func (st *storage) GetByStatus(ctx context.Context, status domain.OrderStatus) ([]domain.OrderData, error) {
 
 	var forProcessing []domain.OrderData
-
-	var sStatus []string
-	for _, s := range statuses {
-		sStatus = append(sStatus, string(s))
-	}
 
 	rows, err := st.pPool.Query(ctx,
 		`update orderData set score = $1 
 		 where number in 
-		   (select number from orderdata where status = ANY($2) and score < $3 limit $4) 
+		   (select number from orderdata where status = $2 and score < $3 limit $4) 
 		 returning 
 		    number, userId, status, accrual, uploaded_at;`,
 		time.Now().Add(st.processingScoreDelta),
-		sStatus,
+		string(status),
 		time.Now(),
 		st.processingLimit,
 	)

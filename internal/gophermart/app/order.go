@@ -12,7 +12,7 @@ import (
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
 )
 
-func NewOrder(ctx context.Context, conf *config.GophermartConfig,
+func NewOrder(conf *config.GophermartConfig,
 	storage OrderStorage, acrualSystem AcrualSystem) *order {
 	ord := &order{
 		storage:               storage,
@@ -30,7 +30,7 @@ type OrderStorage interface {
 	Orders(ctx context.Context, userID int) ([]domain.OrderData, error)
 	Update(ctx context.Context, number domain.OrderNumber, status domain.OrderStatus, accrual *float64) error
 	UpdateBatch(ctx context.Context, orders []domain.OrderData) error
-	GetByStatus(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error)
+	GetByStatus(ctx context.Context, statuse domain.OrderStatus) ([]domain.OrderData, error)
 }
 
 type AcrualSystem interface {
@@ -173,6 +173,7 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 		case <-sleepAfterErrChan:
 			waitAcrualsTimeoutChan = time.After(2 * time.Second)
 			sleepAfterErrChan = nil
+			acrualDataInternalChan = acrualDataChan
 		case <-waitAcrualsTimeoutChan:
 			if len(orders) > 0 {
 				err := ord.storage.UpdateBatch(ctx, orders)
@@ -185,7 +186,11 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 				orders = nil
 			}
 			waitAcrualsTimeoutChan = time.After(2 * time.Second)
-		case acrualData := <-acrualDataInternalChan:
+		case acrualData, ok := <-acrualDataInternalChan:
+			if !ok {
+				logger.Infow("app.orderStatusUpdater", "status", "complete")
+				return
+			}
 			switch acrualData.Status {
 			case domain.AccrualStatusInvalid:
 				orders = append(orders, domain.OrderData{
@@ -214,6 +219,57 @@ func (ord *order) orderStatusUpdater(ctx context.Context, logger domain.Logger, 
 	}
 }
 
+// Ищет в хранилище запросы на начисление в статусе OrderStratusNew
+func (ord *order) poolOrders(ctx context.Context, logger domain.Logger, ordNumChan chan<- *domain.OrderNumber) {
+	var sleepChan <-chan time.Time
+	var ordNumChanInternal chan<- *domain.OrderNumber = ordNumChan
+	var nexNum *domain.OrderNumber
+
+Loop:
+	for {
+		orders, err := ord.storage.GetByStatus(ctx, domain.OrderStratusNew)
+		if err != nil {
+			logger.Infow("order.poolOrders", "err", err.Error())
+			sleepChan = time.After(5 * time.Second)
+			ordNumChanInternal = nil
+			clear(orders) // для защиты от мусора
+		} else {
+			if len(orders) == 0 {
+				logger.Infow("order.poolOrders", "status", "no record for pool")
+				sleepChan = time.After(2 * time.Second)
+				ordNumChanInternal = nil
+			} else {
+				sleepChan = nil
+				var num = orders[0].Number
+				nexNum = &num
+			}
+		}
+
+	OrderLoop:
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Infow("order.poolOrders", "status", "complete")
+				return
+			case <-sleepChan:
+				sleepChan = nil
+				ordNumChanInternal = ordNumChan
+				continue Loop // спим либо при ошибке, либо при отстутсвии данных
+			case ordNumChanInternal <- nexNum:
+				orders = orders[1:]
+				if len(orders) == 0 {
+					continue Loop
+				} else {
+					var num = orders[0].Number
+					nexNum = &num
+					continue OrderLoop
+				}
+
+			}
+		}
+	}
+}
+
 func (ord *order) PoolAcrualSystem(ctx context.Context) {
 	ord.once.Do(func() {
 		go func() {
@@ -231,6 +287,12 @@ func (ord *order) PoolAcrualSystem(ctx context.Context) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+				ord.poolOrders(ctx, logger, ordNumChan)
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 				ord.orderStatusUpdater(ctx, logger, acrualDataChan)
 			}()
 
@@ -242,53 +304,6 @@ func (ord *order) PoolAcrualSystem(ctx context.Context) {
 				}()
 			}
 
-			var sleepChan <-chan time.Time
-			var ordNumChanInternal chan<- *domain.OrderNumber = ordNumChan
-			var nexNum *domain.OrderNumber
-
-		Loop:
-			for {
-				orders, err := ord.storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew})
-				if err != nil {
-					logger.Infow("order.PoolAcrualSystem", "err", err.Error())
-					sleepChan = time.After(5 * time.Second)
-					ordNumChanInternal = nil
-					clear(orders) // для защиты от мусора
-				} else {
-					if len(orders) == 0 {
-						logger.Infow("order.PoolAcrualSystem", "status", "no record for pool")
-						sleepChan = time.After(2 * time.Second)
-						ordNumChanInternal = nil
-					} else {
-						sleepChan = nil
-						var num = orders[0].Number
-						nexNum = &num
-					}
-				}
-
-			OrderLoop:
-				for {
-					select {
-					case <-ctx.Done():
-						logger.Infow("app.orderPool", "status", "complete")
-						return
-					case <-sleepChan:
-						sleepChan = nil
-						ordNumChanInternal = ordNumChan
-						continue Loop // спим либо при ошибке, либо при отстутсвии данных
-					case ordNumChanInternal <- nexNum:
-						orders = orders[1:]
-						if len(orders) == 0 {
-							continue Loop
-						} else {
-							var num = orders[0].Number
-							nexNum = &num
-							continue OrderLoop
-						}
-
-					}
-				}
-			}
 		}()
 	})
 }

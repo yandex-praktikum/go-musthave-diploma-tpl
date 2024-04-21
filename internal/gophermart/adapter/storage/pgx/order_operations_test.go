@@ -28,7 +28,15 @@ func TestOrderFunctions(t *testing.T) {
 		ProcessingScoreDelta: 10 * time.Second,
 	})
 
+	defer func() {
+		err = clear(ctx)
+		require.NoError(t, err)
+	}()
+
 	err = storage.Ping(ctx)
+	require.NoError(t, err)
+
+	err = clear(ctx)
 	require.NoError(t, err)
 
 	user1 := "user1"
@@ -54,7 +62,7 @@ func TestOrderFunctions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, user1ID, user2ID)
 
-	orderNum := domain.OrderNumber("123456")
+	orderNum := domain.OrderNumber("1234561")
 
 	now := domain.RFC3339Time(time.Now())
 
@@ -99,6 +107,11 @@ func TestOrderFunctions(t *testing.T) {
 	require.NotNil(t, oD.Accrual)
 	require.Equal(t, accrualVal, *oD.Accrual)
 
+	orderDatas, err = storage.Orders(ctx, user2ID)
+	require.NoError(t, err)
+	require.Empty(t, orderDatas)
+
+	// Проверка уникальности номера
 	err = storage.Upload(ctx, orderData)
 	require.ErrorIs(t, err, domain.ErrOrderNumberAlreadyUploaded)
 
@@ -106,32 +119,36 @@ func TestOrderFunctions(t *testing.T) {
 	err = storage.Upload(ctx, orderData)
 	require.ErrorIs(t, err, domain.ErrDublicateOrderNumber)
 
-	data, err := storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusProcessed})
+	orderDatas, err = storage.Orders(ctx, user2ID)
+	require.NoError(t, err)
+	require.Empty(t, orderDatas)
+
+	// Проверка получения данных по статусу
+	data, err := storage.GetByStatus(ctx, domain.OrderStratusProcessed)
 	require.NoError(t, err)
 	require.Empty(t, data)
 
-	orderData.Number = "234567"
+	orderData.UserID = user2ID
+	orderData.Number = "2345671"
 	err = storage.Upload(ctx, orderData)
 	require.NoError(t, err)
 
-	data, err = storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew, domain.OrderStratusProcessing})
+	data, err = storage.GetByStatus(ctx, domain.OrderStratusProcessing)
 	require.NoError(t, err)
+	require.Equal(t, 1, len(data)) // user1ID
 
-	require.Equal(t, 2, len(data))
-
-	data, err = storage.GetByStatus(ctx, []domain.OrderStatus{domain.OrderStratusNew})
+	data, err = storage.GetByStatus(ctx, domain.OrderStratusNew)
 	require.NoError(t, err)
-
-	require.Empty(t, data)
+	require.Equal(t, 1, len(data)) // user2ID
 
 	ordData1 := domain.OrderData{
-		Number:  "234567",
+		Number:  "2345671",
 		Status:  domain.OrderStratusProcessed,
 		Accrual: domain.Float64Ptr(64.),
 	}
 
 	ordData2 := domain.OrderData{
-		Number:  "123456",
+		Number:  "1234561",
 		Status:  domain.OrderStratusProcessed,
 		Accrual: domain.Float64Ptr(65.),
 	}

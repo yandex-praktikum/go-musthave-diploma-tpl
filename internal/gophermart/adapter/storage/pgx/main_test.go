@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -35,10 +37,13 @@ func shutdown(ctx context.Context) {
 	}
 }
 
+const dbName = "users"
+const dbUser = "user"
+const dbPassword = "password"
+
+var pPool *pgxpool.Pool
+
 func setup(ctx context.Context) {
-	dbName := "users"
-	dbUser := "user"
-	dbPassword := "password"
 
 	var err error
 	postgresContainer, err = postgres.RunContainer(ctx,
@@ -55,7 +60,29 @@ func setup(ctx context.Context) {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+}
 
+var once sync.Once
+
+func clear(ctx context.Context) error {
+
+	once.Do(func() {
+		connString, _ := postgresContainer.ConnectionString(ctx)
+		pConf, _ := pgxpool.ParseConfig(connString)
+		pPool, _ = pgxpool.NewWithConfig(ctx, pConf)
+	})
+
+	tx, err := pPool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	tx.Exec(ctx, `DELETE FROM withdrawal`)
+	tx.Exec(ctx, `DELETE FROM balance`)
+	tx.Exec(ctx, `DELETE FROM orderData`)
+	tx.Exec(ctx, `DELETE FROM userInfo`)
+	return tx.Commit(ctx)
 }
 
 func createLogger() *zap.SugaredLogger {

@@ -36,7 +36,7 @@ func (m *MockOrderStorage) EXPECT() *MockOrderStorageMockRecorder {
 }
 
 // GetByStatus mocks base method.
-func (m *MockOrderStorage) GetByStatus(arg0 context.Context, arg1 []domain.OrderStatus) ([]domain.OrderData, error) {
+func (m *MockOrderStorage) GetByStatus(arg0 context.Context, arg1 domain.OrderStatus) ([]domain.OrderData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByStatus", arg0, arg1)
 	ret0, _ := ret[0].([]domain.OrderData)

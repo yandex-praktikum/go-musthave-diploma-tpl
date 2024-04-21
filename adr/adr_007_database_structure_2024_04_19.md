@@ -10,6 +10,10 @@ proposed
 2024-04-19
 
 ## Описание принятого/предложенного решения
+[PlantUML в Visual Studio Code](https://logrocon.ru/news/plantuml_visualstudiocode)
+
+Запустить prview в linux - Alt-D.
+
 ```plantuml
 @startuml
 class userInfo{

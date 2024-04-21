@@ -48,7 +48,7 @@ func TestNewNoErr(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -87,7 +87,7 @@ func TestNewErrOrderNumberAlreadyProcessed(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -117,7 +117,7 @@ func TestNewErrDublicateOrderNumber(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	mockStorage.EXPECT().Upload(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, oData *domain.OrderData) error {
 		require.NotNil(t, oData)
@@ -147,7 +147,7 @@ func TestNewErrUserIsNotAuthorized(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	err := order.New(ctx, number)
 
@@ -181,7 +181,7 @@ func TestNewErrServerInternal(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -211,7 +211,7 @@ func TestNewErrWrongOrderNumber(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	err = order.New(ctx, number)
 
@@ -260,7 +260,7 @@ func TestAllErrNoErr(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -281,7 +281,7 @@ func TestAllErrUserIsNotAuthorized(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -314,7 +314,7 @@ func TestAllErrNotFound(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -349,7 +349,7 @@ func TestAllErrServerInternal(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	res, err := order.All(ctx)
 
@@ -373,7 +373,7 @@ func TestPoolAcrualSystem1(t *testing.T) {
 	mockStorage := mocks.NewMockOrderStorage(ctrl)
 
 	mockStorage.EXPECT().GetByStatus(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+		DoAndReturn(func(ctx context.Context, status domain.OrderStatus) ([]domain.OrderData, error) {
 			return nil, nil
 		}).MinTimes(5).MaxTimes(6) // Ожидаем 10 секунд; 2 секунды между вызовами
 
@@ -381,16 +381,17 @@ func TestPoolAcrualSystem1(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, nil)
+	order := app.NewOrder(conf, mockStorage, nil)
 
 	order.PoolAcrualSystem(ctx)
 
 	time.Sleep(10 * time.Second)
+
+	cancelFn()
 }
 
 func TestPoolAcrualSystem2(t *testing.T) {
 
-	// Тест на отстуствие данных для пула системы расчета начислений
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 
@@ -406,7 +407,7 @@ func TestPoolAcrualSystem2(t *testing.T) {
 	ordNumber := domain.OrderNumber("12345")
 
 	mockStorage.EXPECT().GetByStatus(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, statuses []domain.OrderStatus) ([]domain.OrderData, error) {
+		DoAndReturn(func(ctx context.Context, status domain.OrderStatus) ([]domain.OrderData, error) {
 			if once.CompareAndSwap(0, 1) {
 				return []domain.OrderData{
 					{
@@ -445,7 +446,7 @@ func TestPoolAcrualSystem2(t *testing.T) {
 		AcrualSystemPoolCount: 5,
 	}
 
-	order := app.NewOrder(ctx, conf, mockStorage, mockAccrualSystem)
+	order := app.NewOrder(conf, mockStorage, mockAccrualSystem)
 
 	order.PoolAcrualSystem(ctx)
 

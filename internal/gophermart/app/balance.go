@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
+	"github.com/StasMerzlyakov/gophermart/internal/config"
 	"github.com/StasMerzlyakov/gophermart/internal/gophermart/domain"
 )
 
-func NewBalance(balanceStorage BalanceStorage) *balance {
+func NewBalance(conf *config.GophermartConfig, balanceStorage BalanceStorage) *balance {
 	return &balance{
 		balanceStorage: balanceStorage,
 	}
@@ -17,12 +20,15 @@ func NewBalance(balanceStorage BalanceStorage) *balance {
 //go:generate mockgen -destination "./mocks/$GOFILE" -package mocks . BalanceStorage
 type BalanceStorage interface {
 	Balance(ctx context.Context, userID int) (*domain.UserBalance, error)
-	Update(ctx context.Context, newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error
+	UpdateBalanceByWithdraw(ctx context.Context, newBalance *domain.UserBalance, withdraw *domain.WithdrawData) error
+	UpdateBalanceByOrder(ctx context.Context, balance *domain.UserBalance, orderData *domain.OrderData) error
 	Withdrawals(ctx context.Context, userID int) ([]domain.WithdrawalData, error)
+	GetByStatus(ctx context.Context, status domain.OrderStatus) ([]domain.OrderData, error)
 }
 
 type balance struct {
 	balanceStorage BalanceStorage
+	once           sync.Once
 }
 
 // Получение текущего баланса счёта баллов лояльности пользователя
@@ -121,7 +127,7 @@ func (b *balance) Withdraw(ctx context.Context, withdraw *domain.WithdrawData) e
 		},
 	}
 
-	err = b.balanceStorage.Update(ctx, newBalance, withdraw)
+	err = b.balanceStorage.UpdateBalanceByWithdraw(ctx, newBalance, withdraw)
 	if err != nil {
 		logger.Errorw("balance.Withdraw", "err", err.Error())
 		return fmt.Errorf("%w: %v", domain.ErrServerInternal, err.Error())
@@ -160,4 +166,128 @@ func (b *balance) Withdrawals(ctx context.Context) ([]domain.WithdrawalData, err
 	}
 
 	return withdrawals, nil
+}
+
+func (b *balance) orderDataUpdater(ctx context.Context, logger domain.Logger, orderDataChan <-chan *domain.OrderData) {
+	var sleepAfterErrChan <-chan time.Time
+	var orderDataChanInternal = orderDataChan
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Infow("balance.orderDataUpdater", "status", "complete")
+			return
+		case <-sleepAfterErrChan:
+			sleepAfterErrChan = nil
+			orderDataChanInternal = orderDataChan
+		case orderData, ok := <-orderDataChanInternal:
+			if !ok {
+				logger.Infow("balance.orderDataUpdater", "status", "complete")
+				return
+			}
+			userID := orderData.UserID
+			uBalance, err := b.balanceStorage.Balance(ctx, userID)
+			if err != nil {
+				logger.Infow("balance.orderDataUpdater", "err", err.Error())
+				sleepAfterErrChan = time.After(5 * time.Second)
+				orderDataChanInternal = nil
+				continue
+			}
+
+			newCurrentValue := uBalance.Current + *orderData.Accrual
+
+			newBalance := &domain.UserBalance{
+				BalanceId: uBalance.BalanceId,
+				UserID:    uBalance.UserID,
+				Release:   uBalance.Release,
+				Balance: domain.Balance{
+					Current:   newCurrentValue,
+					Withdrawn: uBalance.Withdrawn,
+				},
+			}
+
+			orderData.Status = domain.OrderStratusProcessed
+			if err = b.balanceStorage.UpdateBalanceByOrder(ctx, newBalance, orderData); err != nil {
+				logger.Infow("balance.orderDataUpdater", "err", err.Error())
+				sleepAfterErrChan = time.After(5 * time.Second)
+				orderDataChanInternal = nil
+				continue
+			}
+			logger.Infow("balance.orderDataUpdater", "status", "processed", "orderNum", orderData.Number)
+		}
+	}
+}
+
+func (b *balance) poolOrders(ctx context.Context, logger domain.Logger, orderDataChan chan<- *domain.OrderData) {
+	var sleepChan <-chan time.Time
+	var orderDataChanInternal chan<- *domain.OrderData = orderDataChan
+	var nextOrd *domain.OrderData
+Loop:
+	for {
+		orders, err := b.balanceStorage.GetByStatus(ctx, domain.OrderStratusProcessing)
+		if err != nil {
+			logger.Infow("balance.PoolOrders", "err", err.Error())
+			sleepChan = time.After(5 * time.Second)
+			orderDataChanInternal = nil
+			clear(orders) // для защиты от мусора
+		} else {
+			if len(orders) == 0 {
+				logger.Infow("balance.PoolOrders", "status", "no record for pool")
+				sleepChan = time.After(2 * time.Second) // статусов нужных нет, ждем две секунджы
+				orderDataChanInternal = nil
+			} else {
+				sleepChan = nil
+				nextOrd = &orders[0]
+			}
+		}
+
+	OrderLoop:
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Infow("balance.PoolOrders", "status", "complete")
+				return
+			case <-sleepChan:
+				sleepChan = nil
+				orderDataChanInternal = orderDataChan
+				continue Loop // возвращаемя в нормальное состояние
+			case orderDataChanInternal <- nextOrd:
+				orders = orders[1:]
+				if len(orders) == 0 {
+					continue Loop
+				} else {
+					nextOrd = &orders[1]
+					continue OrderLoop
+				}
+
+			}
+		}
+	}
+}
+
+func (b *balance) PoolOrders(ctx context.Context) {
+	b.once.Do(func() {
+		go func() {
+			logger, err := domain.GetLogger(ctx)
+			if err != nil {
+				fmt.Printf("balance.PoolOrders error - logger not found")
+				return
+			}
+			var wg sync.WaitGroup
+			defer wg.Wait()
+
+			orderDataChan := make(chan *domain.OrderData)
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				b.poolOrders(ctx, logger, orderDataChan)
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				b.orderDataUpdater(ctx, logger, orderDataChan)
+			}()
+		}()
+	})
 }

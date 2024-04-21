@@ -50,18 +50,47 @@ func (mr *MockBalanceStorageMockRecorder) Balance(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Balance", reflect.TypeOf((*MockBalanceStorage)(nil).Balance), arg0, arg1)
 }
 
-// Update mocks base method.
-func (m *MockBalanceStorage) Update(arg0 context.Context, arg1 *domain.UserBalance, arg2 *domain.WithdrawData) error {
+// GetByStatus mocks base method.
+func (m *MockBalanceStorage) GetByStatus(arg0 context.Context, arg1 domain.OrderStatus) ([]domain.OrderData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetByStatus", arg0, arg1)
+	ret0, _ := ret[0].([]domain.OrderData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByStatus indicates an expected call of GetByStatus.
+func (mr *MockBalanceStorageMockRecorder) GetByStatus(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByStatus", reflect.TypeOf((*MockBalanceStorage)(nil).GetByStatus), arg0, arg1)
+}
+
+// UpdateBalanceByOrder mocks base method.
+func (m *MockBalanceStorage) UpdateBalanceByOrder(arg0 context.Context, arg1 *domain.UserBalance, arg2 *domain.OrderData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBalanceByOrder", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Update indicates an expected call of Update.
-func (mr *MockBalanceStorageMockRecorder) Update(arg0, arg1, arg2 interface{}) *gomock.Call {
+// UpdateBalanceByOrder indicates an expected call of UpdateBalanceByOrder.
+func (mr *MockBalanceStorageMockRecorder) UpdateBalanceByOrder(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockBalanceStorage)(nil).Update), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBalanceByOrder", reflect.TypeOf((*MockBalanceStorage)(nil).UpdateBalanceByOrder), arg0, arg1, arg2)
+}
+
+// UpdateBalanceByWithdraw mocks base method.
+func (m *MockBalanceStorage) UpdateBalanceByWithdraw(arg0 context.Context, arg1 *domain.UserBalance, arg2 *domain.WithdrawData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBalanceByWithdraw", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBalanceByWithdraw indicates an expected call of UpdateBalanceByWithdraw.
+func (mr *MockBalanceStorageMockRecorder) UpdateBalanceByWithdraw(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBalanceByWithdraw", reflect.TypeOf((*MockBalanceStorage)(nil).UpdateBalanceByWithdraw), arg0, arg1, arg2)
 }
 
 // Withdrawals mocks base method.

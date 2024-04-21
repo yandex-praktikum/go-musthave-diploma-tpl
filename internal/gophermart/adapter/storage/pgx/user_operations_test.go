@@ -26,10 +26,18 @@ func TestAuthFunctions(t *testing.T) {
 		DatabaseUri: connString,
 	})
 
+	defer func() {
+		err = clear(ctx)
+		require.NoError(t, err)
+	}()
+
 	err = storage.Ping(ctx)
 	require.NoError(t, err)
 
-	login := "user"
+	err = clear(ctx)
+	require.NoError(t, err)
+
+	login := "login"
 	passHash := "hash"
 	salt := "salt"
 	ldata, err := storage.GetUserData(ctx, login)
