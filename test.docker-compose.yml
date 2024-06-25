@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+# БД postgres
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: praktikum
+    expose:
+      - "5432"
+    networks:
+      test:
+        ipv4_address: 192.168.165.12
+
+# go
+  golang:
+    container_name: golang
+    build:
+      context: ./docker/autotests
+    volumes:
+      - .:/app
+      - ./autotests/gophermarttest:/usr/local/bin/gophermarttest
+      - ./cmd/accrual/accrual_linux_amd64:/usr/local/bin/accrual_linux_amd64
+    depends_on:
+      - postgres
+    networks:
+      test:
+        ipv4_address: 192.168.165.10
+
+networks:
+  test:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.165.0/24

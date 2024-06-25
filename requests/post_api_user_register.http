@@ -1,0 +1,7 @@
+POST localhost:8080/api/user/register
+Content-Type: application/json
+
+{
+    "login": "fxf9kP0pO4w",
+    "password": "QT4jmi5LhBCDgusiqObdgvfS"
+}

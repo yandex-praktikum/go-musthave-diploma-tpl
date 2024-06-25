@@ -1,0 +1,3 @@
+GET localhost:8080/api/user/balance
+#Cookie: access-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNzE4MDk4MTM4fQ.Ilrbus8j1eTWee34FLo0qfjpNeDsALz9jcTmfHDnLkM; refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNzIwNjAzNzM4fQ.GJHguR_JdPLPnLL0zoi5Yb04h4SmdNDZ67C8tsfvyzE; user=1
+

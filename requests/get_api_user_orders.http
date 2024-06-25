@@ -1,0 +1,2 @@
+GET localhost:8080/api/user/orders
+Cookie: access-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsImV4cCI6MTcxODY1MTU3N30.ZC_qHhpwQJRxEMODj6btcUAD9RolavNRlnyXtoj2jfQ; refresh-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIsImV4cCI6MTcyMTE1NzE3N30.ykpDZ9ybChfvkSiGhQ6-HFY6TAm0XIdnZVmPxQ26ODs; user=12
