@@ -16,7 +16,6 @@ import (
 
 type JWTClient interface {
 	BuildJWTString(userId int) (string, error)
-	GetUserID(tokenString string) (int, error)
 	GetTokenExp() time.Duration
 }
 

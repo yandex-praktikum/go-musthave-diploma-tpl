@@ -12,6 +12,7 @@ import (
 type Storage interface {
 	Ping(ctx context.Context) error
 	Register(ctx context.Context, userRegister *entity.UserRegisterJSON) (*entity.UserDB, error)
+	Login(ctx context.Context, userRegister *entity.UserLoginJSON) (*entity.UserDB, error)
 }
 
 type userService struct {
@@ -22,7 +23,10 @@ type userService struct {
 	onMetricSave func()
 }
 
-var ErrNotUniqueLogin = errors.New("пользователь с таким логином уже зарегистрирован")
+var (
+	ErrNotUniqueLogin                  = errors.New("пользователь с таким логином уже зарегистрирован")
+	ErrInvalidLoginPasswordCombination = errors.New("неверная пара логин/пароль")
+)
 
 func NewUserService(logger logging2.Logger, storage Storage, cfg *config.Config) *userService {
 	return &userService{
@@ -40,6 +44,18 @@ func (u userService) Register(ctx context.Context, userRegister *entity.UserRegi
 	userDB, err := u.storage.Register(ctx, userRegister)
 	if errors.Is(err, sql.ErrNotUniqueLogin) {
 		return nil, ErrNotUniqueLogin
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return userDB, nil
+}
+
+func (u userService) Login(ctx context.Context, userLogin *entity.UserLoginJSON) (*entity.UserDB, error) {
+	userDB, err := u.storage.Login(ctx, userLogin)
+	if errors.Is(err, sql.ErrInvalidLoginPasswordCombination) {
+		return nil, ErrInvalidLoginPasswordCombination
 	}
 	if err != nil {
 		return nil, err

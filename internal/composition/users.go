@@ -8,6 +8,7 @@ import (
 	"github.com/GTech1256/go-musthave-diploma-tpl/internal/domain/entity"
 	"github.com/GTech1256/go-musthave-diploma-tpl/internal/http"
 	userHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user"
+	userLoginHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user/login"
 	userRegisterHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user/register"
 	userRepository "github.com/GTech1256/go-musthave-diploma-tpl/internal/repository/user"
 	userService "github.com/GTech1256/go-musthave-diploma-tpl/internal/service/user"
@@ -30,6 +31,7 @@ type JWTClient interface {
 type Service interface {
 	Ping(ctx context.Context) error
 	Register(ctx context.Context, userRegister *entity.UserRegisterJSON) (*entity.UserDB, error)
+	Login(ctx context.Context, userRegister *entity.UserLoginJSON) (*entity.UserDB, error)
 }
 
 type UsersComposite struct {
@@ -84,4 +86,7 @@ func (h Handler) Register(router *chi.Mux) {
 
 	handler2 := userRegisterHandler.NewHandler(h.logger, h.service, h.jwtClient)
 	handler2.Register(router)
+
+	handler3 := userLoginHandler.NewHandler(h.logger, h.service, h.jwtClient)
+	handler3.Register(router)
 }
