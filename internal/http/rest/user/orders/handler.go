@@ -47,7 +47,7 @@ func NewHandler(logger logging2.Logger, updateService Service, jwtClient JWTClie
 }
 
 func (h handler) Register(router *chi.Mux) {
-	router.Post("/api/user/orders", privateRouter.WithPrivateRouter(http.HandlerFunc(h.orders), h.jwtClient, h.userExister))
+	router.Post("/api/user/orders", privateRouter.WithPrivateRouter(http.HandlerFunc(h.orders), h.logger, h.jwtClient, h.userExister))
 }
 
 // orders /api/user/orders

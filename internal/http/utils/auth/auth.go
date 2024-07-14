@@ -1,13 +1,15 @@
 package auth
 
 import (
+	"github.com/GTech1256/go-musthave-diploma-tpl/internal/config"
 	"net/http"
 	"time"
 )
 
 func SetAuthCookie(w http.ResponseWriter, authToken string, tokenExp time.Duration) {
+	//tokenExp = tokenExp
 	cookie := http.Cookie{
-		Name:  "Auth", // accessToken
+		Name:  config.AUTH_COOKIE, // accessToken
 		Value: authToken,
 		Path:  "/",
 		//MaxAge:   int(tokenExp),

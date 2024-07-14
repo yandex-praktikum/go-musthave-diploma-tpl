@@ -22,6 +22,8 @@ type Config struct {
 	JWTTokenExp *time.Duration
 }
 
+const AUTH_COOKIE = "Auth"
+
 const EmptyStringKey = ""
 const SecretKey = "s3cr3t"
 const TokenExp = 3
