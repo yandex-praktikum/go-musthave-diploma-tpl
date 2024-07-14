@@ -10,6 +10,8 @@ import (
 	userHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user"
 	userLoginHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user/login"
 	userRegisterHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user/register"
+
+	userOrdersHandler "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/rest/user/orders"
 	userRepository "github.com/GTech1256/go-musthave-diploma-tpl/internal/repository/user"
 	userService "github.com/GTech1256/go-musthave-diploma-tpl/internal/service/user"
 	jwt2 "github.com/GTech1256/go-musthave-diploma-tpl/pkg/jwt"
@@ -89,4 +91,7 @@ func (h Handler) Register(router *chi.Mux) {
 
 	handler3 := userLoginHandler.NewHandler(h.logger, h.service, h.jwtClient)
 	handler3.Register(router)
+
+	handler4 := userOrdersHandler.NewHandler(h.logger, h.service, h.jwtClient)
+	handler4.Register(router)
 }
