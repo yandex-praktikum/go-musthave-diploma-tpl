@@ -13,14 +13,13 @@ type Storage interface {
 	Ping(ctx context.Context) error
 	Register(ctx context.Context, userRegister *entity.UserRegisterJSON) (*entity.UserDB, error)
 	Login(ctx context.Context, userRegister *entity.UserLoginJSON) (*entity.UserDB, error)
+	GetById(ctx context.Context, userId int) (*entity.UserDB, error)
 }
 
 type userService struct {
 	logger  logging2.Logger
 	storage Storage
 	cfg     *config.Config
-
-	onMetricSave func()
 }
 
 var (
@@ -62,4 +61,22 @@ func (u userService) Login(ctx context.Context, userLogin *entity.UserLoginJSON)
 	}
 
 	return userDB, nil
+}
+
+func (u userService) GetById(ctx context.Context, userId int) (*entity.UserDB, error) {
+	userDB, err := u.storage.GetById(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return userDB, nil
+}
+
+func (u userService) GetIsUserExistById(ctx context.Context, userId int) (bool, error) {
+	userDB, err := u.GetById(ctx, userId)
+	if err != nil {
+		return false, err
+	}
+
+	return userDB != nil, nil
 }

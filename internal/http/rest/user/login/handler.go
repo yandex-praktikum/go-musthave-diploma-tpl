@@ -24,16 +24,16 @@ type Service interface {
 }
 
 type handler struct {
-	logger        logging2.Logger
-	updateService Service
-	jwtClient     JWTClient
+	logger    logging2.Logger
+	service   Service
+	jwtClient JWTClient
 }
 
 func NewHandler(logger logging2.Logger, updateService Service, jwtClient JWTClient) http2.Handler {
 	return &handler{
-		logger:        logger,
-		updateService: updateService,
-		jwtClient:     jwtClient,
+		logger:    logger,
+		service:   updateService,
+		jwtClient: jwtClient,
 	}
 }
 
@@ -58,7 +58,7 @@ func (h handler) userLogin(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	userDB, err := h.updateService.Login(request.Context(), userLogin)
+	userDB, err := h.service.Login(request.Context(), userLogin)
 	// 401 — неверная пара логин/пароль;
 	if errors.Is(err, user.ErrInvalidLoginPasswordCombination) {
 		writer.WriteHeader(http.StatusUnauthorized)

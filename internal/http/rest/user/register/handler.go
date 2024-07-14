@@ -25,16 +25,16 @@ type Service interface {
 }
 
 type handler struct {
-	logger        logging2.Logger
-	updateService Service
-	jwtClient     JWTClient
+	logger    logging2.Logger
+	service   Service
+	jwtClient JWTClient
 }
 
 func NewHandler(logger logging2.Logger, updateService Service, jwtClient JWTClient) http2.Handler {
 	return &handler{
-		logger:        logger,
-		updateService: updateService,
-		jwtClient:     jwtClient,
+		logger:    logger,
+		service:   updateService,
+		jwtClient: jwtClient,
 	}
 }
 
@@ -59,7 +59,7 @@ func (h handler) userRegister(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	userDB, err := h.updateService.Register(request.Context(), userRegister)
+	userDB, err := h.service.Register(request.Context(), userRegister)
 	// 409 — логин уже занят;
 	if errors.Is(err, user.ErrNotUniqueLogin) {
 		writer.WriteHeader(http.StatusConflict)

@@ -1,7 +1,8 @@
 CREATE TABLE gophermart.orders (
     id SERIAL PRIMARY KEY,
-    number TEXT NOT NULL,
+    number BIGINT NOT NULL,
     status TEXT NOT NULL,
-    accrual BIGINT NOT NULL,
-    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    accrual INTEGER,
+    uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES gophermart.users(id)
 );

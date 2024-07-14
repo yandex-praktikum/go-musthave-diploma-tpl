@@ -2,11 +2,13 @@ package user
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"github.com/GTech1256/go-musthave-diploma-tpl/internal/domain/entity"
 	http2 "github.com/GTech1256/go-musthave-diploma-tpl/internal/http"
-	logging "github.com/GTech1256/go-musthave-diploma-tpl/internal/http/middlware/private_router"
+	"github.com/GTech1256/go-musthave-diploma-tpl/internal/http/middlware/private_router"
+	user "github.com/GTech1256/go-musthave-diploma-tpl/internal/service/order"
 	logging2 "github.com/GTech1256/go-musthave-diploma-tpl/pkg/logging"
+	"github.com/GTech1256/go-musthave-diploma-tpl/pkg/luhn"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -20,90 +22,98 @@ type JWTClient interface {
 	GetUserID(tokenString string) (int, error)
 }
 
+type UserExister interface {
+	GetIsUserExistById(ctx context.Context, userId int) (bool, error)
+}
+
 type Service interface {
-	Login(ctx context.Context, userRegister *entity.UserLoginJSON) (*entity.UserDB, error)
+	Create(ctx context.Context, userId int, orderNumber *entity.OrderNumber) (*entity.OrderDB, error)
 }
 
 type handler struct {
-	logger        logging2.Logger
-	updateService Service
-	jwtClient     JWTClient
+	logger      logging2.Logger
+	service     Service
+	jwtClient   JWTClient
+	userExister UserExister
 }
 
-func NewHandler(logger logging2.Logger, updateService Service, jwtClient JWTClient) http2.Handler {
+func NewHandler(logger logging2.Logger, updateService Service, jwtClient JWTClient, userExister UserExister) http2.Handler {
 	return &handler{
-		logger:        logger,
-		updateService: updateService,
-		jwtClient:     jwtClient,
+		logger:      logger,
+		service:     updateService,
+		jwtClient:   jwtClient,
+		userExister: userExister,
 	}
 }
 
 func (h handler) Register(router *chi.Mux) {
-	router.Post("/api/user/orders", logging.WithPrivateRouter(http.HandlerFunc(h.orders), h.jwtClient))
+	router.Post("/api/user/orders", privateRouter.WithPrivateRouter(http.HandlerFunc(h.orders), h.jwtClient, h.userExister))
 }
 
-// userRegister /api/user/orders
+// orders /api/user/orders
+// Возможные коды ответа:
+// - `200` — номер заказа уже был загружен этим пользователем; +
+// - `202` — новый номер заказа принят в обработку; +
+// - `400` — неверный формат запроса; +
+// - `401` — пользователь не аутентифицирован; (проверяется через мидлвару) +
+// - `409` — номер заказа уже был загружен другим пользователем; +
+// - `422` — неверный формат номера заказа; +
+// - `500` — внутренняя ошибка сервера. +
 func (h handler) orders(writer http.ResponseWriter, request *http.Request) {
-	userId := request.Context().Value("userId")
-	writer.Write([]byte(strconv.Itoa(userId.(int))))
-	writer.WriteHeader(http.StatusOK)
+	order, err := decodeOrder(request.Body)
 
-	//userLogin, err := decodeUserLogin(request.Body)
-	//if err != nil {
-	//	h.logger.Error(err)
-	//	// 400 — неверный формат запроса;
-	//	writer.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//// Валидация body полей
-	//if len(userLogin.Password) == 0 || len(userLogin.Login) == 0 {
-	//	// 400 — неверный формат запроса;
-	//	writer.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//userDB, err := h.updateService.Login(request.Context(), userLogin)
-	//// 401 — неверная пара логин/пароль;
-	//if errors.Is(err, user.ErrInvalidLoginPasswordCombination) {
-	//	writer.WriteHeader(http.StatusUnauthorized)
-	//	return
-	//}
-	//if err != nil {
-	//	writer.WriteHeader(http.StatusInternalServerError)
-	//	return
-	//} else {
-	//	authToken, err := h.jwtClient.BuildJWTString(userDB.ID)
-	//	if err != nil {
-	//		writer.WriteHeader(http.StatusBadRequest)
-	//		return
-	//	}
-	//
-	//	setAuthCookie(writer, authToken, h.jwtClient.GetTokenExp())
-	//	writer.WriteHeader(http.StatusOK)
-	//	return
-	//}
-}
-
-func decodeUserLogin(body io.ReadCloser) (*entity.UserLoginJSON, error) {
-	var userLogin entity.UserLoginJSON
-
-	decoder := json.NewDecoder(body)
-	err := decoder.Decode(&userLogin)
-
-	return &userLogin, err
-}
-
-func setAuthCookie(w http.ResponseWriter, authToken string, tokenExp time.Duration) {
-	cookie := http.Cookie{
-		Name:     "at", // accessToken
-		Value:    authToken,
-		Path:     "/",
-		MaxAge:   int(tokenExp),
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+	// `400` — неверный формат запроса;
+	if err != nil {
+		h.logger.Error(err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	http.SetCookie(w, &cookie)
+	// `422` — неверный формат номера заказа;
+	if !luhn.Valid(*order) {
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	userId := request.Context().Value("userId").(int)
+
+	_, err = h.service.Create(request.Context(), userId, (*entity.OrderNumber)(order))
+	if errors.Is(err, user.ErrOrderNumberAlreadyUploadByCurrentUser) {
+		// `200` — номер заказа уже был загружен этим пользователем;
+		writer.WriteHeader(http.StatusOK)
+		return
+	}
+	if errors.Is(err, user.ErrOrderNumberAlreadyUploadByOtherUser) {
+		// `409` — номер заказа уже был загружен другим пользователем;
+		writer.WriteHeader(http.StatusConflict)
+		return
+	}
+	if err != nil {
+		// `500` — внутренняя ошибка сервера.
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// `202` — новый номер заказа принят в обработку;
+	writer.WriteHeader(http.StatusAccepted)
+}
+
+func decodeOrder(body io.ReadCloser) (*int, error) {
+	// Читаем тело запроса
+	bodyByte, err := io.ReadAll(body)
+	if err != nil {
+
+		return nil, err
+	}
+
+	// Преобразовываем тело запроса в строку
+	bodyString := string(bodyByte)
+
+	// Пробуем преобразовать строку в число
+	number, err := strconv.Atoi(bodyString)
+	if err != nil {
+		return nil, err
+	}
+
+	return &number, nil
 }

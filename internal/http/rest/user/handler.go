@@ -13,14 +13,14 @@ type Service interface {
 }
 
 type handler struct {
-	logger        logging2.Logger
-	updateService Service
+	logger  logging2.Logger
+	service Service
 }
 
 func NewHandler(logger logging2.Logger, updateService Service) http2.Handler {
 	return &handler{
-		logger:        logger,
-		updateService: updateService,
+		logger:  logger,
+		service: updateService,
 	}
 }
 
@@ -30,7 +30,7 @@ func (h handler) Register(router *chi.Mux) {
 
 // Ping /ping/{type}/{name}
 func (h handler) Ping(writer http.ResponseWriter, request *http.Request) {
-	err := h.updateService.Ping(request.Context())
+	err := h.service.Ping(request.Context())
 	if err != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		_, err = writer.Write([]byte(err.Error()))

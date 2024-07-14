@@ -67,7 +67,7 @@ func (s *storage) Register(ctx context.Context, userRegister *entity.UserRegiste
 
 func (s *storage) Login(ctx context.Context, userRegister *entity.UserLoginJSON) (*entity.UserDB, error) {
 	var userDB entity.UserDB
-	
+
 	err := s.db.QueryRow(
 		ctx,
 		"SELECT id, login, password FROM gophermart.users WHERE login = $1 AND password = $2",
@@ -76,6 +76,25 @@ func (s *storage) Login(ctx context.Context, userRegister *entity.UserLoginJSON)
 	).Scan(&userDB.ID, &userDB.Login, &userDB.Password)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrInvalidLoginPasswordCombination
+	}
+	if err != nil {
+		s.logger.Error(err)
+		return nil, err
+	}
+
+	return &userDB, nil
+}
+
+func (s *storage) GetById(ctx context.Context, userId int) (*entity.UserDB, error) {
+	var userDB entity.UserDB
+
+	err := s.db.QueryRow(
+		ctx,
+		"SELECT id, login, password FROM gophermart.users WHERE id = $1",
+		userId,
+	).Scan(&userDB.ID, &userDB.Login, &userDB.Password)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
 	}
 	if err != nil {
 		s.logger.Error(err)

@@ -1,8 +1,12 @@
 package server
 
 import (
-	"github.com/GTech1256/go-musthave-diploma-tpl/internal/composition"
+	"errors"
+	orderComposition "github.com/GTech1256/go-musthave-diploma-tpl/internal/composition/order"
+	userComposition "github.com/GTech1256/go-musthave-diploma-tpl/internal/composition/user"
 	"github.com/GTech1256/go-musthave-diploma-tpl/internal/config"
+	sql2 "github.com/GTech1256/go-musthave-diploma-tpl/internal/db/sql"
+	jwt2 "github.com/GTech1256/go-musthave-diploma-tpl/pkg/jwt"
 	logging2 "github.com/GTech1256/go-musthave-diploma-tpl/pkg/logging"
 	"github.com/go-chi/chi/v5"
 	"log"
@@ -15,12 +19,22 @@ type App struct {
 	cfg    *config.Config
 }
 
-func New(cfg *config.Config, logger logging2.Logger) (*App, error) {
+var (
+	ErrNoSQLConnection = errors.New("нет подключения к БД")
+)
 
+func New(cfg *config.Config, logger logging2.Logger) (*App, error) {
+	jwtClient := jwt2.NewJwt(*cfg.JWTTokenExp, *cfg.JWTSecretKey)
+	sql, err := sql2.NewSQL(*cfg.DatabaseURI)
+	defer sql.DB.Close()
+	if err != nil {
+		logger.Error(err)
+		return nil, ErrNoSQLConnection
+	}
 	router := chi.NewRouter()
 
 	logger.Info("Создание userComposite")
-	userComposite, err := composition.NewUserComposite(cfg, logger)
+	userComposite, err := userComposition.NewUserComposite(cfg, logger, sql.DB, jwtClient)
 	if err != nil {
 		logger.Fatalf("Ошибка создания userComposite %v", err)
 		return nil, err
@@ -28,6 +42,16 @@ func New(cfg *config.Config, logger logging2.Logger) (*App, error) {
 
 	logger.Info("Регистрация /user Роутов")
 	userComposite.Handler.Register(router)
+
+	logger.Info("Создание userComposite")
+	orderComposite, err := orderComposition.NewOrderComposite(cfg, logger, sql.DB, jwtClient, userComposite.Service)
+	if err != nil {
+		logger.Fatalf("Ошибка создания userComposite %v", err)
+		return nil, err
+	}
+
+	logger.Info("Регистрация /user/order Роутов")
+	orderComposite.Handler.Register(router)
 
 	logger.Infof("Start Listen Port %v", *cfg.Port)
 	log.Fatal(http.ListenAndServe(*cfg.Port, router))
