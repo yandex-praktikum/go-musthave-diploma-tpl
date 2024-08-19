@@ -45,6 +45,9 @@ func (bh *BalanceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.
 			http.Error(w, message, statusCode)
 			return
 		}
+		if len(withdrawals) == 0 {
+			http.Error(w, "withdrawals not found", http.StatusNoContent)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(withdrawals)
@@ -53,7 +56,7 @@ func (bh *BalanceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusMethodNotAllowed)
 }
 
-func (bh *BalanceHandlers) CrateWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
+func (bh *BalanceHandlers) CreateWithdrawalsHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	user := middlewares.GetUserFromRequest(r)
 	if r.Method == http.MethodPost {

@@ -29,10 +29,10 @@ func (bs *BalanceService) GetUserWithdrawals(ctx context.Context, userID uuid.UU
 
 func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string, sum uint, userID uuid.UUID) (*models.Withdraw, error) {
 	if sum == 0 {
-		return nil, custom_errors.NewErrorWithHttpStatus("sum cannot be 0", http.StatusBadRequest)
+		return nil, custom_errors.NewErrorWithHttpStatus("sum cannot be 0", http.StatusPaymentRequired)
 	}
 	if orderNumber == "" {
-		return nil, custom_errors.NewErrorWithHttpStatus("order number cannot be empty", http.StatusBadRequest)
+		return nil, custom_errors.NewErrorWithHttpStatus("order number cannot be empty", http.StatusUnprocessableEntity)
 	}
 	if !utils.CheckLuhnAlg(orderNumber) {
 		return nil, custom_errors.NewErrorWithHttpStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)

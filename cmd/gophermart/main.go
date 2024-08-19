@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/eac0de/gophermart/internal/config"
 	"github.com/eac0de/gophermart/internal/database"
 	"github.com/eac0de/gophermart/internal/handlers"
 	"github.com/eac0de/gophermart/internal/services"
@@ -16,26 +17,29 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const SK = "supersecretkey"
-
 func main() {
 	logger.InitLogger("info")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	database, err := database.NewDatabase(ctx, "host=localhost user=postgres password=351762 dbname=gophermart sslmode=disable")
+
+	appConfig := config.NewAppConfig()
+
+	database, err := database.NewDatabase(ctx, appConfig.DatabaseURI)
 	if err != nil {
 		panic(err)
 	}
 	defer database.Close()
+
 	router := mux.NewRouter()
+
+	tokenService := jwt.NewJWTTokenService(appConfig.SecretKey, 30*time.Minute, 48*time.Hour, database)
 
 	router.Use(middlewares.GetLoggerMiddleware())
 	router.Use(middlewares.GetGzipMiddleware())
-	tokenService := jwt.NewJWTTokenService(SK, 30*time.Minute, 48*time.Hour, database)
 	router.Use(middlewares.GetJWTAuthMiddleware(tokenService, database))
 
-	AuthService := services.NewAuthService(SK, database)
-	authHandlers := handlers.NewAuthHandlers(tokenService, AuthService)
+	authService := services.NewAuthService(appConfig.SecretKey, database)
+	authHandlers := handlers.NewAuthHandlers(tokenService, authService)
 	router.HandleFunc("/api/user/register", authHandlers.RegisterHandler).Methods(http.MethodPost)
 	router.HandleFunc("/api/user/login", authHandlers.LoginHandler).Methods(http.MethodPost)
 	router.HandleFunc("/api/user/refresh_token", authHandlers.RefreshTokenHandler).Methods(http.MethodPost)
@@ -55,8 +59,8 @@ func main() {
 	balanceHandlers := handlers.NewBalanceHandlers(balanceService)
 	router.HandleFunc("/api/user/balance", balanceHandlers.BalanceHandler).Methods(http.MethodGet)
 	router.HandleFunc("/api/user/withdrawals", balanceHandlers.GetWithdrawalsHandler).Methods(http.MethodGet)
-	router.HandleFunc("/api/user/balance/withdraw", balanceHandlers.CrateWithdrawalsHandler).Methods(http.MethodPost)
+	router.HandleFunc("/api/user/balance/withdraw", balanceHandlers.CreateWithdrawalsHandler).Methods(http.MethodPost)
 
-	log.Printf("Server http://localhost:8000 is running. Press Ctrl+C to stop")
-	http.ListenAndServe(":8000", router)
+	log.Printf("Server http://%s is running. Press Ctrl+C to stop", appConfig.RunAddress)
+	http.ListenAndServe(appConfig.RunAddress, router)
 }

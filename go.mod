@@ -3,6 +3,8 @@ module github.com/eac0de/gophermart
 go 1.22.5
 
 require (
+	github.com/caarlos0/env/v6 v6.10.1
+	github.com/go-resty/resty/v2 v2.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
@@ -12,7 +14,6 @@ require (
 )
 
 require (
-	github.com/go-resty/resty/v2 v2.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
