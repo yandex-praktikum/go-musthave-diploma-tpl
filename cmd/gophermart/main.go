@@ -50,7 +50,7 @@ func main() {
 	router.HandleFunc("/api/user/me", userHandlers.UserHandler).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete)
 
 	client := resty.New()
-	orderService := services.NewOrderService(database, client)
+	orderService := services.NewOrderService(database, client, appConfig.AccrualSystemAddress)
 	go orderService.StartProcessingOrders(ctx)
 	orderHandlers := handlers.NewOrderHandlers(orderService)
 	router.HandleFunc("/api/user/orders", orderHandlers.OrderHandler).Methods(http.MethodGet, http.MethodPost)

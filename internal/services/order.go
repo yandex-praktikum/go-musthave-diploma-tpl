@@ -16,14 +16,16 @@ import (
 )
 
 type OrderService struct {
-	client     *resty.Client
-	orderStore OrderStore
+	client               *resty.Client
+	orderStore           OrderStore
+	accrualSystemAddress string
 }
 
-func NewOrderService(orderStore OrderStore, client *resty.Client) *OrderService {
+func NewOrderService(orderStore OrderStore, client *resty.Client, accrualSystemAddress string) *OrderService {
 	return &OrderService{
-		client:     client,
-		orderStore: orderStore,
+		client:               client,
+		orderStore:           orderStore,
+		accrualSystemAddress: accrualSystemAddress,
 	}
 }
 
@@ -86,7 +88,7 @@ func (os *OrderService) StartProcessingOrders(ctx context.Context) {
 }
 
 func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *models.Order) error {
-	url := fmt.Sprintf("%s/api/orders/%v", "http://localhost:8080", order.Number)
+	url := fmt.Sprintf("%s/api/orders/%v", os.accrualSystemAddress, order.Number)
 	request := os.client.
 		R().
 		SetHeader("Accept-Encoding", "gzip")
