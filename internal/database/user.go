@@ -52,7 +52,7 @@ func (db *Database) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.ID == uuid.Nil {
 		return fmt.Errorf("when updating user, his id can't be empty")
 	}
-	query := "UPDATE users SET name=$2, age=$3, username=$4, balance=$6, password=$7, refresh_token=$8 WHERE id=$1"
+	query := "UPDATE users SET name=$2, age=$3, username=$4, balance=$5, password=$6, refresh_token=$7 WHERE id=$1"
 	_, err := db.ExecContext(
 		ctx,
 		query,
