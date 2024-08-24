@@ -27,7 +27,7 @@ func (bs *BalanceService) GetUserWithdrawals(ctx context.Context, userID uuid.UU
 	return bs.withdrawStore.SelectUserWithdrawals(ctx, userID)
 }
 
-func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string, sum float64, userID uuid.UUID) (*models.Withdraw, error) {
+func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string, sum float32, userID uuid.UUID) (*models.Withdraw, error) {
 	if sum == 0 {
 		return nil, custom_errors.NewErrorWithHttpStatus("sum cannot be 0", http.StatusPaymentRequired)
 	}

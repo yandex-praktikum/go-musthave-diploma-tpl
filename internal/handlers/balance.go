@@ -63,7 +63,7 @@ func (bh *BalanceHandlers) CreateWithdrawalsHandler(w http.ResponseWriter, r *ht
 	if r.Method == http.MethodPost {
 		var reqBody struct {
 			Order string  `json:"order"`
-			Sum   float64 `json:"sum"`
+			Sum   float32 `json:"sum"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
