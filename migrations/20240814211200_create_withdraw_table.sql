@@ -3,7 +3,7 @@
 CREATE TABLE withdrawals (
     id UUID PRIMARY KEY,
     "order" VARCHAR(100) NOT NULL,
-    sum INTEGER NOT NULL,
+    sum FLOAT NOT NULL,
     processed_at TIMESTAMPTZ NOT NULL,
     user_id UUID NOT NULL,
     CONSTRAINT fk_user

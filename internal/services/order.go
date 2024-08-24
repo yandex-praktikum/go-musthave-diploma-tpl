@@ -105,9 +105,9 @@ func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *mode
 		return fmt.Errorf("send order for calculation error: %s", string(resp.Body()))
 	}
 	var respBody struct {
-		Order   string `json:"order"`
-		Status  string `json:"status"`
-		Accrual uint   `json:"accrual"`
+		Order   string  `json:"order"`
+		Status  string  `json:"status"`
+		Accrual float64 `json:"accrual"`
 	}
 	err = json.Unmarshal(resp.Body(), &respBody)
 	if err != nil {

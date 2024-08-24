@@ -61,8 +61,8 @@ func (bh *BalanceHandlers) CreateWithdrawalsHandler(w http.ResponseWriter, r *ht
 	user := middlewares.GetUserFromRequest(r)
 	if r.Method == http.MethodPost {
 		var reqBody struct {
-			Order string `json:"order"`
-			Sum   uint   `json:"sum"`
+			Order string  `json:"order"`
+			Sum   float64 `json:"sum"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)

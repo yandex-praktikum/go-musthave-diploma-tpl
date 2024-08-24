@@ -16,7 +16,7 @@ const (
 type Order struct {
 	ID         uuid.UUID `json:"-"`
 	Number     string    `json:"number"`
-	Accrual    uint      `json:"accrual,omitempty"`
+	Accrual    float64      `json:"accrual,omitempty"`
 	Status     string    `json:"status"`
 	UserID     uuid.UUID `json:"-"`
 	UploadedAt time.Time `json:"uploaded_at"`

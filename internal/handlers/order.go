@@ -32,6 +32,7 @@ func (oh *OrderHandlers) OrderHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if len(orders) == 0 {
 			http.Error(w, "orders not found", http.StatusNoContent)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -53,6 +54,7 @@ func (oh *OrderHandlers) OrderHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
 		json.NewEncoder(w).Encode(order)
+		return
 	}
 	w.WriteHeader(http.StatusMethodNotAllowed)
 }

@@ -3,7 +3,7 @@
 CREATE TABLE orders (
     id UUID PRIMARY KEY,
     number VARCHAR(100) NOT NULL UNIQUE,
-    accrual INTEGER  NOT NULL,
+    accrual FLOAT  NOT NULL,
     status VARCHAR(50) NOT NULL,
     user_id UUID NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL,
