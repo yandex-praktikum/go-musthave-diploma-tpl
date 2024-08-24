@@ -2,10 +2,8 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/eac0de/gophermart/internal/models"
-	"github.com/eac0de/gophermart/pkg/utils"
 	"github.com/google/uuid"
 )
 
@@ -22,23 +20,7 @@ func (us *UserService) UpdateUser(
 	user *models.User,
 	name *string,
 	age *uint8,
-	email *string,
 ) error {
-	if email != nil {
-		email := *email
-		if email != user.Email {
-			err := utils.ValidateEmail(email)
-			if err != nil {
-				return err
-			}
-			u, _ := us.userStore.SelectUserByEmail(ctx, email)
-			if u != nil {
-				return fmt.Errorf("there's a registered user with this e-mail address")
-			}
-			user.Email = email
-			user.EmailConfirmed = false
-		}
-	}
 	if name != nil {
 		user.Name = *name
 	}

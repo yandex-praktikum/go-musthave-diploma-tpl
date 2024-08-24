@@ -36,15 +36,14 @@ func (uh *UserHandlers) UserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if r.Method == http.MethodPatch {
 		var requestBody struct {
-			Name  *string `json:"name"`
-			Age   *uint8  `json:"age"`
-			Email *string `json:"email"`
+			Name *string `json:"name"`
+			Age  *uint8  `json:"age"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
 			return
 		}
-		err := uh.userService.UpdateUser(r.Context(), user, requestBody.Name, requestBody.Age, requestBody.Email)
+		err := uh.userService.UpdateUser(r.Context(), user, requestBody.Name, requestBody.Age)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

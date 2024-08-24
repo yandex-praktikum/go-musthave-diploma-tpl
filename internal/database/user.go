@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func (db *Database) SelectUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	query := "SELECT id, name, age, email, email_confirmed, balance, password FROM users WHERE email=$1"
-	row := db.QueryRowContext(ctx, query, email)
+func (db *Database) SelectUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	query := "SELECT id, name, age, username, balance, password FROM users WHERE username=$1"
+	row := db.QueryRowContext(ctx, query, username)
 	user := models.User{}
-	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Email, &user.EmailConfirmed, &user.Balance, &user.Password)
+	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Username, &user.Balance, &user.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -20,10 +20,10 @@ func (db *Database) SelectUserByEmail(ctx context.Context, email string) (*model
 }
 
 func (db *Database) SelectUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
-	query := "SELECT id, name, age, email, email_confirmed, balance, password  FROM users WHERE id=$1"
+	query := "SELECT id, name, age, username, balance, password  FROM users WHERE id=$1"
 	row := db.QueryRowContext(ctx, query, userID)
 	user := models.User{}
-	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Email, &user.EmailConfirmed, &user.Balance, &user.Password)
+	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Username, &user.Balance, &user.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +31,8 @@ func (db *Database) SelectUserByID(ctx context.Context, userID uuid.UUID) (*mode
 }
 
 func (db *Database) InsertUser(ctx context.Context, user *models.User) error {
-	query := "INSERT INTO users (id, name, age, email, email_confirmed, balance, password) VALUES($1,$2,$3,$4,$5,$6,$7)"
-	_, err := db.ExecContext(ctx, query, user.ID, user.Name, user.Age, user.Email, user.EmailConfirmed, user.Balance, user.Password)
+	query := "INSERT INTO users (id, name, age, username, balance, password) VALUES($1,$2,$3,$4,$5,$6)"
+	_, err := db.ExecContext(ctx, query, user.ID, user.Name, user.Age, user.Username, user.Balance, user.Password)
 	if err != nil {
 		return err
 	}
@@ -52,15 +52,14 @@ func (db *Database) UpdateUser(ctx context.Context, user *models.User) error {
 	if user.ID == uuid.Nil {
 		return fmt.Errorf("when updating user, his id can't be empty")
 	}
-	query := "UPDATE users SET name=$2, age=$3, email=$4, email_confirmed=$5, balance=$6, password=$7, refresh_token=$8 WHERE id=$1"
+	query := "UPDATE users SET name=$2, age=$3, username=$4, balance=$6, password=$7, refresh_token=$8 WHERE id=$1"
 	_, err := db.ExecContext(
 		ctx,
 		query,
 		user.ID,
 		user.Name,
 		user.Age,
-		user.Email,
-		user.EmailConfirmed,
+		user.Username,
 		user.Balance,
 		user.Password,
 		user.RefreshToken,

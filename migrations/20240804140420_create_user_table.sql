@@ -4,14 +4,13 @@ CREATE TABLE users (
     id UUID PRIMARY KEY,
     name VARCHAR(255),
     age SMALLINT,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    email_confirmed BOOLEAN,
+    username VARCHAR(255) NOT NULL,
     balance INTEGER,
     withdrawn INTEGER,
     password VARCHAR(255) NOT NULL,
     refresh_token VARCHAR(255)
 );
-CREATE INDEX users_email_index ON users (email);
+CREATE INDEX users_username_index ON users (username);
 -- +goose StatementEnd
 
 -- +goose Down

@@ -18,30 +18,26 @@ func NewAuthService(SecretKey string, authStore AuthStore) *AuthService {
 	return &AuthService{SecretKey: SecretKey, authStore: authStore}
 }
 
-func (as *AuthService) CreateUser(ctx context.Context, email string, password string) (*models.User, error) {
-	err := utils.ValidateEmail(email)
-	if err != nil {
-		return nil, err
-	}
-	u, _ := as.authStore.SelectUserByEmail(ctx, email)
+func (as *AuthService) CreateUser(ctx context.Context, username string, password string) (*models.User, error) {
+	u, _ := as.authStore.SelectUserByUsername(ctx, username)
 	if u != nil {
 		return nil, fmt.Errorf("there's a registered user with this e-mail address")
 	}
 	hashPassword := utils.HashPassword(password, as.SecretKey)
 	user := &models.User{
 		ID:       uuid.New(),
-		Email:    email,
+		Username: username,
 		Password: hashPassword,
 	}
-	err = as.authStore.InsertUser(ctx, user)
+	err := as.authStore.InsertUser(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
-func (as *AuthService) GetUser(ctx context.Context, email string, password string) (*models.User, error) {
-	user, err := as.authStore.SelectUserByEmail(ctx, email)
+func (as *AuthService) GetUser(ctx context.Context, username string, password string) (*models.User, error) {
+	user, err := as.authStore.SelectUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +48,8 @@ func (as *AuthService) GetUser(ctx context.Context, email string, password strin
 	return user, nil
 }
 
-func (as *AuthService) ChangePassword(ctx context.Context, email string, password string) error {
-	user, err := as.authStore.SelectUserByEmail(ctx, email)
+func (as *AuthService) ChangePassword(ctx context.Context, username string, password string) error {
+	user, err := as.authStore.SelectUserByUsername(ctx, username)
 	if err != nil {
 		return err
 	}

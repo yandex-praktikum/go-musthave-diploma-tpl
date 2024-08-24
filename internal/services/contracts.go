@@ -8,7 +8,7 @@ import (
 )
 
 type AuthStore interface {
-	SelectUserByEmail(ctx context.Context, email string) (*models.User, error)
+	SelectUserByUsername(ctx context.Context, username string) (*models.User, error)
 	InsertUser(ctx context.Context, user *models.User) error
 	UpdateUser(ctx context.Context, user *models.User) error
 }
@@ -26,7 +26,7 @@ type OrderStore interface {
 type UserStore interface {
 	UpdateUser(ctx context.Context, user *models.User) error
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
-	SelectUserByEmail(ctx context.Context, email string) (*models.User, error)
+	SelectUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
 type WithdrawStore interface {

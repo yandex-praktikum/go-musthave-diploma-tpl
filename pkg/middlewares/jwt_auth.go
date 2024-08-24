@@ -44,11 +44,6 @@ func GetJWTAuthMiddleware(tokenService *jwt.JWTTokenService, userStore UserStore
 				w.Write([]byte("User not found"))
 				return
 			}
-			// if !user.EmailConfirmed {
-			// 	w.WriteHeader(http.StatusForbidden)
-			// 	w.Write([]byte("You need to confirm your email"))
-			// 	return
-			// }
 			ctx := context.WithValue(r.Context(), UserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

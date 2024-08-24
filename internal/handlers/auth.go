@@ -118,7 +118,7 @@ func (ah *AuthHandlers) ChangePasswordHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Invalid request payload ", http.StatusBadRequest)
 		return
 	}
-	err := ah.AuthService.ChangePassword(r.Context(), user.Email, *requestBody.Password)
+	err := ah.AuthService.ChangePassword(r.Context(), user.Username, *requestBody.Password)
 	if err != nil {
 		http.Error(w, "Failed to update password the account", http.StatusBadRequest)
 		return
