@@ -44,7 +44,7 @@ func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) 
 	authorizationHeader := fmt.Sprintf("Bearer %s", tokens.AccessToken)
 	w.Header().Set("Authorization", authorizationHeader)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(tokens)
 }
 
