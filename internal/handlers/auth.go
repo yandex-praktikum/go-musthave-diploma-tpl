@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/eac0de/gophermart/internal/services"
@@ -40,6 +41,8 @@ func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	authorizationHeader := fmt.Sprintf("Bearer %s", tokens.AccessToken)
+	w.Header().Set("Authorization", authorizationHeader)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(tokens)
@@ -64,6 +67,8 @@ func (ah *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	authorizationHeader := fmt.Sprintf("Bearer %s", tokens.AccessToken)
+	w.Header().Set("Authorization", authorizationHeader)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(tokens)
@@ -93,6 +98,8 @@ func (ah *AuthHandlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Reque
 	}{
 		AccessToken: newAccessToken,
 	}
+	authorizationHeader := fmt.Sprintf("Bearer %s", newAccessToken)
+	w.Header().Set("Authorization", authorizationHeader)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(responseBody)
