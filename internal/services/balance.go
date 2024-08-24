@@ -48,6 +48,7 @@ func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string
 		return nil, custom_errors.NewErrorWithHttpStatus("not enough points", http.StatusPaymentRequired)
 	}
 	user.Balance -= sum
+	user.Withdrawn += sum
 	err = bs.withdrawStore.UpdateUser(ctx, user)
 	if err != nil {
 		return nil, err
