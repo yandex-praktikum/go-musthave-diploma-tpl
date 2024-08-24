@@ -5,8 +5,8 @@ CREATE TABLE users (
     name VARCHAR(255),
     age SMALLINT,
     username VARCHAR(255) NOT NULL,
-    balance FLOAT,
-    withdrawn FLOAT,
+    balance FLOAT NOT NULL,
+    withdrawn FLOAT NOT NULL,
     password VARCHAR(255) NOT NULL,
     refresh_token VARCHAR(255)
 );

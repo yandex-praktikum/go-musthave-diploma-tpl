@@ -34,6 +34,9 @@ func NewDatabase(ctx context.Context, DSN string) (*Database, error) {
 
 func (db *Database) Migrate(ctx context.Context) error {
 	migrationsDir := "./migrations"
+	// if err := goose.ResetContext(ctx, db.DB, migrationsDir); err != nil {
+	// 	return err
+	// }
 	if err := goose.UpContext(ctx, db.DB, migrationsDir); err != nil {
 		return err
 	}

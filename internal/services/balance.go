@@ -55,6 +55,7 @@ func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string
 	withdraw := &models.Withdraw{
 		ID:          uuid.New(),
 		Order:       orderNumber,
+		Sum:         sum,
 		ProcessedAt: time.Now(),
 		UserID:      user.ID,
 	}

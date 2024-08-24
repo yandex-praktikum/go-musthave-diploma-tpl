@@ -21,7 +21,7 @@ func NewAuthService(SecretKey string, authStore AuthStore) *AuthService {
 func (as *AuthService) CreateUser(ctx context.Context, username string, password string) (*models.User, error) {
 	u, _ := as.authStore.SelectUserByUsername(ctx, username)
 	if u != nil {
-		return nil, fmt.Errorf("there's a registered user with this e-mail address")
+		return nil, fmt.Errorf("there's a registered user with this username address")
 	}
 	hashPassword := utils.HashPassword(password, as.SecretKey)
 	user := &models.User{

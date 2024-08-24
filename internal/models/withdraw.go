@@ -9,7 +9,7 @@ import (
 type Withdraw struct {
 	ID          uuid.UUID `json:"id"`
 	Order       string    `json:"order"`
-	Sum         int       `json:"sum"`
+	Sum         float64   `json:"sum"`
 	ProcessedAt time.Time `json:"processed_at"`
 	UserID      uuid.UUID `json:"-"`
 }

@@ -47,6 +47,7 @@ func (bh *BalanceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.
 		}
 		if len(withdrawals) == 0 {
 			http.Error(w, "withdrawals not found", http.StatusNoContent)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

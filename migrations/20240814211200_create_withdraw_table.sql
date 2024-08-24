@@ -8,10 +8,7 @@ CREATE TABLE withdrawals (
     user_id UUID NOT NULL,
     CONSTRAINT fk_user
         FOREIGN KEY(user_id) 
-        REFERENCES users(id),
-    CONSTRAINT fk_order
-        FOREIGN KEY("order") 
-        REFERENCES orders(number)
+        REFERENCES users(id)
 );
 CREATE INDEX withdrawals_order_index ON withdrawals("order");
 CREATE INDEX withdrawals_user_id_index ON withdrawals(user_id);

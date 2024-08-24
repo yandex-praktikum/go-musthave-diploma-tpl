@@ -30,7 +30,7 @@ func (db *Database) SelectUserWithdrawals(ctx context.Context, userID uuid.UUID)
 }
 
 func (db *Database) InsertWithdraw(ctx context.Context, withdraw *models.Withdraw) error {
-	query := "INSERT INTO withdrawals (id, order, sum, processed_at, user_id) VALUES($1,$2,$3,$4,$5)"
+	query := "INSERT INTO withdrawals (id, \"order\", sum, processed_at, user_id) VALUES($1,$2,$3,$4,$5)"
 	_, err := db.ExecContext(ctx, query, withdraw.ID, withdraw.Order, withdraw.Sum, withdraw.ProcessedAt, withdraw.UserID)
 	if err != nil {
 		return err
