@@ -23,7 +23,7 @@ func NewAppConfig() *AppConfig {
 func (ac *AppConfig) ReadFlags() {
 	flag.StringVar(&ac.RunAddress, "a", "localhost:8000", "app address and port")
 	flag.StringVar(&ac.DatabaseURI, "d", "host=localhost user=postgres password=351762 dbname=gophermart sslmode=disable", "database uri")
-	flag.StringVar(&ac.AccrualSystemAddress, "r", "localhost:8080", "accrual system address and port")
+	flag.StringVar(&ac.AccrualSystemAddress, "r", "http://localhost:8080", "accrual system address and port")
 	flag.StringVar(&ac.SecretKey, "sk", "supersecretkey", "secret key")
 	flag.Parse()
 }

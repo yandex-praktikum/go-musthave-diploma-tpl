@@ -88,7 +88,7 @@ func (os *OrderService) StartProcessingOrders(ctx context.Context) {
 }
 
 func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *models.Order) error {
-	url := fmt.Sprintf("http://%s/api/orders/%v", os.accrualSystemAddress, order.Number)
+	url := fmt.Sprintf("%s/api/orders/%v", os.accrualSystemAddress, order.Number)
 	request := os.client.
 		R().
 		SetHeader("Accept-Encoding", "gzip")
