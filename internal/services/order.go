@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	custom_errors "github.com/eac0de/gophermart/internal/errors"
+	"github.com/eac0de/gophermart/internal/errors"
 	"github.com/eac0de/gophermart/internal/models"
 	"github.com/eac0de/gophermart/pkg/utils"
 	"github.com/go-resty/resty/v2"
@@ -31,17 +31,17 @@ func NewOrderService(orderStore OrderStore, client *resty.Client, accrualSystemA
 
 func (os *OrderService) AddOrder(ctx context.Context, number string, userID uuid.UUID) (*models.Order, error) {
 	if number == "" {
-		return nil, custom_errors.NewErrorWithHTTPStatus("order number cannot be empty", http.StatusBadRequest)
+		return nil, errors.NewErrorWithHTTPStatus("order number cannot be empty", http.StatusBadRequest)
 	}
 	if !utils.CheckLuhnAlg(number) {
-		return nil, custom_errors.NewErrorWithHTTPStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
+		return nil, errors.NewErrorWithHTTPStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
 	}
 	order, _ := os.orderStore.SelectOrderByNumber(ctx, number)
 	if order != nil {
 		if order.UserID == userID {
-			return nil, custom_errors.NewErrorWithHTTPStatus("order number has already been uploaded by you", http.StatusOK)
+			return nil, errors.NewErrorWithHTTPStatus("order number has already been uploaded by you", http.StatusOK)
 		}
-		return nil, custom_errors.NewErrorWithHTTPStatus("order number has already been uploaded by another user", http.StatusConflict)
+		return nil, errors.NewErrorWithHTTPStatus("order number has already been uploaded by another user", http.StatusConflict)
 	}
 	order = &models.Order{
 		ID:         uuid.New(),

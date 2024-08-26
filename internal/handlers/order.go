@@ -26,7 +26,7 @@ func (oh *OrderHandlers) OrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		orders, err := oh.orderService.GetUserOrders(r.Context(), user.ID)
 		if err != nil {
-			message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+			message, statusCode := errors.GetMessageAndStatusCode(err)
 			http.Error(w, message, statusCode)
 			return
 		}
@@ -41,13 +41,13 @@ func (oh *OrderHandlers) OrderHandler(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == http.MethodPost {
 		orderNumber, err := io.ReadAll(r.Body)
 		if err != nil {
-			message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+			message, statusCode := errors.GetMessageAndStatusCode(err)
 			http.Error(w, message, statusCode)
 			return
 		}
 		order, err := oh.orderService.AddOrder(r.Context(), string(orderNumber), user.ID)
 		if err != nil {
-			message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+			message, statusCode := errors.GetMessageAndStatusCode(err)
 			http.Error(w, message, statusCode)
 			return
 		}
