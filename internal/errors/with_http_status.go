@@ -5,25 +5,24 @@ import (
 	"net/http"
 )
 
-type ErrorWithHttpStatus struct {
+type ErrorWithHTTPStatus struct {
 	Message    string
 	StatusCode int
-	Err        error
 }
 
-func (e *ErrorWithHttpStatus) Error() string {
+func (e *ErrorWithHTTPStatus) Error() string {
 	return e.Message
 }
 
-func NewErrorWithHttpStatus(message string, statusCode int) error {
-	return &ErrorWithHttpStatus{
+func NewErrorWithHTTPStatus(message string, statusCode int) error {
+	return &ErrorWithHTTPStatus{
 		Message:    message,
 		StatusCode: statusCode,
 	}
 }
 
 func GetMessageAndStatusCode(err error) (string, int) {
-	var ewhs *ErrorWithHttpStatus
+	var ewhs *ErrorWithHTTPStatus
 	if errors.As(err, &ewhs) {
 		return ewhs.Message, ewhs.StatusCode
 	} else {
