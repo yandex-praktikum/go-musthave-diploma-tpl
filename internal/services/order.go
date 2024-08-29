@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/eac0de/gophermart/internal/custom_errors"
+	"github.com/eac0de/gophermart/internal/errors"
 	"github.com/eac0de/gophermart/internal/models"
 	"github.com/eac0de/gophermart/pkg/utils"
 	"github.com/go-resty/resty/v2"
@@ -41,22 +41,22 @@ func NewOrderService(orderStore OrderStore, client *resty.Client, accrualSystemA
 
 func (os *OrderService) AddOrder(ctx context.Context, number string, userID uuid.UUID) (*models.Order, error) {
 	if number == "" {
-		return nil, custom_errors.NewErrorWithHttpStatus("order number cannot be empty", http.StatusBadRequest)
+		return nil, errors.NewErrorWithHTTPStatus("order number cannot be empty", http.StatusBadRequest)
 	}
 	if !utils.CheckLuhnAlg(number) {
-		return nil, custom_errors.NewErrorWithHttpStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
+		return nil, errors.NewErrorWithHTTPStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
 	}
 	order, _ := os.orderStore.SelectOrderByNumber(ctx, number)
 	if order != nil {
 		if order.UserID == userID {
-			return nil, custom_errors.NewErrorWithHttpStatus("order number has already been uploaded by you", http.StatusOK)
+			return nil, errors.NewErrorWithHTTPStatus("order number has already been uploaded by you", http.StatusOK)
 		}
-		return nil, custom_errors.NewErrorWithHttpStatus("order number has already been uploaded by another user", http.StatusConflict)
+		return nil, errors.NewErrorWithHTTPStatus("order number has already been uploaded by another user", http.StatusConflict)
 	}
 	order = &models.Order{
 		ID:         uuid.New(),
 		Number:     number,
-		Status:     models.ORDER_STATUS_NEW,
+		Status:     models.OrderStatusNew,
 		UserID:     userID,
 		UploadedAt: time.Now(),
 	}
@@ -107,7 +107,7 @@ func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *mode
 		return err
 	}
 	if resp.StatusCode() == http.StatusNoContent {
-		order.Status = models.ORDER_STATUS_INVALID
+		order.Status = models.OrderStatusInvalid
 		return os.orderStore.UpdateOrder(ctx, order)
 	} else if resp.StatusCode() == http.StatusTooManyRequests {
 		return fmt.Errorf("number of requests to the service has been exceeded")
@@ -124,7 +124,7 @@ func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *mode
 		return fmt.Errorf("unmarshal response body error: %s", string(resp.Body()))
 	}
 	if respBody.Status == "PROCESSED" {
-		order.Status = models.ORDER_STATUS_PROCESSED
+		order.Status = models.OrderStatusProcessed
 		order.Accrual = respBody.Accrual
 		user, err := os.orderStore.SelectUserByID(ctx, order.UserID)
 		if err != nil {
@@ -136,9 +136,9 @@ func (os *OrderService) SendOrderForCalculation(ctx context.Context, order *mode
 			return fmt.Errorf("updating user error: %s", err.Error())
 		}
 	} else if respBody.Status == "INVALID" {
-		order.Status = models.ORDER_STATUS_INVALID
+		order.Status = models.OrderStatusInvalid
 	} else {
-		order.Status = models.ORDER_STATUS_PROCESSING
+		order.Status = models.OrderStatusProcessing
 	}
 	return os.orderStore.UpdateOrder(ctx, order)
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/eac0de/gophermart/internal/custom_errors"
+	"github.com/eac0de/gophermart/internal/errors"
 	"github.com/eac0de/gophermart/internal/services"
 	"github.com/eac0de/gophermart/pkg/middlewares"
 )
@@ -41,7 +41,7 @@ func (bh *BalanceHandlers) GetWithdrawalsHandler(w http.ResponseWriter, r *http.
 	if r.Method == http.MethodGet {
 		withdrawals, err := bh.balanceService.GetUserWithdrawals(r.Context(), user.ID)
 		if err != nil {
-			message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+			message, statusCode := errors.GetMessageAndStatusCode(err)
 			http.Error(w, message, statusCode)
 			return
 		}
@@ -71,7 +71,7 @@ func (bh *BalanceHandlers) CreateWithdrawalsHandler(w http.ResponseWriter, r *ht
 		}
 		withdrawals, err := bh.balanceService.CreateWithdraw(r.Context(), reqBody.Order, reqBody.Sum, user.ID)
 		if err != nil {
-			message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+			message, statusCode := errors.GetMessageAndStatusCode(err)
 			http.Error(w, message, statusCode)
 			return
 		}

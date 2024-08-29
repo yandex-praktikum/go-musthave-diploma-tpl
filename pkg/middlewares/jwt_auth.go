@@ -20,19 +20,19 @@ func GetJWTAuthMiddleware(tokenService *jwt.JWTTokenService, userStore UserStore
 				next.ServeHTTP(w, r)
 				return
 			}
-			authorization_header := r.Header.Get("Authorization")
-			if authorization_header == "" {
+			authorizationHeader := r.Header.Get("Authorization")
+			if authorizationHeader == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				w.Write([]byte("You must register/login"))
 				return
 			}
-			clear_token, ok := strings.CutPrefix(authorization_header, "Bearer ")
+			clearToken, ok := strings.CutPrefix(authorizationHeader, "Bearer ")
 			if !ok {
 				w.WriteHeader(http.StatusUnauthorized)
 				w.Write([]byte("Invalid Authorization header"))
 				return
 			}
-			claims, err := tokenService.ValidateAccessToken(r.Context(), clear_token)
+			claims, err := tokenService.ValidateAccessToken(r.Context(), clearToken)
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				w.Write([]byte("Invalid access token"))

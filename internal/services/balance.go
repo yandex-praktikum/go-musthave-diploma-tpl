@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/eac0de/gophermart/internal/custom_errors"
+	"github.com/eac0de/gophermart/internal/errors"
 	"github.com/eac0de/gophermart/internal/models"
 	"github.com/eac0de/gophermart/pkg/utils"
 	"github.com/google/uuid"
@@ -36,13 +36,13 @@ func (bs *BalanceService) GetUserWithdrawals(ctx context.Context, userID uuid.UU
 
 func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string, sum float32, userID uuid.UUID) (*models.Withdraw, error) {
 	if sum == 0 {
-		return nil, custom_errors.NewErrorWithHttpStatus("sum cannot be 0", http.StatusPaymentRequired)
+		return nil, errors.NewErrorWithHTTPStatus("sum cannot be 0", http.StatusPaymentRequired)
 	}
 	if orderNumber == "" {
-		return nil, custom_errors.NewErrorWithHttpStatus("order number cannot be empty", http.StatusUnprocessableEntity)
+		return nil, errors.NewErrorWithHTTPStatus("order number cannot be empty", http.StatusUnprocessableEntity)
 	}
 	if !utils.CheckLuhnAlg(orderNumber) {
-		return nil, custom_errors.NewErrorWithHttpStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
+		return nil, errors.NewErrorWithHTTPStatus("order number did not pass the Luhn algorithm check", http.StatusUnprocessableEntity)
 	}
 	bs.mu.Lock()
 	defer bs.mu.Unlock()
@@ -52,7 +52,7 @@ func (bs *BalanceService) CreateWithdraw(ctx context.Context, orderNumber string
 
 	}
 	if user.Balance < sum {
-		return nil, custom_errors.NewErrorWithHttpStatus("not enough points", http.StatusPaymentRequired)
+		return nil, errors.NewErrorWithHTTPStatus("not enough points", http.StatusPaymentRequired)
 	}
 	user.Balance -= sum
 	user.Withdrawn += sum
