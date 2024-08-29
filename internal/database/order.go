@@ -19,7 +19,7 @@ func (db *Database) InsertOrder(ctx context.Context, order *models.Order) error 
 
 func (db *Database) SelectOrdersForProccesing(ctx context.Context) ([]*models.Order, error) {
 	query := "SELECT id, number, accrual, status, user_id, uploaded_at FROM orders WHERE status IN ($1, $2)"
-	rows, err := db.Query(ctx, query, models.ORDER_STATUS_NEW, models.ORDER_STATUS_PROCESSING)
+	rows, err := db.Query(ctx, query, models.OrderStatusNew, models.OrderStatusProcessing)
 	if err != nil {
 		return nil, err
 	}

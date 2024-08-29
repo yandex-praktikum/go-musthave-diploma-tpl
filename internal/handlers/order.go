@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/eac0de/gophermart/internal/custom_errors"
+	"github.com/eac0de/gophermart/internal/errors"
 	"github.com/eac0de/gophermart/internal/services"
 	"github.com/eac0de/gophermart/pkg/middlewares"
 )
@@ -25,7 +25,7 @@ func (oh *OrderHandlers) GetListOrderHandler(w http.ResponseWriter, r *http.Requ
 	user := middlewares.GetUserFromRequest(r)
 	orders, err := oh.orderService.GetUserOrders(r.Context(), user.ID)
 	if err != nil {
-		message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+		message, statusCode := errors.GetMessageAndStatusCode(err)
 		http.Error(w, message, statusCode)
 		return
 	}
@@ -43,13 +43,13 @@ func (oh *OrderHandlers) PostOrderHandler(w http.ResponseWriter, r *http.Request
 	user := middlewares.GetUserFromRequest(r)
 	orderNumber, err := io.ReadAll(r.Body)
 	if err != nil {
-		message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+		message, statusCode := errors.GetMessageAndStatusCode(err)
 		http.Error(w, message, statusCode)
 		return
 	}
 	order, err := oh.orderService.AddOrder(r.Context(), string(orderNumber), user.ID)
 	if err != nil {
-		message, statusCode := custom_errors.GetMessageAndStatusCode(err)
+		message, statusCode := errors.GetMessageAndStatusCode(err)
 		http.Error(w, message, statusCode)
 		return
 	}
