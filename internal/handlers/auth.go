@@ -11,14 +11,14 @@ import (
 )
 
 type AuthHandlers struct {
-	TokenService *jwt.JWTTokenService
-	AuthService  *services.AuthService
+	tokenService *jwt.JWTTokenService
+	authService  *services.AuthService
 }
 
-func NewAuthHandlers(TokenService *jwt.JWTTokenService, AuthService *services.AuthService) *AuthHandlers {
+func NewAuthHandlers(tokenService *jwt.JWTTokenService, authService *services.AuthService) *AuthHandlers {
 	return &AuthHandlers{
-		TokenService: TokenService,
-		AuthService:  AuthService,
+		tokenService: tokenService,
+		authService:  authService,
 	}
 }
 
@@ -31,12 +31,12 @@ func (ah *AuthHandlers) RegisterHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	user, err := ah.AuthService.CreateUser(r.Context(), requestBody.Login, requestBody.Password)
+	user, err := ah.authService.CreateUser(r.Context(), requestBody.Login, requestBody.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	tokens, err := ah.TokenService.GenerateTokens(r.Context(), user.ID)
+	tokens, err := ah.tokenService.GenerateTokens(r.Context(), user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -57,12 +57,12 @@ func (ah *AuthHandlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	user, err := ah.AuthService.GetUser(r.Context(), requestBody.Login, requestBody.Password)
+	user, err := ah.authService.GetUser(r.Context(), requestBody.Login, requestBody.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	tokens, err := ah.TokenService.GenerateTokens(r.Context(), user.ID)
+	tokens, err := ah.tokenService.GenerateTokens(r.Context(), user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -83,12 +83,12 @@ func (ah *AuthHandlers) RefreshTokenHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	claims, err := ah.TokenService.ValidateRefreshToken(r.Context(), requestBody.RefreshToken)
+	claims, err := ah.tokenService.ValidateRefreshToken(r.Context(), requestBody.RefreshToken)
 	if err != nil {
 		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
-	newAccessToken, err := ah.TokenService.BuildAccessToken(r.Context(), claims.UserID)
+	newAccessToken, err := ah.tokenService.BuildAccessToken(r.Context(), claims.UserID)
 	if err != nil {
 		http.Error(w, "Failed to create access token", http.StatusInternalServerError)
 		return
@@ -118,12 +118,12 @@ func (ah *AuthHandlers) ChangePasswordHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Invalid request payload ", http.StatusBadRequest)
 		return
 	}
-	err := ah.AuthService.ChangePassword(r.Context(), user.Username, *requestBody.Password)
+	err := ah.authService.ChangePassword(r.Context(), user.Username, *requestBody.Password)
 	if err != nil {
 		http.Error(w, "Failed to update password the account", http.StatusBadRequest)
 		return
 	}
-	tokens, err := ah.TokenService.GenerateTokens(r.Context(), user.ID)
+	tokens, err := ah.tokenService.GenerateTokens(r.Context(), user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

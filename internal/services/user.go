@@ -7,6 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type UserStore interface {
+	UpdateUser(ctx context.Context, user *models.User) error
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
+	SelectUserByUsername(ctx context.Context, username string) (*models.User, error)
+}
+
 type UserService struct {
 	userStore UserStore
 }

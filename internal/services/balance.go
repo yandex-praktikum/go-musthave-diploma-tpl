@@ -12,6 +12,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type WithdrawStore interface {
+	InsertWithdraw(ctx context.Context, withdraw *models.Withdraw) error
+	SelectUserWithdrawals(ctx context.Context, userID uuid.UUID) ([]*models.Withdraw, error)
+	SelectUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
+	UpdateUser(ctx context.Context, user *models.User) error
+}
+
 type BalanceService struct {
 	mu            sync.Mutex
 	withdrawStore WithdrawStore

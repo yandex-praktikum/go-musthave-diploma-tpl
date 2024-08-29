@@ -9,6 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type AuthStore interface {
+	SelectUserByUsername(ctx context.Context, username string) (*models.User, error)
+	InsertUser(ctx context.Context, user *models.User) error
+	UpdateUser(ctx context.Context, user *models.User) error
+}
+
 type AuthService struct {
 	SecretKey string
 	authStore AuthStore

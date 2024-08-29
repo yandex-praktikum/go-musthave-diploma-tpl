@@ -9,14 +9,14 @@ import (
 
 func (db *Database) SaveRefreshToken(ctx context.Context, RefreshToken string, userID *uuid.UUID) error {
 	query := "SELECT id FROM users WHERE id=$1"
-	row := db.QueryRowContext(ctx, query, *userID)
+	row := db.QueryRow(ctx, query, *userID)
 	var existingID uuid.UUID
 	err := row.Scan(&existingID)
 	if err != nil {
 		return fmt.Errorf("user with user id %v not found", *userID)
 	}
 	query = "UPDATE users SET refresh_token=$1 WHERE id=$2"
-	_, err = db.ExecContext(ctx, query, RefreshToken, *userID)
+	_, err = db.Exec(ctx, query, RefreshToken, *userID)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (db *Database) SaveRefreshToken(ctx context.Context, RefreshToken string, u
 
 func (db *Database) GetRefreshToken(ctx context.Context, userID *uuid.UUID) string {
 	query := "SELECT refresh_token FROM users WHERE id=$1"
-	row := db.QueryRowContext(ctx, query, *userID)
+	row := db.QueryRow(ctx, query, *userID)
 	var refreshToken string
 	err := row.Scan(&refreshToken)
 	if err != nil {

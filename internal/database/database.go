@@ -2,26 +2,26 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"log"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
 
 type Database struct {
-	*sql.DB
+	*pgxpool.Pool
 }
 
 func NewDatabase(ctx context.Context, DSN string) (*Database, error) {
-	sqlDB, err := sql.Open("pgx", DSN)
+	pool, err := pgxpool.New(ctx, DSN)
 	if err != nil {
 		return nil, err
 	}
 	db := Database{
-		sqlDB,
+		pool,
 	}
-	err = db.PingContext(ctx)
+	err = db.Ping(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,11 +33,14 @@ func NewDatabase(ctx context.Context, DSN string) (*Database, error) {
 }
 
 func (db *Database) Migrate(ctx context.Context) error {
+	sqlDB := stdlib.OpenDB(*db.Config().ConnConfig)
+	defer sqlDB.Close()
+
 	migrationsDir := "./migrations"
 	// if err := goose.ResetContext(ctx, db.DB, migrationsDir); err != nil {
 	// 	return err
 	// }
-	if err := goose.UpContext(ctx, db.DB, migrationsDir); err != nil {
+	if err := goose.UpContext(ctx, sqlDB, migrationsDir); err != nil {
 		return err
 	}
 	log.Println("Migrations applied successfully")
