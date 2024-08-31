@@ -7,11 +7,18 @@ import (
 
 	"github.com/eac0de/gophermart/internal/models"
 	"github.com/eac0de/gophermart/pkg/jwt"
+	"github.com/google/uuid"
 )
 
 type key string
 
 const UserKey key = "User"
+
+type UserStore interface {
+	SelectUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error)
+}
+
+
 
 func GetJWTAuthMiddleware(tokenService *jwt.JWTTokenService, userStore UserStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
