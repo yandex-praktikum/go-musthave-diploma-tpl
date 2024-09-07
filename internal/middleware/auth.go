@@ -1,0 +1,61 @@
+package middleware
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/custom_errors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth"
+	"net/http"
+)
+
+type contentKey = string
+
+var (
+	LoginContentKey    contentKey = "Login"
+	PasswordContentKey contentKey = "Password"
+	AccessTokenKey     contentKey = "accessToken"
+)
+
+type AuthMiddleware struct {
+	authService *auth.ServiceAuth
+}
+
+func NewAuthMiddleware(authService *auth.ServiceAuth) *AuthMiddleware {
+	return &AuthMiddleware{
+		authService: authService,
+	}
+}
+
+//func (a *AuthMiddleware) AuthMiddleware(h http.Handler) http.Handler {
+//	fn := func(w http.ResponseWriter, r *http.Request) {
+//
+//	}
+//}
+
+func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		accessToken, err := r.Cookie(AccessTokenKey)
+		if err != nil {
+			apiError, _ := json.Marshal(custom_errors.ApiError{Message: "access token not found"})
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write(apiError)
+			return
+		}
+
+		userLogin, err := a.authService.VerifyUser(accessToken.Value)
+		if err != nil {
+			apiError, _ := json.Marshal(custom_errors.ApiError{Message: err.Error()})
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write(apiError)
+			return
+		}
+
+		ctxWithUser := context.WithValue(r.Context(), LoginContentKey, userLogin)
+		fmt.Printf("Пользователь %s - авторизован", userLogin)
+		h.ServeHTTP(w, r.WithContext(ctxWithUser))
+
+	}
+
+	return http.HandlerFunc(fn)
+}
