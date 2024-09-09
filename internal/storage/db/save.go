@@ -8,25 +8,12 @@ import (
 )
 
 func (d *DateBase) Save(query string, args ...interface{}) error {
-	tx, err := d.storage.Begin()
+	_, err := d.storage.ExecContext(context.Background(), query, args...)
 	if err != nil {
-		return err
-	}
-
-	rows, err := tx.QueryContext(context.Background(), query, args...)
-	if err != nil {
-		tx.Rollback()
 		return customerrors.ErrNotFound
 	}
-	defer rows.Close() // Закрываем rows после использования
 
-	// Проверяем наличие ошибок в rows
-	if err = rows.Err(); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	return nil
 }
 
 func (d *DateBase) SaveOrder(userID int, order string, now time.Time) error {

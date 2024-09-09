@@ -29,51 +29,6 @@ func NewAuthMiddleware(authService *auth.ServiceAuth) *AuthMiddleware {
 	}
 }
 
-//func (a *AuthMiddleware) AuthMiddleware(h http.Handler) http.Handler {
-//	fn := func(w http.ResponseWriter, r *http.Request) {
-//		authHeader := r.Header.Get("Authorization")
-//		var accessToken string
-//		if authHeader != "" {
-//			accessToken = authHeader
-//		} else {
-//			//читаем токен из кук
-//			cookie, err := r.Cookie(string(AccessTokenKey))
-//			if err == nil && cookie.Value != "" {
-//				accessToken = cookie.Value
-//			} else {
-//				accessToken = ""
-//			}
-//		}
-//
-//		userLogin, err := a.authService.VerifyUser(accessToken)
-//		if err != nil {
-//
-//			// создаем токен
-//			userLogin = uuid.New().String()
-//			token, err := a.authService.CreatTokenForUser(userLogin)
-//			if err != nil {
-//				http.Error(w, `{"error":"Failed to generate auth token"}`, http.StatusInternalServerError)
-//				return
-//			}
-//
-//			//создаем куку
-//			http.SetCookie(w, &http.Cookie{
-//				Name:     string(AccessTokenKey),
-//				Value:    token,
-//				HttpOnly: true,
-//				Path:     "/",
-//			})
-//
-//			// Устанавливаем заголовок Authorization
-//			w.Header().Set("Authorization", token)
-//		}
-//		ctxWithUser := context.WithValue(r.Context(), AuthKey, userLogin)
-//		h.ServeHTTP(w, r.WithContext(ctxWithUser))
-//	}
-//
-//	return http.HandlerFunc(fn)
-//}
-
 func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := r.Cookie(string(AccessTokenKey))

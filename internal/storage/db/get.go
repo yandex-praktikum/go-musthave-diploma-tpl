@@ -13,6 +13,7 @@ func (d *DateBase) Get(query string, args ...interface{}) (*sql.Row, error) {
 	if row == nil {
 		return nil, customerrors.ErrNotFound
 	}
+
 	return row, nil
 }
 
