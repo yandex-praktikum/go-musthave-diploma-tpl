@@ -67,7 +67,7 @@ func main() {
 	r.Post("/api/user/login", authorizeHandler.ServerHTTP)
 	r.Group(func(r chi.Router) {
 		r.Use(authorization.ValidAuth)
-		r.Post("/api/user/order", postOrderHandler.Post)
+		r.Post("/api/user/orders", postOrderHandler.Post)
 		//r.GetUserByAccessToken("/api/user/order", handler.GetUserByAccessToken)
 	})
 
