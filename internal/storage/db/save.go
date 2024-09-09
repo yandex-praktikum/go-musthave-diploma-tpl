@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/custom_errors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
 	"time"
 )
 
@@ -13,10 +13,17 @@ func (d *DateBase) Save(query string, args ...interface{}) error {
 		return err
 	}
 
-	_, err = tx.QueryContext(context.Background(), query, args...)
+	rows, err := tx.QueryContext(context.Background(), query, args...)
 	if err != nil {
 		tx.Rollback()
-		return custom_errors.ErrNotFound
+		return customErrors.ErrNotFound
+	}
+	defer rows.Close() // Закрываем rows после использования
+
+	// Проверяем наличие ошибок в rows
+	if err = rows.Err(); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	return tx.Commit()

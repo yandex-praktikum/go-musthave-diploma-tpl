@@ -5,9 +5,9 @@ func (s *Service) Save(query string, args ...interface{}) error {
 }
 
 func (s *Service) SaveTableUser(login, passwordHash string) error {
-	return s.SaveTableUser(login, passwordHash)
+	return s.db.SaveTableUser(login, passwordHash)
 }
 
 func (s *Service) SaveTableUserAndUpdateToken(login, accessToken string) error {
-	return s.SaveTableUserAndUpdateToken(login, accessToken)
+	return s.db.SaveTableUserAndUpdateToken(login, accessToken)
 }

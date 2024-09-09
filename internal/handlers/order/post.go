@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/custom_errors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
@@ -33,7 +33,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.log.Error("error order", "error:", err)
-		apiError, _ := json.Marshal(custom_errors.ApiError{Message: "incorrect body"})
+		apiError, _ := json.Marshal(customErrors.APIError{Message: "incorrect body"})
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(apiError)
 		return
@@ -43,7 +43,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	orderNumber := strings.TrimSpace(string(body))
 	if !isLunaValid(orderNumber) {
 		h.log.Error("error order", "error:", "invalid order numbers")
-		apiError, _ := json.Marshal(custom_errors.ApiError{Message: "invalid order numbers"})
+		apiError, _ := json.Marshal(customErrors.APIError{Message: "invalid order numbers"})
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write(apiError)
 		return
@@ -61,24 +61,24 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	// Проверяем заказ в базе
 	err = h.service.GetUserByAccessToken(orderNumber, login, now)
 	if err != nil {
-		if errors.Is(err, custom_errors.ErrAnotherUsersOrder) {
+		if errors.Is(err, customErrors.ErrAnotherUsersOrder) {
 			h.log.Error("error order", "error:", err)
-			apiError, _ := json.Marshal(custom_errors.ApiError{Message: "order number has already been uploaded by another user"})
+			apiError, _ := json.Marshal(customErrors.APIError{Message: "order number has already been uploaded by another user"})
 			w.WriteHeader(http.StatusConflict)
 			w.Write(apiError)
 			return
 		}
 
-		if errors.Is(err, custom_errors.ErrOrderIsAlready) {
+		if errors.Is(err, customErrors.ErrOrderIsAlready) {
 			h.log.Error("error order", "error:", err)
-			apiError, _ := json.Marshal(custom_errors.ApiError{Message: "order number has already been uploaded by this user"})
+			apiError, _ := json.Marshal(customErrors.APIError{Message: "order number has already been uploaded by this user"})
 			w.WriteHeader(http.StatusOK)
 			w.Write(apiError)
 			return
 		}
 
 		h.log.Error("error order", "error:", err)
-		apoError, _ := json.Marshal(custom_errors.ApiError{Message: "cannot loading order"})
+		apoError, _ := json.Marshal(customErrors.APIError{Message: "cannot loading order"})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(apoError)
 		return

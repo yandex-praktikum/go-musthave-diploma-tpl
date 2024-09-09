@@ -11,7 +11,7 @@ import (
 	db2 "github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
 	"time"
 
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/custom_errors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth/entity"
 )
@@ -41,8 +41,8 @@ func NewServiceAuth(saltTKN, saltPSW []byte, storage service.Storage) *ServiceAu
 func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) error {
 	err := s.storageUsers.CheckTableUserLogin(ctx, login)
 
-	if errors.Is(err, custom_errors.ErrUserAlreadyExists) {
-		return custom_errors.ErrUserAlreadyExists
+	if errors.Is(err, customErrors.ErrUserAlreadyExists) {
+		return customErrors.ErrUserAlreadyExists
 	}
 
 	if err != nil {
@@ -62,12 +62,12 @@ func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) 
 func (s *ServiceAuth) AuthUser(ctx context.Context, login, password string) (entity.Tokens, error) {
 	passwordHash, ok := s.storageUsers.CheckTableUserPassword(ctx, login)
 	if !ok {
-		return entity.Tokens{}, custom_errors.ErrNotFound
+		return entity.Tokens{}, customErrors.ErrNotFound
 	}
 
 	isPasswordTrue := s.doPasswordMatch(passwordHash, password)
 	if !isPasswordTrue {
-		return entity.Tokens{}, custom_errors.ErrIsTruePassword
+		return entity.Tokens{}, customErrors.ErrIsTruePassword
 	}
 
 	tokens, err := s.GeneratedTokens(ctx, login)
@@ -82,7 +82,7 @@ func (s *ServiceAuth) VerifyUser(token string) (string, error) {
 	claims := &entity.AccessTokenClaims{}
 	parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, custom_errors.ErrInCorrectMethod
+			return nil, customErrors.ErrInCorrectMethod
 		}
 
 		return s.tokenSalt, nil
@@ -103,7 +103,7 @@ func (s *ServiceAuth) RefreshToken(ctx context.Context, token string) (entity.To
 	var storageUser db2.DateBase
 	parsedRefreshToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-			return nil, custom_errors.ErrInCorrectMethod
+			return nil, customErrors.ErrInCorrectMethod
 		}
 		return s.tokenSalt, nil
 	})
@@ -115,7 +115,7 @@ func (s *ServiceAuth) RefreshToken(ctx context.Context, token string) (entity.To
 	// поиск Token в хранилище
 	login, err := storageUser.SearchLoginByToken(claims.AccessTokenID)
 	if err != nil || login != claims.Login {
-		return entity.Tokens{}, custom_errors.ErrNotFound
+		return entity.Tokens{}, customErrors.ErrNotFound
 	}
 
 	// валидация прошла успешно, можем генерить новую пару

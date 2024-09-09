@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/custom_errors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth"
 	"net/http"
 )
@@ -29,7 +29,19 @@ func NewAuthMiddleware(authService *auth.ServiceAuth) *AuthMiddleware {
 
 //func (a *AuthMiddleware) AuthMiddleware(h http.Handler) http.Handler {
 //	fn := func(w http.ResponseWriter, r *http.Request) {
-//
+//		authHeader := r.Header.Get("Authorization")
+//		var accessToken string
+//		if authHeader != "" {
+//			accessToken = authHeader
+//		} else {
+//			//читаем токен из кук
+//			cookie, err := r.Cookie(AccessTokenKey)
+//			if err == nil && cookie.Value != "" {
+//				accessToken = cookie.Value
+//			} else {
+//				accessToken = ""
+//			}
+//		}
 //	}
 //}
 
@@ -37,7 +49,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		accessToken, err := r.Cookie(AccessTokenKey)
 		if err != nil {
-			apiError, _ := json.Marshal(custom_errors.ApiError{Message: "access token not found"})
+			apiError, _ := json.Marshal(customErrors.APIError{Message: "access token not found"})
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(apiError)
 			return
@@ -45,7 +57,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 
 		userLogin, err := a.authService.VerifyUser(accessToken.Value)
 		if err != nil {
-			apiError, _ := json.Marshal(custom_errors.ApiError{Message: err.Error()})
+			apiError, _ := json.Marshal(customErrors.APIError{Message: err.Error()})
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(apiError)
 			return

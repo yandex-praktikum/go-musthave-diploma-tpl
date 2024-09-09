@@ -1,4 +1,4 @@
-package custom_errors
+package customErrors
 
 import "errors"
 
@@ -11,6 +11,6 @@ var (
 	ErrOrderIsAlready    = errors.New("the older is already there")
 )
 
-type ApiError struct {
+type APIError struct {
 	Message string `json:"message"`
 }
