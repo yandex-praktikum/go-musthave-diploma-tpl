@@ -9,14 +9,13 @@ import (
 	"net/http"
 )
 
-type accessKey = string
-type loginKey = string
-type passwordKey = string
+// Определяем собственный тип для ключей контекста
+type contextKey string
 
-var (
-	LoginContentKey    loginKey    = "Login"
-	PasswordContentKey passwordKey = "Password"
-	AccessTokenKey     accessKey   = "accessToken"
+const (
+	LoginContentKey    contextKey = "Login"
+	PasswordContentKey contextKey = "Password"
+	AccessTokenKey     contextKey = "accessToken"
 )
 
 type AuthMiddleware struct {
@@ -65,7 +64,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 			return
 		}
 
-		ctxWithUser := context.WithValue(r.Context(), string(LoginContentKey), userLogin)
+		ctxWithUser := context.WithValue(r.Context(), LoginContentKey, userLogin)
 		fmt.Printf("Пользователь %s - авторизован", userLogin)
 		h.ServeHTTP(w, r.WithContext(ctxWithUser))
 
