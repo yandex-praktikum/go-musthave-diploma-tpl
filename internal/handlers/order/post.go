@@ -10,6 +10,7 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -91,26 +92,28 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 // Функция, реализующая алгоритм Луна для проверки корректности номера заказа
-func isLunaValid(s string) bool {
-	if len(s) < 1 {
-		return false
-	}
+func isLunaValid(number string) bool {
+	var sum int
+	// Перебираем цифры с конца к началу
+	for i, r := range number {
+		digit, err := strconv.Atoi(string(r))
+		if err != nil {
+			// Если символ не является цифрой, возвращаем false
+			return false
+		}
 
-	var sum, parity = 0, len(s) & 1
-
-	for i := len(s) - 1; i >= 0; i-- {
-		var digit = int(s[i] - '0')
-
-		if parity == 1 {
+		// Если индекс четный, цифру нужно удвоить
+		if (len(number)-1-i)%2 == 1 {
 			digit *= 2
 			if digit > 9 {
+				// Если результат больше 9, складываем цифры
 				digit -= 9
 			}
 		}
 
 		sum += digit
-		parity ^= 1
 	}
 
+	// Проверяем, кратна ли сумма 10
 	return sum%10 == 0
 }
