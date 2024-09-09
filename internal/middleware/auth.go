@@ -9,12 +9,14 @@ import (
 	"net/http"
 )
 
-type contentKey = string
+type accessKey = string
+type loginKey = string
+type passwordKey = string
 
 var (
-	LoginContentKey    contentKey = "Login"
-	PasswordContentKey contentKey = "Password"
-	AccessTokenKey     contentKey = "accessToken"
+	LoginContentKey    loginKey    = "Login"
+	PasswordContentKey passwordKey = "Password"
+	AccessTokenKey     accessKey   = "accessToken"
 )
 
 type AuthMiddleware struct {
@@ -63,7 +65,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 			return
 		}
 
-		ctxWithUser := context.WithValue(r.Context(), LoginContentKey, userLogin)
+		ctxWithUser := context.WithValue(r.Context(), string(LoginContentKey), userLogin)
 		fmt.Printf("Пользователь %s - авторизован", userLogin)
 		h.ServeHTTP(w, r.WithContext(ctxWithUser))
 
