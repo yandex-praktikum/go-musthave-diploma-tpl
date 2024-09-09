@@ -55,6 +55,31 @@ func (h *Handler) ServerHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Аутентифицируем пользователя
+	token, err := h.authService.AuthUser(h.ctx, body.Login, body.Password)
+	if err != nil {
+		h.log.Error("authentication error", "error:", err)
+		apiError, _ := json.Marshal(customerrors.APIError{Message: "authentication failed"})
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(apiError)
+		return
+	}
+
+	accessTokenCookie := http.Cookie{
+		Name:     "accessToken",
+		Value:    token.AccessToken,
+		HttpOnly: true,
+	}
+
+	refreshTokenCookie := http.Cookie{
+		Name:     "refreshToken",
+		Value:    token.RefreshToken,
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, &accessTokenCookie)
+	http.SetCookie(w, &refreshTokenCookie)
+
 	response, _ := json.Marshal(ResponseBody{Success: true})
 	w.WriteHeader(http.StatusOK)
 	w.Write(response)
