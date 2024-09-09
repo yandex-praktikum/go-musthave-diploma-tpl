@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth"
 	"net/http"
 )
@@ -47,9 +47,9 @@ func NewAuthMiddleware(authService *auth.ServiceAuth) *AuthMiddleware {
 
 func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		accessToken, err := r.Cookie(AccessTokenKey)
+		accessToken, err := r.Cookie(string(AccessTokenKey))
 		if err != nil {
-			apiError, _ := json.Marshal(customErrors.APIError{Message: "access token not found"})
+			apiError, _ := json.Marshal(customerrors.APIError{Message: "access token not found"})
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(apiError)
 			return
@@ -57,7 +57,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 
 		userLogin, err := a.authService.VerifyUser(accessToken.Value)
 		if err != nil {
-			apiError, _ := json.Marshal(customErrors.APIError{Message: err.Error()})
+			apiError, _ := json.Marshal(customerrors.APIError{Message: err.Error()})
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write(apiError)
 			return

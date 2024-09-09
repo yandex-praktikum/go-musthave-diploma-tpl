@@ -33,7 +33,7 @@ func main() {
 	// инициализируем DB
 	repo, err := db.NewDB(logs, cfg.AddrConDB)
 	if err != nil {
-		logs.Error("Fatal = not connect DB", "customErrors = ", err)
+		logs.Error("Fatal = not connect DB", "customerrors = ", err)
 		panic(err)
 	}
 	logs.Info("DB connection")

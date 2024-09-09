@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 )
 
 func (d *DateBase) CheckTableUserLogin(ctx context.Context, login string) error {
@@ -19,7 +19,7 @@ func (d *DateBase) CheckTableUserLogin(ctx context.Context, login string) error 
 		return err
 	}
 
-	return customErrors.ErrUserAlreadyExists
+	return customerrors.ErrUserAlreadyExists
 }
 
 func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (string, bool) {

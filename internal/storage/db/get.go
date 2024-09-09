@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"time"
 )
@@ -11,7 +11,7 @@ import (
 func (d *DateBase) Get(query string, args ...interface{}) (*sql.Row, error) {
 	row := d.storage.QueryRow(query, args...)
 	if row == nil {
-		return nil, customErrors.ErrNotFound
+		return nil, customerrors.ErrNotFound
 	}
 	return row, nil
 }
@@ -25,7 +25,7 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 
 	rowUser, err := d.Get(queryUser, login)
 	if err != nil {
-		return customErrors.ErrNotFound
+		return customerrors.ErrNotFound
 	}
 
 	if err = rowUser.Scan(&user.ID, &user.Login); err != nil {
@@ -34,7 +34,7 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 
 	rowLoyalty, err := d.Get(queryLoyalty, order)
 	if err != nil {
-		return customErrors.ErrNotFound
+		return customerrors.ErrNotFound
 	}
 
 	if err = rowLoyalty.Scan(&loyalty.UserID); err != nil {
@@ -43,10 +43,10 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 	}
 
 	if loyalty.UserID != user.ID {
-		return customErrors.ErrAnotherUsersOrder
+		return customerrors.ErrAnotherUsersOrder
 	}
 
-	return customErrors.ErrOrderIsAlready
+	return customerrors.ErrOrderIsAlready
 }
 
 func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
@@ -58,7 +58,7 @@ func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
 	row := db.QueryRowContext(context.Background(), query, accessToken)
 
 	if row != nil {
-		return "", customErrors.ErrNotFound
+		return "", customerrors.ErrNotFound
 	}
 
 	if err := row.Scan(&searchTokin); err != nil {

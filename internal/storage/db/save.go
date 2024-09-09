@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/customErrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"time"
 )
 
@@ -16,7 +16,7 @@ func (d *DateBase) Save(query string, args ...interface{}) error {
 	rows, err := tx.QueryContext(context.Background(), query, args...)
 	if err != nil {
 		tx.Rollback()
-		return customErrors.ErrNotFound
+		return customerrors.ErrNotFound
 	}
 	defer rows.Close() // Закрываем rows после использования
 
