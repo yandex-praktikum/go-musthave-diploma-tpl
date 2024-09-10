@@ -11,3 +11,10 @@ type Loyalty struct {
 	IsDeleted   bool      `json:"is_deleted"`
 	CreatedIn   time.Time `json:"created_in"`
 }
+
+type OrdersUser struct {
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	Accrual    int       `json:"accrual"`
+	UploadedAt time.Time `json:"uploaded_at"`
+}

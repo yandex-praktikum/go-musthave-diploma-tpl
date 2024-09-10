@@ -57,7 +57,7 @@ func main() {
 	// инициализируем Handlers
 	registerHandler := register.NewHandlers(ctx, serviceAuth, logs)
 	authorizeHandler := authorize.NewHandler(ctx, serviceAuth, logs)
-	postOrderHandler := order.NewHandler(ctx, serv, logs)
+	ordersHandler := order.NewHandler(ctx, serv, logs)
 
 	// инициализировали роутер и создали запросы
 	r := chi.NewRouter()
@@ -67,7 +67,8 @@ func main() {
 	r.Post("/api/user/login", authorizeHandler.ServerHTTP)
 	r.Group(func(r chi.Router) {
 		r.Use(authorization.ValidAuth)
-		r.Post("/api/user/orders", postOrderHandler.Post)
+		r.Post("/api/user/orders", ordersHandler.Post)
+		r.Get("/api/user/orders", ordersHandler.Get)
 		//r.GetUserByAccessToken("/api/user/order", handler.GetUserByAccessToken)
 	})
 

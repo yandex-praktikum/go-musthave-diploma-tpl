@@ -69,3 +69,46 @@ func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
 	return searchTokin, nil
 
 }
+
+func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) {
+	var ordersUser []*models.OrdersUser
+	tx, err := d.storage.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	// создаем запрос в базу users для получения id пользователя
+	queryUser := "SELECT id FROM users WHERE login =$1"
+
+	loginID, err := d.Get(queryUser, login)
+	if err != nil {
+		return nil, err
+	}
+
+	// создаем запрос в базу loyalty для получения всех заказов одного пользователя
+	queryLoyalty := "SELECT order_id, order_status, bonus, created_in FROM loyalty WHERE user_id = $1 ORDER BY created_in ASC"
+
+	rows, err := tx.QueryContext(context.Background(), queryLoyalty, loginID)
+	if err != nil {
+		return nil, sql.ErrNoRows
+	}
+	defer rows.Close()
+
+	//Собираем все в ordersUser
+	for rows.Next() {
+		var orderUser models.OrdersUser
+
+		if err = rows.Scan(&orderUser.Number, &orderUser.Status, &orderUser.Accrual, &orderUser.UploadedAt); err != nil {
+			return nil, err
+		}
+
+		ordersUser = append(ordersUser, &orderUser)
+	}
+	if rows.Err() != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
+	return ordersUser, nil
+}
