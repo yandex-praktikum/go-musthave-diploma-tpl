@@ -48,7 +48,7 @@ func (a *AuthMiddleware) ValidAuth(h http.Handler) http.Handler {
 		}
 
 		ctxWithUser := context.WithValue(r.Context(), LoginContentKey, userLogin)
-		fmt.Printf("Пользователь %s - авторизован", userLogin)
+		fmt.Printf("Пользователь %s - авторизован \n", userLogin)
 		h.ServeHTTP(w, r.WithContext(ctxWithUser))
 
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"time"
 )
 
@@ -16,11 +17,15 @@ func (d *DateBase) Save(query string, args ...interface{}) error {
 	return nil
 }
 
-func (d *DateBase) SaveOrder(userID int, order string, now time.Time) error {
+func (d *DateBase) SaveOrder(userID int, order, status string, bonus float64, now time.Time) error {
 	rfc3339Time := now.Format(time.RFC3339)
-	querty := "INSERT INTO loyalty (user_id, order_id, created_in) VALUES ($1, $2, $3)"
+	querty := "INSERT INTO loyalty (user_id, order_id, bonus, order_status, created_in, ) VALUES ($1, $2, $3, $4, $5)"
 
-	err := d.Save(querty, userID, order, rfc3339Time)
+	if status == "" {
+		status = string(models.NewOrder)
+	}
+
+	err := d.Save(querty, userID, order, bonus, status, rfc3339Time)
 	if err != nil {
 		return err
 	}

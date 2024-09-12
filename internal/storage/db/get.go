@@ -3,8 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
+	"net/http"
 	"time"
 )
 
@@ -17,7 +20,7 @@ func (d *DateBase) Get(query string, args ...interface{}) (*sql.Row, error) {
 	return row, nil
 }
 
-func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Time) error {
+func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Time, addressAccrual string) error {
 	var user models.User
 	var loyalty models.Loyalty
 
@@ -39,7 +42,11 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 	}
 
 	if err = rowLoyalty.Scan(&loyalty.UserID); err != nil {
-		d.SaveOrder(user.ID, order, now)
+		req, err := d.getAccrual(addressAccrual, order)
+		if err != nil {
+			return err
+		}
+		d.SaveOrder(user.ID, order, req.Status, req.Accrual, now)
 		return nil
 	}
 
@@ -72,23 +79,31 @@ func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
 
 func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) {
 	var ordersUser []*models.OrdersUser
+	var userID int
+
 	tx, err := d.storage.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	// создаем запрос в базу users для получения id пользователя
-	queryUser := "SELECT id FROM users WHERE login =$1"
+	defer tx.Rollback()
 
-	loginID, err := d.Get(queryUser, login)
-	if err != nil {
+	// создаем запрос в базу users для получения id пользователя
+	queryUser := "SELECT id FROM users WHERE login = $1"
+
+	rowUSer := tx.QueryRow(queryUser, login)
+	if rowUSer.Err() != nil {
+		return nil, err
+	}
+
+	if err = rowUSer.Scan(&userID); err != nil {
 		return nil, err
 	}
 
 	// создаем запрос в базу loyalty для получения всех заказов одного пользователя
-	queryLoyalty := "SELECT order_id, order_status, bonus, created_in FROM loyalty WHERE user_id = $1 ORDER BY created_in ASC"
+	queryLoyalty := "SELECT order_id AS Number, order_status AS Status, bonus AS Accrual, created_in AS UploadedAt FROM loyalty WHERE user_id = $1 ORDER BY created_in ASC"
 
-	rows, err := tx.QueryContext(context.Background(), queryLoyalty, loginID)
+	rows, err := tx.QueryContext(context.Background(), queryLoyalty, userID)
 	if err != nil {
 		return nil, sql.ErrNoRows
 	}
@@ -96,6 +111,9 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 
 	//Собираем все в ordersUser
 	for rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 		var orderUser models.OrdersUser
 
 		if err = rows.Scan(&orderUser.Number, &orderUser.Status, &orderUser.Accrual, &orderUser.UploadedAt); err != nil {
@@ -105,10 +123,103 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 		ordersUser = append(ordersUser, &orderUser)
 	}
 	if rows.Err() != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
 	tx.Commit()
 	return ordersUser, nil
+}
+
+func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
+	var balance models.Balance
+	var user int
+
+	// создаем запрос в базу users для получения id пользователя
+	queryUser := "SELECT id FROM users WHERE login = $1"
+
+	userID := d.storage.QueryRow(queryUser, login)
+	if err := userID.Scan(&user); err != nil {
+		return nil, err
+	}
+
+	query := "SELECT SUM(bonus) AS Current, SUM(withdraw) FROM loyalty WHERE user_id = $1"
+
+	row := d.storage.QueryRow(query, user)
+
+	if err := row.Scan(&balance.Current, &balance.Withdraw); err != nil {
+		return nil, err
+	}
+
+	return &balance, nil
+}
+
+func (d *DateBase) GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error) {
+	var withdrawals []*models.Withdrawals
+	var userID int
+
+	tx, err := d.storage.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback() // Откат транзакции в случае ошибки
+
+	// Создаем запрос в базу users для получения id пользователя
+	queryUser := "SELECT id FROM users WHERE login = $1"
+	rowUser := tx.QueryRow(queryUser, login)
+
+	if err := rowUser.Scan(&userID); err != nil {
+		return nil, err
+	}
+
+	// Создаем запрос для сбора информации по withdrawals
+	query := "SELECT order_id AS order, withdraw AS Sum, processed_at AS ProcessedAt FROM loyalty WHERE user_id = $1 ORDER BY processed_at ASC"
+	rows, err := tx.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close() // Закрытие rows после использования
+
+	for rows.Next() {
+		withdraw := models.Withdrawals{}
+		if err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.ProcessedAt); err != nil {
+			return nil, err
+		}
+
+		if withdraw.Sum != nil {
+			withdrawals = append(withdrawals, &withdraw)
+		}
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	if len(withdrawals) == 0 {
+		return nil, customerrors.ErrNotData
+	}
+
+	return withdrawals, nil
+
+}
+
+func (d *DateBase) getAccrual(addressAccrual, order string) (*models.ResponseAccrual, error) {
+	var accrual models.ResponseAccrual
+	requestAccrual, err := http.Get(fmt.Sprintf("%s/%s", addressAccrual, order))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err = json.NewDecoder(requestAccrual.Body).Decode(&accrual); err != nil {
+		return nil, err
+	}
+
+	defer requestAccrual.Body.Close()
+
+	return &accrual, nil
 }

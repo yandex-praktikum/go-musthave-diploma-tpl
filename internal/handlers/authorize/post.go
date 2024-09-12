@@ -24,7 +24,7 @@ func NewHandler(ctx context.Context, authService *auth.ServiceAuth, log *logger.
 	}
 }
 
-func (h *Handler) ServerHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	body := RequestBody{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

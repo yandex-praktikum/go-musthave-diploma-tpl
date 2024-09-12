@@ -16,6 +16,16 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth/entity"
 )
 
+//go:generate mockgen -source=./auth.go -destination=/Users/pavel/GolandProjects/go-musthave-diploma-tpl/internal/mocks/mock_storage_auth.go -package=mocks
+type StorageAuth interface {
+	RegisterUser(ctx context.Context, login, password string) error
+	AuthUser(ctx context.Context, login, password string) (entity.Tokens, error)
+	VerifyUser(token string) (string, error)
+	RefreshToken(ctx context.Context, token string) (entity.Tokens, error)
+	GeneratedTokens(ctx context.Context, login string) (entity.Tokens, error)
+	HashPassword(password string) string
+}
+
 type ServiceAuth struct {
 	tokenSalt    []byte
 	passwordSalt []byte
@@ -23,10 +33,10 @@ type ServiceAuth struct {
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 
-	storageUsers service.Storage
+	storageUsers service.StorageServ
 }
 
-func NewServiceAuth(saltTKN, saltPSW []byte, storage service.Storage) *ServiceAuth {
+func NewServiceAuth(saltTKN, saltPSW []byte, storage service.StorageServ) *ServiceAuth {
 	return &ServiceAuth{
 		tokenSalt:    saltTKN,
 		passwordSalt: saltPSW,

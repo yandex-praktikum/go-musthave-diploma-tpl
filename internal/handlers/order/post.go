@@ -16,16 +16,18 @@ import (
 )
 
 type Handler struct {
-	ctx     context.Context
-	service *service.Service
-	log     *logger.Logger
+	ctx            context.Context
+	service        *service.Service
+	log            *logger.Logger
+	addressAccrual string
 }
 
-func NewHandler(ctx context.Context, service *service.Service, log *logger.Logger) *Handler {
+func NewHandler(ctx context.Context, service *service.Service, log *logger.Logger, addressAccrual string) *Handler {
 	return &Handler{
-		ctx:     ctx,
-		service: service,
-		log:     log,
+		ctx:            ctx,
+		service:        service,
+		log:            log,
+		addressAccrual: addressAccrual,
 	}
 }
 
@@ -60,7 +62,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	// Проверяем заказ в базе
-	if err = h.service.GetUserByAccessToken(orderNumber, login, now); err != nil {
+	if err = h.service.GetUserByAccessToken(orderNumber, login, now, h.addressAccrual); err != nil {
 		if errors.Is(err, customerrors.ErrAnotherUsersOrder) {
 			h.log.Error("error order", "error:", err)
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "order number has already been uploaded by another user"})

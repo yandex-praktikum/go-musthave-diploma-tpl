@@ -1,38 +1,44 @@
-package order
+package balance
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
-	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"net/http"
 )
 
+type Handler struct {
+	ctx     context.Context
+	storage *service.Service
+	log     *logger.Logger
+}
+
+func NewHandler(ctx context.Context, storage *service.Service, log *logger.Logger) *Handler {
+	return &Handler{
+		ctx:     ctx,
+		storage: storage,
+		log:     log,
+	}
+}
+
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
-
 	if !ok || login == "" {
 		h.log.Info("Error: not userID")
+		return
 	}
 
-	// получаем список загруженных номеров заказов
-	req, err := h.service.GetAllUserOrders(login)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			h.log.Error("error order", "error: ", "no data to answer")
-			apiError, _ := json.Marshal(customerrors.APIError{Message: "no data to answer"})
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNoContent)
-			w.Write(apiError)
-		}
+	balance, err := h.storage.GetBalanceUser(login)
 
-		h.log.Error("error order", "error: ", err)
-		apiError, _ := json.Marshal(customerrors.APIError{Message: "cannot loading order"})
-		w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		h.log.Error("error balance", "error: ", err)
+		apiError, _ := json.Marshal(customerrors.APIError{Message: "error get balance"})
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
 		w.Write(apiError)
-		return
 	}
 
 	response, _ := json.Marshal(ResponseBody{Processing: true})
@@ -40,8 +46,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(response)
 
-	if err = json.NewEncoder(w).Encode(req); err != nil {
-		h.log.Error("error order", "failed to marshal response: ", err)
+	if err = json.NewEncoder(w).Encode(balance); err != nil {
+		h.log.Error("error balance", "failed to marshal response: ", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "failed to marshal response"})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(apiError)

@@ -62,9 +62,8 @@ func (d *DateBase) createTableIfNotExists() error {
             id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
             order_id TEXT NOT NULL,
-            bonus INT,
+            bonus FLOAT,
             order_status TEXT,
-            is_deleted BOOL NOT NULL DEFAULT FALSE,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
     `
@@ -73,9 +72,27 @@ func (d *DateBase) createTableIfNotExists() error {
 		return err
 	}
 
-	// добавляем столбец если его ранее не было
+	// добавляем столбец с датой если его ранее не было
 	queryUpdateDataOrder := `
 		ALTER TABLE loyalty ADD COLUMN IF NOT EXISTS created_in TIMESTAMP WITH TIME ZONE
+`
+	_, err = d.storage.Exec(queryUpdateDataOrder)
+	if err != nil {
+		return err
+	}
+
+	// добавляем столбец со списанными средствами если его ранее не было
+	queryUpdateDataOrder = `
+		ALTER TABLE loyalty ADD COLUMN IF NOT EXISTS withdraw FLOAT
+`
+	_, err = d.storage.Exec(queryUpdateDataOrder)
+	if err != nil {
+		return err
+	}
+
+	// добавляем столбец со списанными средствами если его ранее не было
+	queryUpdateDataOrder = `
+		ALTER TABLE loyalty ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP WITH TIME ZONE
 `
 	_, err = d.storage.Exec(queryUpdateDataOrder)
 	if err != nil {

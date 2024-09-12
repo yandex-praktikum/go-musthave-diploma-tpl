@@ -5,8 +5,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/authorize"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/balance"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/order"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/register"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/withdraw"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
@@ -57,26 +59,26 @@ func main() {
 	// инициализируем Handlers
 	registerHandler := register.NewHandlers(ctx, serviceAuth, logs)
 	authorizeHandler := authorize.NewHandler(ctx, serviceAuth, logs)
-	ordersHandler := order.NewHandler(ctx, serv, logs)
+	ordersHandler := order.NewHandler(ctx, serv, logs, cfg.AccrualSystemAddress)
+	balanceHandler := balance.NewHandler(ctx, serv, logs)
+	withdrawHandler := withdraw.NewHandler(ctx, serv, logs)
 
 	// инициализировали роутер и создали запросы
 	r := chi.NewRouter()
 	r.Use(middleware.WithLogging)
 
-	r.Post("/api/user/register", registerHandler.ServerHTTP)
-	r.Post("/api/user/login", authorizeHandler.ServerHTTP)
+	r.Post("/api/user/register", registerHandler.Post)
+	r.Post("/api/user/login", authorizeHandler.Post)
 	r.Group(func(r chi.Router) {
 		r.Use(authorization.ValidAuth)
 		r.Post("/api/user/orders", ordersHandler.Post)
 		r.Get("/api/user/orders", ordersHandler.Get)
-		//r.GetUserByAccessToken("/api/user/order", handler.GetUserByAccessToken)
+		r.Get("/api/user/balance", balanceHandler.Get)
+		r.Post("/api/user/balance/withdraw", withdrawHandler.Post)
+		r.Get("/api/user/withdrawals", withdrawHandler.Get)
 	})
 
 	//r.Post("/api/user/withdrawals", handler.Post)
-	//
-
-	//r.GetUserByAccessToken("/api/user/balance", handler.GetUserByAccessToken)
-	//r.GetUserByAccessToken("/api/user/balance/withdraw", handler.GetUserByAccessToken)
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		logs.Error("Err:", logger.ErrAttr(err))

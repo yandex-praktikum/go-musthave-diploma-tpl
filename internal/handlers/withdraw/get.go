@@ -1,7 +1,6 @@
-package order
+package withdraw
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -11,41 +10,38 @@ import (
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
-
 	if !ok || login == "" {
 		h.log.Info("Error: not userID")
+		return
 	}
 
-	// получаем список загруженных номеров заказов
-	req, err := h.service.GetAllUserOrders(login)
+	req, err := h.storage.GetWithdrawals(h.ctx, login)
+
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			h.log.Error("error order", "error: ", "no data to answer")
-			apiError, _ := json.Marshal(customerrors.APIError{Message: "no data to answer"})
-			w.Header().Set("Content-Type", "application/json")
+		if errors.Is(err, customerrors.ErrNotData) {
+			h.log.Info("error withdraw", "error: ", "not content")
+			apiError, _ := json.Marshal(customerrors.APIError{Message: "there are no write-offs"})
 			w.WriteHeader(http.StatusNoContent)
 			w.Write(apiError)
+			return
 		}
-
-		h.log.Error("error order", "error: ", err)
-		apiError, _ := json.Marshal(customerrors.APIError{Message: "cannot loading order"})
-		w.Header().Set("Content-Type", "application/json")
+		h.log.Error("error withdraw", "error: ", err)
+		apiError, _ := json.Marshal(customerrors.APIError{Message: ""})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(apiError)
 		return
 	}
 
-	response, _ := json.Marshal(ResponseBody{Processing: true})
+	apoResponse, _ := json.Marshal(ResponseBody{Processing: true})
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(response)
+	w.Write(apoResponse)
 
 	if err = json.NewEncoder(w).Encode(req); err != nil {
-		h.log.Error("error order", "failed to marshal response: ", err)
+		h.log.Error("error balance", "failed to marshal response: ", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "failed to marshal response"})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(apiError)
-
 		return
 	}
+
 }

@@ -24,7 +24,7 @@ func NewHandlers(ctx context.Context, authService *auth.ServiceAuth, log *logger
 	}
 }
 
-func (h *Handler) ServerHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 
 	// Считываем тело запроса и записываем в body
 	body := RequestBody{}

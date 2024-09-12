@@ -5,11 +5,11 @@ import (
 )
 
 type Service struct {
-	db   Storage
+	db   StorageServ
 	logs *logger.Logger
 }
 
-func NewService(db Storage, logger *logger.Logger) *Service {
+func NewService(db StorageServ, logger *logger.Logger) *Service {
 	return &Service{
 		db,
 		logger,

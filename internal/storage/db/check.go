@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
+	"time"
 )
 
 func (d *DateBase) CheckTableUserLogin(ctx context.Context, login string) error {
@@ -36,4 +37,44 @@ func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (st
 		return "", false
 	}
 	return existingPassword, true
+}
+
+func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum float64, now time.Time) error {
+	var user int
+	var sumBonus float64
+	queryCheckOrder := "SELECT user_id FROM loyalty WHERE order_id = $1"
+
+	rowOrder, err := d.Get(queryCheckOrder, order)
+	if err != nil {
+		return customerrors.ErrNotData
+	}
+
+	if err = rowOrder.Scan(&user); err != nil {
+		return err
+	}
+
+	queryCheckSumAccrual := "SELECT SUM(bonus) FROM loyalty WHERE user_id = $1"
+
+	rowSum, err := d.Get(queryCheckSumAccrual, user)
+
+	if err != nil {
+		return customerrors.ErrNotData
+	}
+
+	if err = rowSum.Scan(&sumBonus); err != nil {
+		return err
+	}
+
+	if sum > sumBonus {
+		return customerrors.ErrNotEnoughBonuses
+	}
+
+	querySave := "UPDATE loyalty SET processed_at = $1 WHERE order_id = $2"
+
+	rfc3339Time := now.Format(time.RFC3339)
+
+	if err = d.Save(querySave, rfc3339Time, order); err != nil {
+		return err
+	}
+	return nil
 }
