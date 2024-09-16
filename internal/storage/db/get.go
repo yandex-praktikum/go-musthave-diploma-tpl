@@ -209,7 +209,7 @@ func (d *DateBase) GetWithdrawals(ctx context.Context, login string) ([]*models.
 
 func (d *DateBase) getAccrual(addressAccrual, order string) (*models.ResponseAccrual, error) {
 	var accrual models.ResponseAccrual
-	requestAccrual, err := http.Get(fmt.Sprintf("%s/%s", addressAccrual, order))
+	requestAccrual, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 
 	if err != nil {
 		return nil, err
