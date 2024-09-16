@@ -1,7 +1,6 @@
 package order
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -14,12 +13,17 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 	if !ok || login == "" {
 		h.log.Info("Error: not userID")
+		apiError, _ := json.Marshal(customerrors.APIError{Message: "user not authenticated"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized для отсутствия пользователя
+		w.Write(apiError)
+		return
 	}
 
 	// получаем список загруженных номеров заказов
 	req, err := h.service.GetAllUserOrders(login)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, customerrors.ErrUserNotFound) {
 			h.log.Error("error order", "error: ", "no data to answer")
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "no data to answer"})
 			w.Header().Set("Content-Type", "application/json")
@@ -37,8 +41,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, _ := json.Marshal(ResponseBody{Processing: true})
+	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
 	w.Write(response)
 
 	if err = json.NewEncoder(w).Encode(req); err != nil {

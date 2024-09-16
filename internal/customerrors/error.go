@@ -11,6 +11,7 @@ var (
 	ErrOrderIsAlready    = errors.New("the older is already there")
 	ErrNotData           = errors.New("not data to answer")
 	ErrNotEnoughBonuses  = errors.New("not enough bonuses")
+	ErrUserNotFound      = errors.New("user not found")
 )
 
 type APIError struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
@@ -93,11 +94,13 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 	queryUser := `SELECT id FROM users WHERE login = $1`
 
 	rowUSer := tx.QueryRow(queryUser, login)
-	if rowUSer.Err() != nil {
-		return nil, err
-	}
-
-	if err = rowUSer.Scan(&userID); err != nil {
+	err = rowUSer.Scan(&userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Ошибка: пользователь не найден
+			return nil, customerrors.ErrUserNotFound
+		}
+		// Другая ошибка
 		return nil, err
 	}
 
