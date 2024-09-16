@@ -23,7 +23,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	// получаем список загруженных номеров заказов
 	req, err := h.service.GetAllUserOrders(login)
 	if err != nil {
-		if errors.Is(err, customerrors.ErrUserNotFound) {
+		if errors.Is(err, customerrors.ErrNotFound) {
 			h.log.Error("error order", "error: ", "no data to answer")
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "no data to answer"})
 			w.Header().Set("Content-Type", "application/json")

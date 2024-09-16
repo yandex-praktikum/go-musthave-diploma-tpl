@@ -109,7 +109,7 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 
 	rows, err := tx.QueryContext(context.Background(), queryLoyalty, userID)
 	if err != nil {
-		return nil, sql.ErrNoRows
+		return nil, customerrors.ErrNotFound
 	}
 	defer rows.Close()
 
