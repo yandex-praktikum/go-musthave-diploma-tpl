@@ -39,6 +39,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(apiError)
+		return
 	}
 
 	response, _ := json.Marshal(ResponseBody{Processing: true})

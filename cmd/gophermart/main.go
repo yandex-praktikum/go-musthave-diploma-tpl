@@ -78,8 +78,6 @@ func main() {
 		r.Get("/api/user/withdrawals", withdrawHandler.Get)
 	})
 
-	//r.Post("/api/user/withdrawals", handler.Post)
-
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		logs.Error("Err:", logger.ErrAttr(err))
 	}

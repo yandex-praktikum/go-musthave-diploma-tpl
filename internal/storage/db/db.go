@@ -8,12 +8,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type StorageUsers interface {
-	SaveTableUser(login, passwordHash string) error
-	SaveTableUserAndUpdateToken(login, accessToken string) error
-	Close() error
-}
-
 type DateBase struct {
 	storage *sql.DB
 }
@@ -63,7 +57,7 @@ func (d *DateBase) createTableIfNotExists() error {
             user_id INT NOT NULL,
             order_id TEXT NOT NULL,
             bonus FLOAT,
-            order_status TEXT,
+            order_status TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
     `

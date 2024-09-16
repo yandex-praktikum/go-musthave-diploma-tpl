@@ -46,7 +46,8 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 		if err != nil {
 			return err
 		}
-		d.SaveOrder(user.ID, order, req.Status, req.Accrual, now)
+
+		d.SaveOrder(user.ID, order, req.Accrual, req.Status, now)
 		return nil
 	}
 
@@ -89,7 +90,7 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 	defer tx.Rollback()
 
 	// создаем запрос в базу users для получения id пользователя
-	queryUser := "SELECT id FROM users WHERE login = $1"
+	queryUser := `SELECT id FROM users WHERE login = $1`
 
 	rowUSer := tx.QueryRow(queryUser, login)
 	if rowUSer.Err() != nil {
@@ -132,19 +133,18 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 
 func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
 	var balance models.Balance
-	var user int
 
 	// создаем запрос в базу users для получения id пользователя
-	queryUser := "SELECT id FROM users WHERE login = $1"
-
-	userID := d.storage.QueryRow(queryUser, login)
-	if err := userID.Scan(&user); err != nil {
-		return nil, err
+	var userID int
+	queryGetUserID := `SELECT id FROM users WHERE login = $1`
+	err := d.storage.QueryRow(queryGetUserID, login).Scan(&userID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user id: %v", err)
 	}
 
 	query := "SELECT SUM(bonus) AS Current, SUM(withdraw) FROM loyalty WHERE user_id = $1"
 
-	row := d.storage.QueryRow(query, user)
+	row := d.storage.QueryRow(query, userID)
 
 	if err := row.Scan(&balance.Current, &balance.Withdraw); err != nil {
 		return nil, err

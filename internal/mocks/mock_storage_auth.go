@@ -12,31 +12,31 @@ import (
 	entity "github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth/entity"
 )
 
-// MockStorageAuth is a mock of StorageAuth interface.
-type MockStorageAuth struct {
+// MockAuthService is a mock of AuthService interface.
+type MockAuthService struct {
 	ctrl     *gomock.Controller
-	recorder *MockStorageAuthMockRecorder
+	recorder *MockAuthServiceMockRecorder
 }
 
-// MockStorageAuthMockRecorder is the mock recorder for MockStorageAuth.
-type MockStorageAuthMockRecorder struct {
-	mock *MockStorageAuth
+// MockAuthServiceMockRecorder is the mock recorder for MockAuthService.
+type MockAuthServiceMockRecorder struct {
+	mock *MockAuthService
 }
 
-// NewMockStorageAuth creates a new mock instance.
-func NewMockStorageAuth(ctrl *gomock.Controller) *MockStorageAuth {
-	mock := &MockStorageAuth{ctrl: ctrl}
-	mock.recorder = &MockStorageAuthMockRecorder{mock}
+// NewMockAuthService creates a new mock instance.
+func NewMockAuthService(ctrl *gomock.Controller) *MockAuthService {
+	mock := &MockAuthService{ctrl: ctrl}
+	mock.recorder = &MockAuthServiceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStorageAuth) EXPECT() *MockStorageAuthMockRecorder {
+func (m *MockAuthService) EXPECT() *MockAuthServiceMockRecorder {
 	return m.recorder
 }
 
 // AuthUser mocks base method.
-func (m *MockStorageAuth) AuthUser(ctx context.Context, login, password string) (entity.Tokens, error) {
+func (m *MockAuthService) AuthUser(ctx context.Context, login, password string) (entity.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AuthUser", ctx, login, password)
 	ret0, _ := ret[0].(entity.Tokens)
@@ -45,13 +45,13 @@ func (m *MockStorageAuth) AuthUser(ctx context.Context, login, password string) 
 }
 
 // AuthUser indicates an expected call of AuthUser.
-func (mr *MockStorageAuthMockRecorder) AuthUser(ctx, login, password interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) AuthUser(ctx, login, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthUser", reflect.TypeOf((*MockStorageAuth)(nil).AuthUser), ctx, login, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthUser", reflect.TypeOf((*MockAuthService)(nil).AuthUser), ctx, login, password)
 }
 
 // GeneratedTokens mocks base method.
-func (m *MockStorageAuth) GeneratedTokens(ctx context.Context, login string) (entity.Tokens, error) {
+func (m *MockAuthService) GeneratedTokens(ctx context.Context, login string) (entity.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GeneratedTokens", ctx, login)
 	ret0, _ := ret[0].(entity.Tokens)
@@ -60,13 +60,13 @@ func (m *MockStorageAuth) GeneratedTokens(ctx context.Context, login string) (en
 }
 
 // GeneratedTokens indicates an expected call of GeneratedTokens.
-func (mr *MockStorageAuthMockRecorder) GeneratedTokens(ctx, login interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) GeneratedTokens(ctx, login interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratedTokens", reflect.TypeOf((*MockStorageAuth)(nil).GeneratedTokens), ctx, login)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratedTokens", reflect.TypeOf((*MockAuthService)(nil).GeneratedTokens), ctx, login)
 }
 
 // HashPassword mocks base method.
-func (m *MockStorageAuth) HashPassword(password string) string {
+func (m *MockAuthService) HashPassword(password string) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HashPassword", password)
 	ret0, _ := ret[0].(string)
@@ -74,13 +74,13 @@ func (m *MockStorageAuth) HashPassword(password string) string {
 }
 
 // HashPassword indicates an expected call of HashPassword.
-func (mr *MockStorageAuthMockRecorder) HashPassword(password interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) HashPassword(password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HashPassword", reflect.TypeOf((*MockStorageAuth)(nil).HashPassword), password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HashPassword", reflect.TypeOf((*MockAuthService)(nil).HashPassword), password)
 }
 
 // RefreshToken mocks base method.
-func (m *MockStorageAuth) RefreshToken(ctx context.Context, token string) (entity.Tokens, error) {
+func (m *MockAuthService) RefreshToken(ctx context.Context, token string) (entity.Tokens, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshToken", ctx, token)
 	ret0, _ := ret[0].(entity.Tokens)
@@ -89,13 +89,13 @@ func (m *MockStorageAuth) RefreshToken(ctx context.Context, token string) (entit
 }
 
 // RefreshToken indicates an expected call of RefreshToken.
-func (mr *MockStorageAuthMockRecorder) RefreshToken(ctx, token interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) RefreshToken(ctx, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockStorageAuth)(nil).RefreshToken), ctx, token)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuthService)(nil).RefreshToken), ctx, token)
 }
 
 // RegisterUser mocks base method.
-func (m *MockStorageAuth) RegisterUser(ctx context.Context, login, password string) error {
+func (m *MockAuthService) RegisterUser(ctx context.Context, login, password string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterUser", ctx, login, password)
 	ret0, _ := ret[0].(error)
@@ -103,13 +103,13 @@ func (m *MockStorageAuth) RegisterUser(ctx context.Context, login, password stri
 }
 
 // RegisterUser indicates an expected call of RegisterUser.
-func (mr *MockStorageAuthMockRecorder) RegisterUser(ctx, login, password interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) RegisterUser(ctx, login, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockStorageAuth)(nil).RegisterUser), ctx, login, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterUser", reflect.TypeOf((*MockAuthService)(nil).RegisterUser), ctx, login, password)
 }
 
 // VerifyUser mocks base method.
-func (m *MockStorageAuth) VerifyUser(token string) (string, error) {
+func (m *MockAuthService) VerifyUser(token string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyUser", token)
 	ret0, _ := ret[0].(string)
@@ -118,7 +118,7 @@ func (m *MockStorageAuth) VerifyUser(token string) (string, error) {
 }
 
 // VerifyUser indicates an expected call of VerifyUser.
-func (mr *MockStorageAuthMockRecorder) VerifyUser(token interface{}) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) VerifyUser(token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyUser", reflect.TypeOf((*MockStorageAuth)(nil).VerifyUser), token)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyUser", reflect.TypeOf((*MockAuthService)(nil).VerifyUser), token)
 }

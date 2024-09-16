@@ -17,16 +17,20 @@ func (d *DateBase) Save(query string, args ...interface{}) error {
 	return nil
 }
 
-func (d *DateBase) SaveOrder(userID int, order, status string, bonus float64, now time.Time) error {
+func (d *DateBase) SaveOrder(userID int, orderID string, bonus float64, orderStatus string, now time.Time) error {
 	rfc3339Time := now.Format(time.RFC3339)
-	querty := "INSERT INTO loyalty (user_id, order_id, bonus, order_status, created_in, ) VALUES ($1, $2, $3, $4, $5)"
+	querty := "INSERT INTO loyalty (user_id, order_id, bonus, order_status, created_in) VALUES ($1, $2, $3, $4, $5)"
 
-	if status == "" {
-		status = string(models.NewOrder)
+	if orderStatus == "" {
+		orderStatus = string(models.NewOrder)
 	}
 
-	err := d.Save(querty, userID, order, bonus, status, rfc3339Time)
+	row, err := d.storage.Exec(querty, userID, orderID, bonus, orderStatus, rfc3339Time)
 	if err != nil {
+		return err
+	}
+
+	if row == nil {
 		return err
 	}
 

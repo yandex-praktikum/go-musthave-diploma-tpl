@@ -34,6 +34,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 	apoResponse, _ := json.Marshal(ResponseBody{Processing: true})
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(apoResponse)
 
 	if err = json.NewEncoder(w).Encode(req); err != nil {

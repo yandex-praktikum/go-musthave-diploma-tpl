@@ -17,7 +17,7 @@ import (
 )
 
 //go:generate mockgen -source=./auth.go -destination=/Users/pavel/GolandProjects/go-musthave-diploma-tpl/internal/mocks/mock_storage_auth.go -package=mocks
-type StorageAuth interface {
+type AuthService interface {
 	RegisterUser(ctx context.Context, login, password string) error
 	AuthUser(ctx context.Context, login, password string) (entity.Tokens, error)
 	VerifyUser(token string) (string, error)
@@ -33,10 +33,10 @@ type ServiceAuth struct {
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 
-	storageUsers service.StorageServ
+	storage service.Storage
 }
 
-func NewServiceAuth(saltTKN, saltPSW []byte, storage service.StorageServ) *ServiceAuth {
+func NewServiceAuth(saltTKN, saltPSW []byte, storage service.Storage) *ServiceAuth {
 	return &ServiceAuth{
 		tokenSalt:    saltTKN,
 		passwordSalt: saltPSW,
@@ -44,12 +44,12 @@ func NewServiceAuth(saltTKN, saltPSW []byte, storage service.StorageServ) *Servi
 		accessTokenTTL:  24 * time.Hour,
 		refreshTokenTTL: 24 * time.Hour,
 
-		storageUsers: storage,
+		storage: storage,
 	}
 }
 
 func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) error {
-	err := s.storageUsers.CheckTableUserLogin(ctx, login)
+	err := s.storage.CheckTableUserLogin(ctx, login)
 
 	if errors.Is(err, customerrors.ErrUserAlreadyExists) {
 		return customerrors.ErrUserAlreadyExists
@@ -61,7 +61,7 @@ func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) 
 
 	passwordHash := s.HashPassword(password)
 
-	err = s.storageUsers.SaveTableUser(login, passwordHash)
+	err = s.storage.SaveTableUser(login, passwordHash)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) 
 }
 
 func (s *ServiceAuth) AuthUser(ctx context.Context, login, password string) (entity.Tokens, error) {
-	passwordHash, ok := s.storageUsers.CheckTableUserPassword(ctx, login)
+	passwordHash, ok := s.storage.CheckTableUserPassword(ctx, login)
 	if !ok {
 		return entity.Tokens{}, customerrors.ErrNotFound
 	}
@@ -158,7 +158,7 @@ func (s *ServiceAuth) GeneratedTokens(ctx context.Context, login string) (entity
 	}
 
 	// сохраняем accessToken в базу users
-	err = s.storageUsers.SaveTableUserAndUpdateToken(login, accessToken)
+	err = s.storage.SaveTableUserAndUpdateToken(login, accessToken)
 	if err != nil {
 		return entity.Tokens{}, err
 	}

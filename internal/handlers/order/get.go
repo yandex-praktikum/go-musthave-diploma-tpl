@@ -25,6 +25,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNoContent)
 			w.Write(apiError)
+			return
 		}
 
 		h.log.Error("error order", "error: ", err)
