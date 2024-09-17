@@ -16,7 +16,7 @@ type Loyalty struct {
 type OrdersUser struct {
 	Number     string    `json:"order_id" db:"order_id"`
 	Status     *string   `json:"status" db:"status"`
-	Accrual    *int      `json:"bonus,omitempty" db:"bonus"`
+	Accrual    *float64  `json:"bonus,omitempty" db:"bonus"`
 	UploadedAt time.Time `json:"created_in" db:"created_in"`
 }
 
