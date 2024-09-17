@@ -40,10 +40,16 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, _ := json.Marshal(ResponseBody{Processing: true})
+	if len(req) == 0 {
+		h.log.Error("error order", "error: ", "no data to answer")
+		apiError, _ := json.Marshal(customerrors.APIError{Message: "no data to answer"})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+		w.Write(apiError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
 
 	if err = json.NewEncoder(w).Encode(req); err != nil {
 		h.log.Error("error order", "failed to marshal response: ", err)
