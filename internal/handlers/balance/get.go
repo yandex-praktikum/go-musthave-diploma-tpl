@@ -34,7 +34,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	balance, err := h.storage.GetBalanceUser(login)
 
 	if err != nil {
-		h.log.Error("error balance", "error: ", err)
+		h.log.Error("error get balance", "error: ", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "error get balance"})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "application/json")
@@ -48,7 +48,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 
 	if err = json.NewEncoder(w).Encode(balance); err != nil {
-		h.log.Error("error balance", "failed to marshal response: ", err)
+		h.log.Error("error get balance", "failed to marshal response: ", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "failed to marshal response"})
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(apiError)

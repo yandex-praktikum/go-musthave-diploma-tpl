@@ -82,6 +82,7 @@ func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
 func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) {
 	var ordersUser []*models.OrdersUser
 	var userID int
+	var zeroFloat = 0.0
 
 	tx, err := d.storage.Begin()
 	if err != nil {
@@ -124,6 +125,10 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 			return nil, err
 		}
 
+		if orderUser.Accrual == nil {
+			orderUser.Accrual = &zeroFloat
+		}
+
 		ordersUser = append(ordersUser, &orderUser)
 	}
 	if rows.Err() != nil {
@@ -145,6 +150,7 @@ func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
 		return nil, fmt.Errorf("error fetching user id: %v", err)
 	}
 
+	// создаем запрос получения всех бонусов и сумм списания
 	query := "SELECT SUM(bonus) AS Current, SUM(withdraw) FROM loyalty WHERE user_id = $1"
 
 	row := d.storage.QueryRow(query, userID)
