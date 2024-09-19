@@ -14,6 +14,7 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/workers"
 	"net/http"
 	"os"
 )
@@ -53,13 +54,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// запускаем воркер
+	worker := workers.NewWorkerAccrual(serv, logs)
+
 	//инициализируем middleware
 	authorization := middleware.NewAuthMiddleware(serviceAuth)
 
 	// инициализируем Handlers
 	registerHandler := register.NewHandlers(ctx, serviceAuth, logs)
 	authorizeHandler := authorize.NewHandler(ctx, serviceAuth, logs)
-	ordersHandler := order.NewHandler(ctx, serv, logs, cfg.AccrualSystemAddress)
+	ordersHandler := order.NewHandler(ctx, serv, logs)
 	balanceHandler := balance.NewHandler(ctx, serv, logs)
 	withdrawHandler := withdraw.NewHandler(ctx, serv, logs)
 
@@ -78,6 +82,7 @@ func main() {
 		r.Get("/api/user/withdrawals", withdrawHandler.Get)
 	})
 
+	go worker.StartWorkerAccrual(ctx, cfg.AccrualSystemAddress)
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		logs.Error("Err:", logger.ErrAttr(err))
 	}

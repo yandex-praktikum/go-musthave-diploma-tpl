@@ -14,7 +14,8 @@ type Storage interface {
 	SaveTableUser(login, passwordHash string) error
 	SaveTableUserAndUpdateToken(login, accessToken string) error
 	Get(query string, args ...interface{}) (*sql.Row, error)
-	GetUserByAccessToken(order string, login string, now time.Time, addressAccrual string) error
+	Gets(query string, args ...interface{}) (*sql.Rows, error)
+	GetUserByAccessToken(order string, login string, now time.Time) error
 	GetAllUserOrders(login string) ([]*models.OrdersUser, error)
 	GetBalanceUser(login string) (*models.Balance, error)
 	GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error)

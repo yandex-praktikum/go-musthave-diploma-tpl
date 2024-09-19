@@ -10,9 +10,12 @@ import (
 func (s *Service) Get(query string, args ...interface{}) (*sql.Row, error) {
 	return s.db.Get(query, args)
 }
+func (s *Service) Gets(query string, args ...interface{}) (*sql.Rows, error) {
+	return s.db.Gets(query, args)
+}
 
-func (s *Service) GetUserByAccessToken(order string, login string, now time.Time, addressAccrual string) error {
-	return s.db.GetUserByAccessToken(order, login, now, addressAccrual)
+func (s *Service) GetUserByAccessToken(order string, login string, now time.Time) error {
+	return s.db.GetUserByAccessToken(order, login, now)
 }
 
 func (s *Service) GetAllUserOrders(login string) ([]*models.OrdersUser, error) {

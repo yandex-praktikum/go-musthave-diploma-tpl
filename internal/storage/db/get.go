@@ -21,7 +21,16 @@ func (d *DateBase) Get(query string, args ...interface{}) (*sql.Row, error) {
 	return row, nil
 }
 
-func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Time, addressAccrual string) error {
+func (d *DateBase) Gets(query string, args ...interface{}) (*sql.Rows, error) {
+	rows, err := d.storage.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, err
+}
+
+func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Time) error {
 	var user models.User
 	var loyalty models.Loyalty
 
@@ -43,12 +52,8 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 	}
 
 	if err = rowLoyalty.Scan(&loyalty.UserID); err != nil {
-		req, err := d.getAccrual(addressAccrual, order)
-		if err != nil {
-			return err
-		}
 
-		d.SaveOrder(user.ID, order, req.Accrual, req.Status, now)
+		d.SaveOrder(user.ID, order, "NEW", now)
 		return nil
 	}
 
