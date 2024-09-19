@@ -41,7 +41,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 	query := "SELECT order_id, order_status FROM loyalty WHERE order_status IN ('REGISTERED', 'PROCESSING', 'NEW')" //берем только в статусе REGISTERED и PROCESSING и NEW
 	rows, err := w.storage.Gets(query)
 	if err != nil {
-		w.log.Error("Error:", customerrors.ErrNotData)
+		w.log.Error("Error :", "gets rows in worker - ", customerrors.ErrNotData)
 		return
 	}
 	defer func() {
@@ -59,19 +59,19 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		var accrual models.ResponseAccrual
 
 		if err = rows.Scan(&order, &orderStatus); err != nil {
-			w.log.Error("Error scanning rows:", err)
+			w.log.Error("Error scanning rows in worker :", err)
 			continue
 		}
 
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 		if err != nil {
-			w.log.Error("Error making request:", err)
+			w.log.Error("Error making request in worker :", err)
 			continue
 		}
 		defer req.Body.Close()
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
-			w.log.Error("Error decoding response:", err)
+			w.log.Error("Error decoding response in worker:", err)
 			continue
 		}
 
@@ -85,10 +85,11 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		}
 
 		if orderStatus != accrual.Status {
+			w.log.Info("Updating order:", accrual.Order, "with status:", accrual.Status, "and bonus:", accrual.Accrual)
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, accrual.Order)
 			if err != nil {
-				w.log.Error("Error saving data:", err)
+				w.log.Error("Error saving data in worker :", err)
 			}
 		}
 	}
