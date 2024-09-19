@@ -9,7 +9,7 @@ import (
 )
 
 func (d *DateBase) Save(query string, args ...interface{}) error {
-	_, err := d.storage.ExecContext(context.Background(), query, args...)
+	_, err := d.storage.Exec(query, args...)
 	if err != nil {
 		return customerrors.ErrNotFound
 	}
