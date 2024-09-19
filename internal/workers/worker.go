@@ -42,6 +42,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 	rows, err := w.storage.Gets(query)
 	if err != nil {
 		w.log.Error("Error:", customerrors.ErrNotData)
+		return
 	}
 
 	defer rows.Close()
@@ -56,16 +57,19 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 		if err = rows.Scan(&order, &orderStatus); err != nil {
 			w.log.Error("Error:", err)
+			return
 		}
 
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 
 		if err != nil {
 			w.log.Error("Error:", customerrors.ErrNotData)
+			return
 		}
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
 			w.log.Error("Error:", err)
+			return
 		}
 
 		defer req.Body.Close()
@@ -74,6 +78,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
 			if err != nil {
 				time.Sleep(60 * time.Second)
+				return
 			}
 
 			time.Sleep(time.Duration(timeSleep) * time.Second)
@@ -84,6 +89,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, accrual.Order)
 			if err != nil {
 				w.log.Error("Error:", "worker is not save data")
+				return
 			}
 		}
 	}
