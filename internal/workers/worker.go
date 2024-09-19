@@ -44,8 +44,11 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		w.log.Error("Error:", customerrors.ErrNotData)
 		return
 	}
-
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			w.log.Error("Error closing rowset:", err)
+		}
+	}()
 
 	for rows.Next() {
 		var (
@@ -56,42 +59,37 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		var accrual models.ResponseAccrual
 
 		if err = rows.Scan(&order, &orderStatus); err != nil {
-			w.log.Error("Error:", err)
-			return
+			w.log.Error("Error scanning rows:", err)
+			continue
 		}
 
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
-
 		if err != nil {
-			w.log.Error("Error:", customerrors.ErrNotData)
-			return
+			w.log.Error("Error making request:", err)
+			continue
 		}
+		defer req.Body.Close()
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
-			w.log.Error("Error:", err)
-			return
+			w.log.Error("Error decoding response:", err)
+			continue
 		}
-
-		defer req.Body.Close()
 
 		if req.StatusCode == http.StatusTooManyRequests {
 			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
 			if err != nil {
 				time.Sleep(60 * time.Second)
-				return
+			} else {
+				time.Sleep(time.Duration(timeSleep) * time.Second)
 			}
-
-			time.Sleep(time.Duration(timeSleep) * time.Second)
 		}
 
 		if orderStatus != accrual.Status {
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, accrual.Order)
 			if err != nil {
-				w.log.Error("Error:", "worker is not save data")
-				return
+				w.log.Error("Error saving data:", err)
 			}
 		}
 	}
-
 }
