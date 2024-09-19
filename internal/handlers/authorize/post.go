@@ -35,7 +35,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.authService.AuthUser(h.ctx, body.Login, body.Password)
+	token, err := h.authService.AuthUser(h.ctx, body.Login, body.Password)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			h.log.Error("error authorize", "error:", err)
@@ -59,6 +59,21 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 		w.Write(apiError)
 		return
 	}
+
+	accessTokenCookie := http.Cookie{
+		Name:     "accessToken",
+		Value:    token.AccessToken,
+		HttpOnly: true,
+	}
+
+	refreshTokenCookie := http.Cookie{
+		Name:     "refreshToken",
+		Value:    token.RefreshToken,
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, &accessTokenCookie)
+	http.SetCookie(w, &refreshTokenCookie)
 
 	response, _ := json.Marshal(ResponseBody{Status: true})
 	w.WriteHeader(http.StatusOK)
