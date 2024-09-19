@@ -85,9 +85,9 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		}
 
 		if orderStatus != accrual.Status {
-			w.log.Info("Updating order:", accrual.Order, "with status:", accrual.Status, "and bonus:", accrual.Accrual)
+			w.log.Info("Accrual:", accrual)
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
-			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, accrual.Order)
+			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, order)
 			if err != nil {
 				w.log.Error("Error saving data in worker :", err)
 			}
