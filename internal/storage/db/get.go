@@ -22,7 +22,7 @@ func (d *DateBase) Get(query string, args ...interface{}) (*sql.Row, error) {
 }
 
 func (d *DateBase) Gets(query string, args ...interface{}) (*sql.Rows, error) {
-	rows, err := d.storage.Query(query, args...)
+	rows, err := d.storage.Query(query)
 	if err != nil {
 		return nil, err
 	}
