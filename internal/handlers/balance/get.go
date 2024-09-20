@@ -37,14 +37,13 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		h.log.Error("error get balance", "error: ", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "error get balance"})
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write(apiError)
 		return
 	}
 
 	response, _ := json.Marshal(ResponseBody{Processing: true})
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write(response)
 
 	if err = json.NewEncoder(w).Encode(balance); err != nil {
