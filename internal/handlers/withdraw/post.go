@@ -38,8 +38,6 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 
-	h.log.Info("Information body: ", "order = ", body.Order, "sum = ", body.Sum)
-
 	// делаем запрос в базу
 	if err := h.storage.CheckWriteOffOfFunds(h.ctx, body.Order, body.Sum, now); err != nil {
 		if errors.Is(err, customerrors.ErrNotData) {
