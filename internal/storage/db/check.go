@@ -39,9 +39,9 @@ func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (st
 	return existingPassword, true
 }
 
-func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum float64, now time.Time) error {
+func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum float32, now time.Time) error {
 	var user int
-	var sumBonus float64
+	var sumBonus float32
 	queryCheckOrder := "SELECT user_id FROM loyalty WHERE order_id = $1"
 
 	rowOrder, err := d.Get(queryCheckOrder, order)
@@ -69,11 +69,11 @@ func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum f
 		return customerrors.ErrNotEnoughBonuses
 	}
 
-	querySave := "UPDATE loyalty SET processed_at = $1, withdraw = $2 WHERE order_id = $3"
+	querySave := "UPDATE loyalty SET processed_at = $1, withdraw = $2, bonus = $3 WHERE order_id = $4"
 
 	rfc3339Time := now.Format(time.RFC3339)
 
-	if err = d.Save(querySave, rfc3339Time, sum, order); err != nil {
+	if err = d.Save(querySave, rfc3339Time, sum, sumBonus-sum, order); err != nil {
 		return err
 	}
 	return nil

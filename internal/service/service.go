@@ -21,7 +21,7 @@ type Storage interface {
 	GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error)
 	CheckTableUserLogin(ctx context.Context, login string) error
 	CheckTableUserPassword(ctx context.Context, password string) (string, bool)
-	CheckWriteOffOfFunds(ctx context.Context, order string, sum float64, now time.Time) error
+	CheckWriteOffOfFunds(ctx context.Context, order string, sum float32, now time.Time) error
 }
 
 type Service struct {
