@@ -41,10 +41,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, _ := json.Marshal(ResponseBody{Processing: true})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
 
 	if err = json.NewEncoder(w).Encode(balance); err != nil {
 		h.log.Error("error get balance", "failed to marshal response: ", err)

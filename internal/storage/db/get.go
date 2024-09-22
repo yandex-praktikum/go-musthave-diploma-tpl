@@ -163,7 +163,6 @@ func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
 	if err := row.Scan(&balance.Current, &balance.Withdraw); err != nil {
 		return nil, err
 	}
-
 	return &balance, nil
 }
 

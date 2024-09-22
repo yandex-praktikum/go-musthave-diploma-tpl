@@ -26,7 +26,7 @@ func NewWorkerAccrual(storage *service.Service, log *logger.Logger) *WorkerAccru
 }
 
 func (w *WorkerAccrual) StartWorkerAccrual(ctx context.Context, addressAccrual string) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(time.Millisecond)
 	for {
 		select {
 		case <-ticker.C:
