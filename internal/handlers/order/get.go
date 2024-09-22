@@ -50,7 +50,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("GET ORDER \n", req)
+	fmt.Println("GET ORDER \n", &req)
 	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
 
