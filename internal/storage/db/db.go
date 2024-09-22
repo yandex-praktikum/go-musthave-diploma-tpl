@@ -56,7 +56,7 @@ func (d *DateBase) createTableIfNotExists() error {
             id SERIAL PRIMARY KEY,
             user_id INT NOT NULL,
             order_id TEXT NOT NULL,
-            bonus FLOAT,
+            bonus FLOAT DEFAULT 0,
             order_status TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
@@ -77,7 +77,7 @@ func (d *DateBase) createTableIfNotExists() error {
 
 	// добавляем столбец со списанными средствами если его ранее не было
 	queryUpdateDataOrder = `
-		ALTER TABLE loyalty ADD COLUMN IF NOT EXISTS withdraw FLOAT
+		ALTER TABLE loyalty ADD COLUMN IF NOT EXISTS withdraw FLOAT DEFAULT 0
 `
 	_, err = d.storage.Exec(queryUpdateDataOrder)
 	if err != nil {
