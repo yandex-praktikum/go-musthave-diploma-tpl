@@ -89,8 +89,25 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, order)
 			if err != nil {
-				w.log.Error("Error saving data in worker :", err)
+				w.log.Error("Error saving data in worker: ", err)
+				continue
 			}
+
+			var loyalty models.Loyalty
+
+			query := "SELECT * FROM loylty WHERE order_id = $1"
+
+			checkRow, err := w.storage.Get(query, accrual.Order)
+			if err != nil {
+				w.log.Error("Error check data in worker: ", err)
+				continue
+			}
+
+			if err = checkRow.Scan(&loyalty); err != nil {
+				w.log.Error("Error not found: ", err)
+				continue
+			}
+			w.log.Info("Check accrual:", loyalty.OrderStatus, loyalty.Bonus)
 		}
 	}
 }
