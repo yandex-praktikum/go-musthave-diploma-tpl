@@ -8,6 +8,7 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -32,7 +33,6 @@ func (w *WorkerAccrual) StartWorkerAccrual(ctx context.Context, addressAccrual s
 		select {
 		case <-ticker.C:
 			go w.getAccrual(ctx, addressAccrual)
-			fmt.Println("ticker")
 		case <-ctx.Done():
 			return
 		}
@@ -74,6 +74,8 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
 			w.log.Error("Error decoding response in worker:", err)
+			b, err := io.ReadAll(req.Body)
+			w.log.Info("Error: ", b, err)
 			continue
 		}
 
