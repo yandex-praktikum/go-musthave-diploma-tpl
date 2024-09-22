@@ -41,6 +41,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.log.Info("Information req balance", "current", balance.Current, "withdraw", balance.Withdraw)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
