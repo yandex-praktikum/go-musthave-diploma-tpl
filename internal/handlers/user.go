@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jackc/pgx/v4"
+	"github.com/sub3er0/gophermart/internal/accrual"
 	"github.com/sub3er0/gophermart/internal/middleware"
 	"github.com/sub3er0/gophermart/internal/models"
 	"github.com/sub3er0/gophermart/internal/service"
@@ -13,9 +15,11 @@ import (
 )
 
 type UserHandler struct {
-	UserService     service.UserService
-	OrderService    service.OrderService
-	WithdrawService service.WithdrawService
+	UserService          service.UserService
+	OrderService         service.OrderService
+	WithdrawService      service.WithdrawService
+	UserBalanceService   service.UserBalanceService
+	AccrualSystemAddress string
 }
 
 type Withdraw struct {
@@ -64,8 +68,9 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   3600,
 	})
-	w.WriteHeader(http.StatusCreated)
 
+	w.Header().Set("Authorization", token)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
 }
 
@@ -99,6 +104,7 @@ func (uh *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   3600,
 	})
 
+	w.Header().Set("Authorization", token)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
 }
@@ -131,15 +137,15 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	bodyString := string(body)
-	isDigit := isDigits(bodyString)
+	orderNumber := string(body)
+	isDigit := isDigits(orderNumber)
 
 	if isDigit != true {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
 
-	result, err := uh.OrderService.IsOrderExist(bodyString, userID)
+	result, err := uh.OrderService.IsOrderExist(orderNumber, userID)
 
 	if err != nil {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -154,12 +160,42 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = uh.OrderService.SaveOrder(bodyString, userID, 11)
+	err = uh.OrderService.SaveOrder(orderNumber, userID)
 
 	if err != nil {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
+
+	go func() {
+		tx, err := uh.OrderService.OrderRepository.DBStorage.Conn.BeginTx(
+			uh.OrderService.OrderRepository.DBStorage.Ctx, pgx.TxOptions{})
+		var registerResponse accrual.RegisterResponse
+		err, registerResponse = accrual.GetOrderInfo(uh.AccrualSystemAddress, orderNumber)
+
+		if err != nil {
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+
+		if registerResponse.Accrual > 0 {
+			err = uh.OrderService.UpdateOrder(orderNumber, registerResponse.Accrual, registerResponse.Status)
+
+			if err != nil {
+				_ = tx.Rollback(uh.OrderService.OrderRepository.DBStorage.Ctx)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+				return
+			}
+
+			err = uh.UserBalanceService.UpdateUserBalance(registerResponse.Accrual, userID)
+
+			if err != nil {
+				_ = tx.Rollback(uh.OrderService.OrderRepository.DBStorage.Ctx)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+				return
+			}
+		}
+	}()
 }
 
 func isDigits(s string) bool {
@@ -214,7 +250,7 @@ func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userBalance, err := uh.OrderService.GetUserBalance(userID)
+	userBalance, err := uh.UserBalanceService.GetUserBalance(userID)
 
 	if err != nil {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)

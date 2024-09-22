@@ -17,9 +17,9 @@ type OrderRepository struct {
 }
 
 type OrderData struct {
-	Number     int       `json:"number"`
+	Number     string    `json:"number"`
 	Status     string    `json:"status"`
-	Accrual    int       `json:"accrual"`
+	Accrual    float32   `json:"accrual"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
@@ -48,14 +48,16 @@ func (or *OrderRepository) IsOrderExist(orderNumber string, userID int) (int, er
 	}
 }
 
-func (or *OrderRepository) SaveOrder(orderNumber string, userID int, accrual int) error {
-	query := "INSERT INTO orders (number, user_id, status, accrual) VALUES ($1, $2, $3, $4)"
-	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, orderNumber, userID, NEW, accrual)
+func (or *OrderRepository) SaveOrder(orderNumber string, userID int) error {
+	query := "INSERT INTO orders (number, user_id, status, accrual) VALUES ($1, $2, $3)"
+	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, orderNumber, userID, NEW)
 
-	if accrual != 0 {
-		query = "UPDATE user_balance SET balance = balance + $1 WHERE user_id = $2"
-		_, err = or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, userID, accrual)
-	}
+	return err
+}
+
+func (or *OrderRepository) UpdateOrder(orderNumber string, accrual float32, status string) error {
+	query := "UPDATE orders SET status = $1 accrual = $2 WHERE number = $3"
+	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, status, accrual, orderNumber)
 
 	return err
 }
@@ -84,28 +86,4 @@ func (or *OrderRepository) GetUserOrders(userID int) ([]OrderData, error) {
 	}
 
 	return orders, nil
-}
-
-func (or *OrderRepository) GetUserBalance(userID int) (UserBalance, error) {
-	var userBalance UserBalance
-
-	query := "SELECT balance, used_balance FROM user_balance WHERE user_id = $1"
-	rows, err := or.DBStorage.Conn.Query(or.DBStorage.Ctx, query, userID)
-
-	if err != nil {
-		return userBalance, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		if err := rows.Scan(&userBalance.Balance, &userBalance.UsedBalance); err != nil {
-			return userBalance, err
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return userBalance, err
-	}
-
-	return userBalance, nil
 }

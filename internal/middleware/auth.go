@@ -21,13 +21,21 @@ type Claims struct {
 func TokenAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
+		authHeader := r.Header.Get("Authorization")
 
-		if err != nil {
+		if err != nil && authHeader == "" {
 			http.Error(w, "Пользователь не авторизован", http.StatusUnauthorized)
 			return
 		}
 
-		tokenString := cookie.Value
+		var tokenString string
+
+		if cookie != nil {
+			tokenString = cookie.Value
+		} else {
+			tokenString = authHeader
+		}
+
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(SecretKey), nil

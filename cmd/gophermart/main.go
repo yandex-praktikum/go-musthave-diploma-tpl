@@ -46,10 +46,18 @@ func main() {
 	withdrawService := service.WithdrawService{
 		WithdrawRepository: &withdrawRepository,
 	}
+	userBalanceRepository := repository.UserBalanceRepository{
+		DBStorage: PgsStorage,
+	}
+	userBalanceService := service.UserBalanceService{
+		UserBalanceRepository: &userBalanceRepository,
+	}
 	userHandler := handlers.UserHandler{
-		UserService:     userService,
-		OrderService:    orderService,
-		WithdrawService: withdrawService,
+		UserService:          userService,
+		OrderService:         orderService,
+		WithdrawService:      withdrawService,
+		UserBalanceService:   userBalanceService,
+		AccrualSystemAddress: cfg.AccrualSystemAddress,
 	}
 
 	r := chi.NewRouter()

@@ -16,7 +16,7 @@ type Config struct {
 func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
-	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
+	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8088", "Адрес HTTP-сервера")
 	flag.StringVar(&cfg.AccrualSystemAddress, "r", "test", "Адрес системы расчета")
 	flag.StringVar(
 		&cfg.DatabaseDsn,
