@@ -65,6 +65,8 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			continue
 		}
 
+		w.log.Info(order, orderStatus)
+
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 		if err != nil {
 			w.log.Error("Error making request in worker :", err)
@@ -75,7 +77,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
 			w.log.Error("Error decoding response in worker:", err)
 			b, err := io.ReadAll(req.Body)
-			w.log.Info("Error: ", b, err)
+			w.log.Info(string(b), err)
 			continue
 		}
 
