@@ -23,7 +23,7 @@ type OrdersUser struct {
 type ResponseAccrual struct {
 	Order   string  `json:"order"`
 	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual,omitempty"`
+	Accrual float32 `json:"accrual,omitempty"`
 }
 
 type Balance struct {
@@ -33,7 +33,7 @@ type Balance struct {
 
 type Withdrawals struct {
 	Order       string     `json:"order"`
-	Sum         *float64   `json:"sum"`
+	Sum         *float32   `json:"sum"`
 	ProcessedAt *time.Time `json:"processed_at"`
 }
 
