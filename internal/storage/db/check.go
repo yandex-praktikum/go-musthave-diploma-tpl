@@ -69,11 +69,11 @@ func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum f
 		return customerrors.ErrNotEnoughBonuses
 	}
 
-	querySave := "UPDATE loyalty SET processed_at = $1 WHERE order_id = $2"
+	querySave := "UPDATE loyalty SET processed_at = $1, withdraw = $2 WHERE order_id = $3"
 
 	rfc3339Time := now.Format(time.RFC3339)
 
-	if err = d.Save(querySave, rfc3339Time, order); err != nil {
+	if err = d.Save(querySave, rfc3339Time, sum, order); err != nil {
 		return err
 	}
 	return nil
