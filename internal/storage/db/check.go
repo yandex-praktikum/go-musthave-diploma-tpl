@@ -39,12 +39,13 @@ func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (st
 	return existingPassword, true
 }
 
-func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum float32, now time.Time) error {
+func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
 	var user int
 	var sumBonus float32
-	queryCheckOrder := "SELECT user_id FROM loyalty WHERE order_id = $1"
+	// создаем запрос в базу users для получения id пользователя
+	queryUser := `SELECT id FROM users WHERE login = $1`
 
-	rowOrder, err := d.Get(queryCheckOrder, order)
+	rowOrder, err := d.Get(queryUser, login)
 	if err != nil {
 		return customerrors.ErrNotData
 	}

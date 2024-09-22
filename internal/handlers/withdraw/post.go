@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"net/http"
 	"time"
@@ -36,10 +37,17 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// берем login пользователя
+	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
+	if !ok || login == "" {
+		h.log.Info("Error: not userID")
+		return
+	}
+
 	now := time.Now()
 
 	// делаем запрос в базу
-	if err := h.storage.CheckWriteOffOfFunds(h.ctx, body.Order, body.Sum, now); err != nil {
+	if err := h.storage.CheckWriteOffOfFunds(h.ctx, login, body.Order, body.Sum, now); err != nil {
 		if errors.Is(err, customerrors.ErrNotData) {
 			h.log.Error("error withdraw", "error: ", err)
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "incorrect order"})

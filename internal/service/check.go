@@ -13,6 +13,6 @@ func (s *Service) CheckTableUserPassword(ctx context.Context, password string) (
 	return s.db.CheckTableUserPassword(ctx, password)
 }
 
-func (s *Service) CheckWriteOffOfFunds(ctx context.Context, order string, sum float32, now time.Time) error {
-	return s.db.CheckWriteOffOfFunds(ctx, order, sum, now)
+func (s *Service) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
+	return s.db.CheckWriteOffOfFunds(ctx, login, order, sum, now)
 }
