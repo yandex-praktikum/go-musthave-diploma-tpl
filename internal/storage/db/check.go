@@ -50,7 +50,7 @@ func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum f
 	}
 
 	if err = rowOrder.Scan(&user); err != nil {
-		return err
+		return customerrors.ErrNotUser
 	}
 
 	queryCheckSumAccrual := "SELECT SUM(bonus) FROM loyalty WHERE user_id = $1"
@@ -62,7 +62,7 @@ func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, order string, sum f
 	}
 
 	if err = rowSum.Scan(&sumBonus); err != nil {
-		return err
+		return customerrors.ErrNotBonus
 	}
 
 	if sum > sumBonus {
