@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"time"
 )
 
@@ -40,23 +41,16 @@ func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (st
 }
 
 func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
-	var user int
 	var sumBonus float32
-	// создаем запрос в базу users для получения id пользователя
-	queryUser := `SELECT id FROM users WHERE login = $1`
 
-	rowOrder, err := d.Get(queryUser, login)
+	userID, err := d.GetLoginID(login)
 	if err != nil {
-		return customerrors.ErrNotData
-	}
-
-	if err = rowOrder.Scan(&user); err != nil {
-		return customerrors.ErrNotUser
+		return err
 	}
 
 	queryCheckSumAccrual := "SELECT SUM(bonus) FROM loyalty WHERE user_id = $1"
 
-	rowSum, err := d.Get(queryCheckSumAccrual, user)
+	rowSum, err := d.Get(queryCheckSumAccrual, userID)
 
 	if err != nil {
 		return customerrors.ErrNotData
@@ -70,11 +64,17 @@ func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, login, order string
 		return customerrors.ErrNotEnoughBonuses
 	}
 
-	querySave := "UPDATE loyalty SET processed_at = $1, withdraw = $2, bonus = $3 WHERE order_id = $4"
+	// сохраняем новый ордер
+	if err = d.SaveOrder(userID, order, string(models.NewOrder), now); err != nil {
+		return err
+	}
+
+	// обновляем новыми данными
+	querySave := "UPDATE loyalty SET processed_at = $1, withdraw = $2 WHERE order_id = $3"
 
 	rfc3339Time := now.Format(time.RFC3339)
 
-	if err = d.Save(querySave, rfc3339Time, sum, sumBonus-sum, order); err != nil {
+	if err = d.Save(querySave, rfc3339Time, sum, order); err != nil {
 		return err
 	}
 	return nil

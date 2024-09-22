@@ -8,9 +8,9 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/utils"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -42,7 +42,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 
 	// Проверяем корректность номера заказа с помощью алгоритма Луна
 	orderNumber := strings.TrimSpace(string(body))
-	if !isLunaValid(orderNumber) {
+	if !utils.IsLunaValid(orderNumber) {
 		h.log.Error("error post order", "error:", "invalid order numbers")
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "invalid order numbers"})
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -89,31 +89,4 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 	w.Write(response)
 
-}
-
-// Функция, реализующая алгоритм Луна для проверки корректности номера заказа
-func isLunaValid(number string) bool {
-	var sum int
-	// Перебираем цифры с конца к началу
-	for i, r := range number {
-		digit, err := strconv.Atoi(string(r))
-		if err != nil {
-			// Если символ не является цифрой, возвращаем false
-			return false
-		}
-
-		// Если индекс четный, цифру нужно удвоить
-		if (len(number)-1-i)%2 == 1 {
-			digit *= 2
-			if digit > 9 {
-				// Если результат больше 9, складываем цифры
-				digit -= 9
-			}
-		}
-
-		sum += digit
-	}
-
-	// Проверяем, кратна ли сумма 10
-	return sum%10 == 0
 }

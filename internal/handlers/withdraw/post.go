@@ -8,7 +8,9 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/utils"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -30,9 +32,19 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	body := RequestBody{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.log.Error("error withdraw", "error: ", err)
+		h.log.Error("error withdraw", "error", err)
 		apiError, _ := json.Marshal(customerrors.APIError{Message: "incorrect body"})
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write(apiError)
+		return
+	}
+
+	// Проверяем корректность номера заказа с помощью алгоритма Луна
+	orderNumber := strings.TrimSpace(body.Order)
+	if !utils.IsLunaValid(orderNumber) {
+		h.log.Error("error post withdraw", "error", "invalid order numbers")
+		apiError, _ := json.Marshal(customerrors.APIError{Message: "invalid order numbers"})
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		w.Write(apiError)
 		return
 	}

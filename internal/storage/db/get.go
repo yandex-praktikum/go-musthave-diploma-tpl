@@ -30,6 +30,23 @@ func (d *DateBase) Gets(query string, args ...interface{}) (*sql.Rows, error) {
 	return rows, err
 }
 
+func (d *DateBase) GetLoginID(login string) (int, error) {
+	var user int
+
+	query := `SELECT id FROM users WHERE login = $1`
+
+	row, err := d.Get(query, login)
+	if err != nil {
+		return -1, customerrors.ErrNotData
+	}
+
+	if err = row.Scan(&user); err != nil {
+		return -1, customerrors.ErrNotUser
+	}
+
+	return user, nil
+}
+
 func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Time) error {
 	var user models.User
 	var loyalty models.Loyalty
