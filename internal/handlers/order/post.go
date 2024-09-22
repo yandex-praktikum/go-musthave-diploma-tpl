@@ -60,6 +60,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	// Проверяем заказ в базе
+	h.log.Info("Order = ", orderNumber)
 	if err = h.service.GetUserByAccessToken(orderNumber, login, now); err != nil {
 		if errors.Is(err, customerrors.ErrAnotherUsersOrder) {
 			h.log.Error("error post order", "error:", err)
