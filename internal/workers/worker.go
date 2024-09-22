@@ -114,7 +114,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 				w.log.Error("Error not found: ", err)
 				continue
 			}
-			w.log.Info("Check new status order: ", loyaltyStatus)
+			w.log.Info("Information worker: ", "Check new status order: ", loyaltyStatus)
 		}
 	}
 }

@@ -14,10 +14,10 @@ type Loyalty struct {
 }
 
 type OrdersUser struct {
-	Number     string    `json:"order_id" db:"order_id"`
+	Number     string    `json:"number" db:"order_id"`
 	Status     *string   `json:"status" db:"status"`
-	Accrual    *float64  `json:"bonus,omitempty" db:"bonus"`
-	UploadedAt time.Time `json:"created_in" db:"created_in"`
+	Accrual    *float64  `json:"accrual,omitempty" db:"bonus"`
+	UploadedAt time.Time `json:"uploaded_at" db:"created_in"`
 }
 
 type ResponseAccrual struct {
