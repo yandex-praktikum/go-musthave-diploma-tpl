@@ -32,6 +32,14 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req) == 0 {
+		h.log.Error("error withdraw", "error: ", "there is not a single write-off")
+		apiError, _ := json.Marshal(customerrors.APIError{Message: ""})
+		w.WriteHeader(http.StatusNoContent)
+		w.Write(apiError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
