@@ -7,7 +7,7 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	"io"
 	"net/http"
 	"strconv"
@@ -15,11 +15,11 @@ import (
 )
 
 type WorkerAccrual struct {
-	storage *service.Service
+	storage *orders.Service
 	log     *logger.Logger
 }
 
-func NewWorkerAccrual(storage *service.Service, log *logger.Logger) *WorkerAccrual {
+func NewWorkerAccrual(storage *orders.Service, log *logger.Logger) *WorkerAccrual {
 	return &WorkerAccrual{
 		storage: storage,
 		log:     log,

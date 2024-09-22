@@ -6,17 +6,17 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	"net/http"
 )
 
 type Handler struct {
 	ctx     context.Context
-	storage *service.Service
+	storage *orders.Service
 	log     *logger.Logger
 }
 
-func NewHandler(ctx context.Context, storage *service.Service, log *logger.Logger) *Handler {
+func NewHandler(ctx context.Context, storage *orders.Service, log *logger.Logger) *Handler {
 	return &Handler{
 		ctx:     ctx,
 		storage: storage,

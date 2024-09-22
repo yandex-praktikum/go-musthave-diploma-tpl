@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	db2 "github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
 	"time"
 
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth/entity"
 )
 
-//go:generate mockgen -source=./auth.go -destination=/Users/pavel/GolandProjects/go-musthave-diploma-tpl/internal/mocks/mock_storage_auth.go -package=mocks
+//go:generate mockgen -source=./service.go -destination=service_mock.go -package=auth
 type AuthService interface {
 	RegisterUser(ctx context.Context, login, password string) error
 	AuthUser(ctx context.Context, login, password string) (entity.Tokens, error)
@@ -33,10 +33,10 @@ type ServiceAuth struct {
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 
-	storage service.Storage
+	storage orders.Storage
 }
 
-func NewServiceAuth(saltTKN, saltPSW []byte, storage service.Storage) *ServiceAuth {
+func NewService(saltTKN, saltPSW []byte, storage orders.Storage) *ServiceAuth {
 	return &ServiceAuth{
 		tokenSalt:    saltTKN,
 		passwordSalt: saltPSW,

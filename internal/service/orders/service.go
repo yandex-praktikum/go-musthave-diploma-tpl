@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//go:generate mockgen -source=./service.go -destination=../mocks/mock_storage.go -package=mocks
+//go:generate mockgen -source=./service.go -destination=service_mock.go -package=orders
 type Storage interface {
 	Save(query string, args ...interface{}) error
 	SaveTableUser(login, passwordHash string) error

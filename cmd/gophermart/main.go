@@ -11,8 +11,8 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/handlers/withdraw"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/service"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/auth"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/workers"
 	"net/http"
@@ -43,11 +43,11 @@ func main() {
 	defer repo.Close()
 
 	// инициализируем Service
-	serv := service.NewService(repo, logs)
+	serv := orders.NewService(repo, logs)
 	logs.Info("Service run")
 
 	// инициализируем проверку авторизацию
-	serviceAuth := auth.NewServiceAuth([]byte(os.Getenv("TOKEN_SALT")), []byte(os.Getenv("PASSWORD_SALT")), repo)
+	serviceAuth := auth.NewService([]byte(os.Getenv("TOKEN_SALT")), []byte(os.Getenv("PASSWORD_SALT")), repo)
 	logs.Info("Service authorize run")
 
 	// инициализируем запись Context
