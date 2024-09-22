@@ -83,6 +83,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 		if req.StatusCode == http.StatusTooManyRequests {
 			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
+			w.log.Info("Sleep = ", timeSleep, "time.Duration = ", time.Duration(timeSleep))
 			if err != nil {
 				time.Sleep(60 * time.Second)
 			} else {
