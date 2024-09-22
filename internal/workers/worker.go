@@ -27,7 +27,7 @@ func NewWorkerAccrual(storage *service.Service, log *logger.Logger) *WorkerAccru
 }
 
 func (w *WorkerAccrual) StartWorkerAccrual(ctx context.Context, addressAccrual string) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(time.Second / 2)
 	defer ticker.Stop()
 	for {
 		select {
@@ -48,7 +48,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			w.log.Error("Error closing rowset:", err)
+			w.log.Error("Error ", "closing row set:", err)
 		}
 	}()
 
@@ -65,7 +65,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			continue
 		}
 
-		w.log.Info(order, orderStatus)
+		w.log.Info("Information worker: ", order, orderStatus)
 
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 		if err != nil {
@@ -83,7 +83,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 		if req.StatusCode == http.StatusTooManyRequests {
 			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
-			w.log.Info("Sleep = ", timeSleep, "time.Duration = ", time.Duration(timeSleep))
+			w.log.Info("Information worker: ", "Sleep = ", timeSleep, "time.Duration = ", time.Duration(timeSleep))
 			if err != nil {
 				time.Sleep(60 * time.Second)
 			} else {
@@ -92,11 +92,11 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		}
 
 		if orderStatus != accrual.Status {
-			w.log.Info("Accrual:", accrual)
+			w.log.Info("Information worker: ", "Accrual:", accrual)
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, order)
 			if err != nil {
-				w.log.Error("Error saving data in worker: ", err)
+				w.log.Error("Error: ", "saving data in worker: ", err)
 				continue
 			}
 

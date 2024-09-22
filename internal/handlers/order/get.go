@@ -50,7 +50,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, r := range req {
-		h.log.Info("order = ", r.Number, "status =", r.Status, "accrual = ", r.Accrual)
+		h.log.Info("Information req get order", "order = ", r.Number, "status =", r.Status, "accrual = ", r.Accrual)
 	}
 	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
