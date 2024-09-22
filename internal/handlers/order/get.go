@@ -3,7 +3,6 @@ package order
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/middleware"
 	"net/http"
@@ -50,7 +49,9 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("GET ORDER \n", &req)
+	for _, r := range req {
+		h.log.Info("order = ", r.Number, "status =", r.Status)
+	}
 	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
 
