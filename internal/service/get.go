@@ -8,10 +8,10 @@ import (
 )
 
 func (s *Service) Get(query string, args ...interface{}) (*sql.Row, error) {
-	return s.db.Get(query, args)
+	return s.db.Get(query, args...)
 }
 func (s *Service) Gets(query string, args ...interface{}) (*sql.Rows, error) {
-	return s.db.Gets(query, args)
+	return s.db.Gets(query, args...)
 }
 
 func (s *Service) GetUserByAccessToken(order string, login string, now time.Time) error {
