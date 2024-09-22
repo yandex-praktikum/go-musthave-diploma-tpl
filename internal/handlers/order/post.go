@@ -84,7 +84,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, _ := json.Marshal(ResponseBody{Processing: true})
+	response, _ := json.Marshal(ResponseBody{Processing: true, Order: orderNumber})
 	w.WriteHeader(http.StatusAccepted)
 	w.Write(response)
 
