@@ -27,10 +27,12 @@ func NewWorkerAccrual(storage *service.Service, log *logger.Logger) *WorkerAccru
 
 func (w *WorkerAccrual) StartWorkerAccrual(ctx context.Context, addressAccrual string) {
 	ticker := time.NewTicker(time.Millisecond)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			go w.getAccrual(ctx, addressAccrual)
+			fmt.Println("ticker")
 		case <-ctx.Done():
 			return
 		}
