@@ -93,9 +93,9 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 				continue
 			}
 
-			var loyalty models.Loyalty
+			var loyaltyStatus string
 
-			query := "SELECT * FROM loyalty WHERE order_id = $1"
+			query := "SELECT order_status FROM loyalty WHERE order_id = $1"
 
 			checkRow, err := w.storage.Get(query, accrual.Order)
 			if err != nil {
@@ -103,11 +103,11 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 				continue
 			}
 
-			if err = checkRow.Scan(&loyalty); err != nil {
+			if err = checkRow.Scan(&loyaltyStatus); err != nil {
 				w.log.Error("Error not found: ", err)
 				continue
 			}
-			w.log.Info("Check accrual:", loyalty.OrderStatus, loyalty.Bonus)
+			w.log.Info("Check new status order: ", loyaltyStatus)
 		}
 	}
 }
