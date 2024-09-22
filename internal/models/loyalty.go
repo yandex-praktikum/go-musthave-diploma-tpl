@@ -27,8 +27,8 @@ type ResponseAccrual struct {
 }
 
 type Balance struct {
-	Current  *float32 `json:"current"`
-	Withdraw *float32 `json:"withdrawn"`
+	Current  float32 `json:"current"`
+	Withdraw float32 `json:"withdrawn"`
 }
 
 type Withdrawals struct {

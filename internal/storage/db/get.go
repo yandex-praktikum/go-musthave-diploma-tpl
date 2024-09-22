@@ -162,7 +162,8 @@ func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) 
 }
 
 func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
-	var balance models.Balance
+	var current float32
+	var withdraw float32
 
 	// создаем запрос в базу users для получения id пользователя
 	var userID int
@@ -177,8 +178,13 @@ func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
 
 	row := d.storage.QueryRow(query, userID)
 
-	if err := row.Scan(&balance.Current, &balance.Withdraw); err != nil {
+	if err := row.Scan(&current, &withdraw); err != nil {
 		return nil, err
+	}
+
+	balance := models.Balance{
+		Current:  current - withdraw,
+		Withdraw: withdraw,
 	}
 	return &balance, nil
 }
