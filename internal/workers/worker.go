@@ -95,7 +95,7 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 			var loyalty models.Loyalty
 
-			query := "SELECT * FROM loylty WHERE order_id = $1"
+			query := "SELECT * FROM loyalty WHERE order_id = $1"
 
 			checkRow, err := w.storage.Get(query, accrual.Order)
 			if err != nil {
