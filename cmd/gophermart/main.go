@@ -2,22 +2,47 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
-	"gophermart/db"
 	"gophermart/internal/config"
 	"gophermart/internal/handlers"
 	"gophermart/internal/middleware"
 	"gophermart/internal/repository"
 	"gophermart/internal/service"
+	"gophermart/storage"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 )
 
 func main() {
-	PgsStorage := &db.PgStorage{}
+	PgsStorage := &storage.PgStorage{}
 	cfg, err := config.InitConfig()
 
 	if err != nil {
 		log.Fatalf("Error while initializing config: %v", err)
+	}
+
+	if cfg != nil {
+		dsn := cfg.DatabaseDsn
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+		if err != nil {
+			log.Fatalf("failed to connect database: %v", err)
+		}
+
+		err = db.AutoMigrate()
+		err = db.AutoMigrate(&storage.Order{})
+		err = db.AutoMigrate(&storage.User{})
+		err = db.AutoMigrate(&storage.UserBalance{})
+		err = db.AutoMigrate(&storage.Withdrawal{})
+
+		if err != nil {
+			log.Fatalf("failed to migrate database: %v", err)
+		}
+
+		if err != nil {
+			log.Fatalf("failed to migrate database: %v", err)
+		}
 	}
 
 	err = PgsStorage.Init(cfg.DatabaseDsn)

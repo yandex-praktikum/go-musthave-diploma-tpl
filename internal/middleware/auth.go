@@ -9,7 +9,7 @@ import (
 const SecretKey = "sectet_key"
 
 type Credentials struct {
-	Username string `json:"username"`
+	Username string `json:"login"`
 	Password string `json:"password"`
 }
 

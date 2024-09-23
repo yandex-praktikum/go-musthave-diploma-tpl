@@ -1,9 +1,9 @@
 package repository
 
-import "gophermart/db"
+import "gophermart/storage"
 
 type UserBalanceRepository struct {
-	DBStorage *db.PgStorage
+	DBStorage *storage.PgStorage
 }
 
 func (ubr *UserBalanceRepository) UpdateUserBalance(accrual float32, userID int) error {

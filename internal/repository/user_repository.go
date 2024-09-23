@@ -1,17 +1,20 @@
 package repository
 
 import (
-	"gophermart/db"
 	"gophermart/internal/models"
+	"gophermart/storage"
+	"time"
 )
 
 type UserRepository struct {
-	DBStorage *db.PgStorage
+	DBStorage *storage.PgStorage
 }
 
 func (ur *UserRepository) CreateUser(user models.User) error {
-	query := "INSERT INTO users (username, password) VALUES ($1, $2)"
-	_, err := ur.DBStorage.Conn.Exec(ur.DBStorage.Ctx, query, user.Username, user.Password)
+	currentTime := time.Now()
+
+	query := "INSERT INTO users (username, password, created_at, updated_at) VALUES ($1, $2, $3, $4)"
+	_, err := ur.DBStorage.Conn.Exec(ur.DBStorage.Ctx, query, user.Username, user.Password, currentTime, currentTime)
 
 	return err
 }

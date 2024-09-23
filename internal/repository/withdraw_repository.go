@@ -3,12 +3,12 @@ package repository
 import (
 	"fmt"
 	"github.com/jackc/pgx/v4"
-	"gophermart/db"
+	"gophermart/storage"
 	"time"
 )
 
 type WithdrawRepository struct {
-	DBStorage *db.PgStorage
+	DBStorage *storage.PgStorage
 }
 
 type WithdrawInfo struct {

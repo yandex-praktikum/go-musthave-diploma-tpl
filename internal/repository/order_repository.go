@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"gophermart/db"
+	"gophermart/storage"
 	"time"
 )
 
@@ -13,7 +13,7 @@ const (
 )
 
 type OrderRepository struct {
-	DBStorage *db.PgStorage
+	DBStorage *storage.PgStorage
 }
 
 type OrderData struct {
@@ -49,15 +49,19 @@ func (or *OrderRepository) IsOrderExist(orderNumber string, userID int) (int, er
 }
 
 func (or *OrderRepository) SaveOrder(orderNumber string, userID int) error {
-	query := "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)"
-	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, orderNumber, userID, NEW)
+	currentTime := time.Now()
+
+	query := "INSERT INTO orders (number, user_id, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
+	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, orderNumber, userID, NEW, currentTime, currentTime)
 
 	return err
 }
 
 func (or *OrderRepository) UpdateOrder(orderNumber string, accrual float32, status string) error {
-	query := "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3"
-	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, status, accrual, orderNumber)
+	currentTime := time.Now()
+
+	query := "UPDATE orders SET status = $1, accrual = $2, updated_at = $3 WHERE number = $4"
+	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, status, accrual, currentTime, orderNumber)
 
 	return err
 }
