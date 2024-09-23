@@ -69,7 +69,7 @@ func main() {
 		r.Post("/api/user/orders", userHandler.SaveOrder)
 		r.Get("/api/user/orders", userHandler.GetOrders)
 		r.Get("/api/user/balance", userHandler.GetBalance)
-		r.Post("/api/user/withdraw", userHandler.Withdraw)
+		r.Post("/api/user/balance/withdraw", userHandler.Withdraw)
 		r.Get("/api/user/withdrawals", userHandler.Withdrawals)
 	})
 

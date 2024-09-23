@@ -17,8 +17,8 @@ type WithdrawInfo struct {
 	ProcessedAt time.Time `json:"processed_at"`
 }
 
-func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum int) (int, error) {
-	var userBalance int
+func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum float32) (int, error) {
+	var userBalance float32
 	tx, err := wr.DBStorage.Conn.BeginTx(wr.DBStorage.Ctx, pgx.TxOptions{})
 
 	if err != nil {

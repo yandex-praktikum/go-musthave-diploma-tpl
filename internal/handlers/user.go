@@ -26,8 +26,8 @@ type UserHandler struct {
 }
 
 type Withdraw struct {
-	Order string `json:"order"`
-	Sum   int    `json:"sum"`
+	Order string  `json:"order"`
+	Sum   float32 `json:"sum"`
 }
 
 func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
