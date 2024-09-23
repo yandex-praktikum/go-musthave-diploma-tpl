@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -140,6 +142,11 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 	orderNumber := string(body)
 	isDigit := isDigits(orderNumber)
 
+	if ValidateNumber(orderNumber) != true {
+		http.Error(w, "Неверный формат номера заказа", http.StatusUnprocessableEntity)
+		return
+	}
+
 	if isDigit != true {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
@@ -167,6 +174,8 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusAccepted)
+
 	go func() {
 		tx, err := uh.OrderService.OrderRepository.DBStorage.Conn.BeginTx(
 			uh.OrderService.OrderRepository.DBStorage.Ctx, pgx.TxOptions{})
@@ -178,7 +187,7 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if registerResponse.Accrual > 0 {
+		if registerResponse.Order != "" {
 			err = uh.OrderService.UpdateOrder(orderNumber, registerResponse.Accrual, registerResponse.Status)
 
 			if err != nil {
@@ -371,4 +380,31 @@ func (uh *UserHandler) Withdrawals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	return
+}
+
+func ValidateNumber(orderNumber string) bool {
+	orderNumber = strings.ReplaceAll(orderNumber, " ", "")
+	orderNumber = strings.ReplaceAll(orderNumber, "-", "")
+
+	for _, char := range orderNumber {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+
+	sum := 0
+	alternate := false
+	for i := len(orderNumber) - 1; i >= 0; i-- {
+		digit, _ := strconv.Atoi(string(orderNumber[i]))
+		if alternate {
+			digit *= 2
+			if digit > 9 {
+				digit -= 9
+			}
+		}
+		sum += digit
+		alternate = !alternate
+	}
+
+	return sum%10 == 0
 }

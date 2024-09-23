@@ -31,7 +31,6 @@ func RequestDecompressor(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := w
 
-		// Проверка на сжатие ответа
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
 			contains(r.Header.Get("Content-Type"), AllowedContentTypes) {
 			gz := gzip.NewWriter(w)
@@ -50,7 +49,6 @@ func RequestDecompressor(next http.Handler) http.Handler {
 			rw.Header().Set("Content-Encoding", "gzip")
 		}
 
-		// Распаковка запроса
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			reader, err := gzip.NewReader(r.Body)
 			if err != nil {

@@ -49,14 +49,14 @@ func (or *OrderRepository) IsOrderExist(orderNumber string, userID int) (int, er
 }
 
 func (or *OrderRepository) SaveOrder(orderNumber string, userID int) error {
-	query := "INSERT INTO orders (number, user_id, status, accrual) VALUES ($1, $2, $3)"
+	query := "INSERT INTO orders (number, user_id, status) VALUES ($1, $2, $3)"
 	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, orderNumber, userID, NEW)
 
 	return err
 }
 
 func (or *OrderRepository) UpdateOrder(orderNumber string, accrual float32, status string) error {
-	query := "UPDATE orders SET status = $1 accrual = $2 WHERE number = $3"
+	query := "UPDATE orders SET status = $1, accrual = $2 WHERE number = $3"
 	_, err := or.DBStorage.Conn.Exec(or.DBStorage.Ctx, query, status, accrual, orderNumber)
 
 	return err

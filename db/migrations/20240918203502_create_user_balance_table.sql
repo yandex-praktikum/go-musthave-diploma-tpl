@@ -5,8 +5,8 @@ SELECT 'up SQL query';
 CREATE TABLE IF NOT EXISTS user_balance (
     id SERIAL PRIMARY KEY,
     user_id INT,
-    balance INT DEFAULT 0,
-    used_balance INT DEFAULT 0,
+    balance DECIMAL(10, 2) DEFAULT 0,
+    used_balance DECIMAL(10, 2) DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose Down

@@ -19,7 +19,7 @@ func GetOrderInfo(accrualServerAddress string, orderNumber string) (error, Regis
 		R().
 		SetHeader("Content-Type", "application/json")
 
-	resp, err := req.Get("/api/user/" + orderNumber)
+	resp, err := req.Get("/api/orders/" + orderNumber)
 
 	if err != nil {
 		return err, registerResponse

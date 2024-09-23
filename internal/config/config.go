@@ -17,7 +17,7 @@ func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
 	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8088", "Адрес HTTP-сервера")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", "test", "Адрес системы расчета")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", "http://localhost:8080", "Адрес системы расчета")
 	flag.StringVar(
 		&cfg.DatabaseDsn,
 		"b", "postgres://postgres:326717@localhost:5432/gofermart?sslmode=disable",
