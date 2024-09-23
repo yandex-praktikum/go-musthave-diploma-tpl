@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/sub3er0/gophermart/db"
-	"github.com/sub3er0/gophermart/internal/models"
+	"gophermart/db"
+	"gophermart/internal/models"
 )
 
 type UserRepository struct {

@@ -2,12 +2,12 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/sub3er0/gophermart/db"
-	"github.com/sub3er0/gophermart/internal/config"
-	"github.com/sub3er0/gophermart/internal/handlers"
-	"github.com/sub3er0/gophermart/internal/middleware"
-	"github.com/sub3er0/gophermart/internal/repository"
-	"github.com/sub3er0/gophermart/internal/service"
+	"gophermart/db"
+	"gophermart/internal/config"
+	"gophermart/internal/handlers"
+	"gophermart/internal/middleware"
+	"gophermart/internal/repository"
+	"gophermart/internal/service"
 	"log"
 	"net/http"
 )

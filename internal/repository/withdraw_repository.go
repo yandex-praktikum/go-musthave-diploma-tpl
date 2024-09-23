@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 	"github.com/jackc/pgx/v4"
-	"github.com/sub3er0/gophermart/db"
+	"gophermart/db"
 	"time"
 )
 

@@ -1,4 +1,4 @@
-module github.com/sub3er0/gophermart
+module gophermart
 
 go 1.22.5
 

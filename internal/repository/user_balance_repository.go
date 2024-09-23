@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/sub3er0/gophermart/db"
+import "gophermart/db"
 
 type UserBalanceRepository struct {
 	DBStorage *db.PgStorage

@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/sub3er0/gophermart/db"
+	"gophermart/db"
 	"time"
 )
 

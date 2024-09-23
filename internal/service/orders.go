@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/sub3er0/gophermart/internal/repository"
+	"gophermart/internal/repository"
 )
 
 type OrderService struct {

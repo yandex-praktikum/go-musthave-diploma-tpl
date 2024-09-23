@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/sub3er0/gophermart/internal/models"
-	"github.com/sub3er0/gophermart/internal/repository"
 	"golang.org/x/crypto/bcrypt"
+	"gophermart/internal/models"
+	"gophermart/internal/repository"
 )
 
 type UserService struct {
