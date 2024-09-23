@@ -9,6 +9,7 @@ import (
 	"gophermart/internal/models"
 	"gophermart/internal/service"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -53,6 +54,7 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if user, err = uh.UserService.RegisterUser(user); err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		log.Printf(err.Error())
 		return
 	}
 
