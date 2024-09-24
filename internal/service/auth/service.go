@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	db2 "github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
 	"time"
 
@@ -26,6 +25,14 @@ type AuthService interface {
 	HashPassword(password string) string
 }
 
+type StorageAuth interface {
+	CheckTableUserLogin(ctx context.Context, login string) error
+	CheckTableUserPassword(ctx context.Context, password string) (string, bool)
+	SaveTableUserAndUpdateToken(login, accessToken string) error
+	SaveTableUser(login, passwordHash string) error
+	SearchLoginByToken(accessToken string) (string, error)
+}
+
 type ServiceAuth struct {
 	tokenSalt    []byte
 	passwordSalt []byte
@@ -33,10 +40,10 @@ type ServiceAuth struct {
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 
-	storage orders.Storage
+	storage StorageAuth
 }
 
-func NewService(saltTKN, saltPSW []byte, storage orders.Storage) *ServiceAuth {
+func NewService(saltTKN, saltPSW []byte, storage StorageAuth) *ServiceAuth {
 	return &ServiceAuth{
 		tokenSalt:    saltTKN,
 		passwordSalt: saltPSW,

@@ -12,6 +12,12 @@ type DateBase struct {
 	storage *sql.DB
 }
 
+//go:generate mockgen -source=./db.go -destination=db_mock.go -package=db
+type DB interface {
+	initDB(logs *logger.Logger, dataSourceName string) error
+	Close() error
+}
+
 func NewDB(logs *logger.Logger, addressConDB string) (*DateBase, error) {
 	pstgr := &DateBase{}
 	err := pstgr.initDB(logs, addressConDB)
