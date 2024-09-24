@@ -25,7 +25,7 @@ func (ubr *UserBalanceRepository) GetUserBalance(userID int) (UserBalance, error
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(&userBalance.Balance, &userBalance.UsedBalance); err != nil {
+		if err := rows.Scan(&userBalance.Current, &userBalance.Withdrawn); err != nil {
 			return userBalance, err
 		}
 	}

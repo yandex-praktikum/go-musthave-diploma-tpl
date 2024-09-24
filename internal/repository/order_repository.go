@@ -24,8 +24,8 @@ type OrderData struct {
 }
 
 type UserBalance struct {
-	Balance     int `json:"balance"`
-	UsedBalance int `json:"used_balance"`
+	Current   int `json:"current"`
+	Withdrawn int `json:"withdrawn"`
 }
 
 func (or *OrderRepository) IsOrderExist(orderNumber string, userID int) (int, error) {
