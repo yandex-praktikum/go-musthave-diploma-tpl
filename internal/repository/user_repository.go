@@ -10,24 +10,17 @@ type UserRepository struct {
 	DBStorage *storage.PgStorage
 }
 
-func (ur *UserRepository) CreateUser(user models.User) error {
+func (ur *UserRepository) CreateUser(user models.User) (int, error) {
 	currentTime := time.Now()
+	query := "INSERT INTO users (username, password, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
 
-	query := "INSERT INTO users (username, password, created_at, updated_at) VALUES ($1, $2, $3, $4)"
-	_, err := ur.DBStorage.Conn.Exec(ur.DBStorage.Ctx, query, user.Username, user.Password, currentTime, currentTime)
+	var userID int
+	err := ur.DBStorage.Conn.QueryRow(ur.DBStorage.Ctx, query, user.Username, user.Password, currentTime, currentTime).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
 
-	return err
-}
-
-func (ur *UserRepository) CreateUserBalance(user models.User) error {
-	var id int
-	query := "SELECT id FROM users WHERE username = $1"
-	err := ur.DBStorage.Conn.QueryRow(ur.DBStorage.Ctx, query, user.Username).Scan(&id)
-
-	query = "INSERT INTO user_balance (user_id, balance) VALUES ($1, 0)"
-	_, err = ur.DBStorage.Conn.Exec(ur.DBStorage.Ctx, query, id)
-
-	return err
+	return userID, nil
 }
 
 func (ur *UserRepository) IsUserExists(username string) int {

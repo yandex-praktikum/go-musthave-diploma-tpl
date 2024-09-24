@@ -30,11 +30,11 @@ func (Order) TableName() string {
 }
 
 type UserBalance struct {
-	ID          uint    `gorm:"primaryKey"`
-	UserID      uint    `gorm:"not null"`
-	Balance     float64 `gorm:"default:0"`
-	UsedBalance float64 `gorm:"default:0"`
-	User        User    `gorm:"foreignKey:UserID"`
+	ID        uint    `gorm:"primaryKey"`
+	UserID    uint    `gorm:"not null"`
+	Current   float64 `gorm:"default:0"`
+	Withdrawn float64 `gorm:"default:0"`
+	User      User    `gorm:"foreignKey:UserID"`
 }
 
 func (UserBalance) TableName() string {

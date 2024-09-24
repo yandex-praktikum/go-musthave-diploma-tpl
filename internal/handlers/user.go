@@ -9,7 +9,6 @@ import (
 	"gophermart/internal/models"
 	"gophermart/internal/service"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -51,10 +50,23 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
+	tx, err := uh.OrderService.OrderRepository.DBStorage.Conn.BeginTx(
+		uh.OrderService.OrderRepository.DBStorage.Ctx, pgx.TxOptions{})
 
 	if user, err = uh.UserService.RegisterUser(user); err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
-		log.Printf(err.Error())
+		_ = tx.Rollback(uh.OrderService.OrderRepository.DBStorage.Ctx)
+		return
+	}
+
+	if err = uh.UserBalanceService.CreateUserBalance(user); err != nil {
+		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		_ = tx.Rollback(uh.OrderService.OrderRepository.DBStorage.Ctx)
+		return
+	}
+
+	if err := tx.Commit(uh.OrderService.OrderRepository.DBStorage.Ctx); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
 

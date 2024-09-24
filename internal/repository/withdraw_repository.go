@@ -12,7 +12,7 @@ type WithdrawRepository struct {
 }
 
 type WithdrawInfo struct {
-	OrderNumber string    `json:"number"`
+	OrderNumber string    `json:"order"`
 	Sum         float32   `json:"sum"`
 	ProcessedAt time.Time `json:"processed_at"`
 }
@@ -30,7 +30,7 @@ func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum float
 		}
 	}()
 
-	query := "SELECT balance FROM user_balance WHERE user_id = $1"
+	query := "SELECT current FROM user_balance WHERE user_id = $1"
 	err = tx.QueryRow(wr.DBStorage.Ctx, query, userID).Scan(&userBalance)
 
 	if err != nil {
@@ -41,15 +41,16 @@ func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum float
 		return -2, nil
 	}
 
-	query = "UPDATE user_balance SET balance = balance - $1, used_balance = used_balance + $1 WHERE user_id = $2"
+	query = "UPDATE user_balance SET current = current - $1, withdrawn = withdrawn + $1 WHERE user_id = $2"
 	_, err = tx.Exec(wr.DBStorage.Ctx, query, sum, userID)
 	if err != nil {
 		tx.Rollback(wr.DBStorage.Ctx)
 		return -1, err
 	}
 
-	query = "INSERT INTO withdrawal (user_id, order_number, sum) VALUES ($1, $2, $3)"
-	_, err = tx.Exec(wr.DBStorage.Ctx, query, userID, orderNumber, sum)
+	currentTime := time.Now()
+	query = "INSERT INTO withdrawal (user_id, order_number, sum, created_at) VALUES ($1, $2, $3, $4)"
+	_, err = tx.Exec(wr.DBStorage.Ctx, query, userID, orderNumber, sum, currentTime)
 	if err != nil {
 		tx.Rollback(wr.DBStorage.Ctx)
 		return -1, err
