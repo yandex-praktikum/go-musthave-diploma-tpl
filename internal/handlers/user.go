@@ -140,7 +140,7 @@ func generateToken(user models.User) (string, error) {
 }
 
 func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
+	username := r.Context().Value(middleware.UsernameKey).(string)
 
 	userID := uh.UserService.UserRepository.IsUserExists(username)
 
@@ -205,7 +205,7 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var registerResponse accrual.RegisterResponse
-		err, registerResponse = accrual.GetOrderInfo(uh.AccrualSystemAddress, orderNumber)
+		registerResponse, err = accrual.GetOrderInfo(uh.AccrualSystemAddress, orderNumber)
 
 		if err != nil {
 			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
@@ -238,7 +238,7 @@ func isDigits(s string) bool {
 }
 
 func (uh *UserHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
+	username := r.Context().Value(middleware.UsernameKey).(string)
 
 	userID := uh.UserService.UserRepository.IsUserExists(username)
 
@@ -273,7 +273,7 @@ func (uh *UserHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
+	username := r.Context().Value(middleware.UsernameKey).(string)
 
 	userID := uh.UserService.UserRepository.IsUserExists(username)
 
@@ -308,7 +308,7 @@ func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
+	username := r.Context().Value(middleware.UsernameKey).(string)
 
 	userID := uh.UserService.UserRepository.IsUserExists(username)
 
@@ -367,7 +367,7 @@ func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) Withdrawals(w http.ResponseWriter, r *http.Request) {
-	username := r.Context().Value("username").(string)
+	username := r.Context().Value(middleware.UsernameKey).(string)
 
 	userID := uh.UserService.UserRepository.IsUserExists(username)
 

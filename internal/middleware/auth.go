@@ -7,6 +7,7 @@ import (
 )
 
 const SecretKey = "sectet_key"
+const UsernameKey = "username"
 
 type Credentials struct {
 	Username string `json:"login"`
@@ -46,7 +47,7 @@ func TokenAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "username", claims.Username)
+		ctx := context.WithValue(r.Context(), UsernameKey, claims.Username)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

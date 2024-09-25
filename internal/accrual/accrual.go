@@ -3,7 +3,6 @@ package accrual
 import (
 	"encoding/json"
 	"github.com/go-resty/resty/v2"
-	"log"
 )
 
 type RegisterResponse struct {
@@ -12,28 +11,26 @@ type RegisterResponse struct {
 	Accrual float32 `json:"accrual"`
 }
 
-func GetOrderInfo(accrualServerAddress string, orderNumber string) (error, RegisterResponse) {
+func GetOrderInfo(accrualServerAddress string, orderNumber string) (RegisterResponse, error) {
 	var registerResponse RegisterResponse
 	req := resty.New().
-		SetHostURL(accrualServerAddress).
+		SetBaseURL(accrualServerAddress).
 		R().
 		SetHeader("Content-Type", "application/json")
 
 	resp, err := req.Get("/api/orders/" + orderNumber)
 
 	if err != nil {
-		return err, registerResponse
+		return registerResponse, err
 	}
 
 	if resp.StatusCode() != 200 {
-		return err, registerResponse
+		return registerResponse, err
 	}
 
 	if err := json.Unmarshal(resp.Body(), &registerResponse); err != nil {
-		return err, registerResponse
+		return registerResponse, err
 	}
 
-	log.Printf("Order: %s, Status: %s, Accrual: %d", registerResponse.Order, registerResponse.Status, registerResponse.Accrual)
-
-	return nil, registerResponse
+	return registerResponse, nil
 }
