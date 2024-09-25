@@ -31,14 +31,30 @@ func main() {
 		}
 
 		err = db.AutoMigrate()
-		err = db.AutoMigrate(&storage.Order{})
-		err = db.AutoMigrate(&storage.User{})
-		err = db.AutoMigrate(&storage.UserBalance{})
-		err = db.AutoMigrate(&storage.Withdrawal{})
 
 		if err != nil {
 			log.Fatalf("failed to migrate database: %v", err)
 		}
+
+		err = db.AutoMigrate(&storage.Order{})
+
+		if err != nil {
+			log.Fatalf("failed to migrate database: %v", err)
+		}
+
+		err = db.AutoMigrate(&storage.User{})
+
+		if err != nil {
+			log.Fatalf("failed to migrate database: %v", err)
+		}
+
+		err = db.AutoMigrate(&storage.UserBalance{})
+
+		if err != nil {
+			log.Fatalf("failed to migrate database: %v", err)
+		}
+
+		err = db.AutoMigrate(&storage.Withdrawal{})
 
 		if err != nil {
 			log.Fatalf("failed to migrate database: %v", err)

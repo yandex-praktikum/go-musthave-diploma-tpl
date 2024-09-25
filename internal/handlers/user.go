@@ -53,6 +53,11 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	tx, err := uh.OrderService.OrderRepository.DBStorage.Conn.BeginTx(
 		uh.OrderService.OrderRepository.DBStorage.Ctx, pgx.TxOptions{})
 
+	if err != nil {
+		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		return
+	}
+
 	if user, err = uh.UserService.RegisterUser(user); err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		_ = tx.Rollback(uh.OrderService.OrderRepository.DBStorage.Ctx)
@@ -156,12 +161,12 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 	orderNumber := string(body)
 	isDigit := isDigits(orderNumber)
 
-	if ValidateNumber(orderNumber) != true {
+	if !ValidateNumber(orderNumber) {
 		http.Error(w, "Неверный формат номера заказа", http.StatusUnprocessableEntity)
 		return
 	}
 
-	if isDigit != true {
+	if !isDigit {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
@@ -193,6 +198,12 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		tx, err := uh.OrderService.OrderRepository.DBStorage.Conn.BeginTx(
 			uh.OrderService.OrderRepository.DBStorage.Ctx, pgx.TxOptions{})
+
+		if err != nil {
+			http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+
 		var registerResponse accrual.RegisterResponse
 		err, registerResponse = accrual.GetOrderInfo(uh.AccrualSystemAddress, orderNumber)
 
@@ -259,8 +270,6 @@ func (uh *UserHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
-
-	return
 }
 
 func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
@@ -296,8 +305,6 @@ func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
-
-	return
 }
 
 func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
@@ -320,7 +327,7 @@ func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	isDigit := isDigits(withdraw.Order)
 
-	if isDigit != true {
+	if isDigit {
 		http.Error(w, "Неверный номер заказа", http.StatusUnprocessableEntity)
 		return
 	}
@@ -392,8 +399,6 @@ func (uh *UserHandler) Withdrawals(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
-
-	return
 }
 
 func ValidateNumber(orderNumber string) bool {
