@@ -6,8 +6,10 @@ import (
 	"net/http"
 )
 
+type contextKey string
+
 const SecretKey = "sectet_key"
-const UsernameKey = "username"
+const UsernameKey contextKey = "username"
 
 type Credentials struct {
 	Username string `json:"login"`
