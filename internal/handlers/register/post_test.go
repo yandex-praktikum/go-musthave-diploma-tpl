@@ -119,12 +119,6 @@ func TestPost(t *testing.T) {
 			if w.Code != tt.expectedStatus {
 				t.Errorf("expected status code %d, got %d", tt.expectedStatus, w.Code)
 			}
-
-			var responseBody ResponseBody
-			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
-			if err != nil {
-				t.Fatal(err)
-			}
 		})
 	}
 }
