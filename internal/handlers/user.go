@@ -327,7 +327,7 @@ func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	isDigit := isDigits(withdraw.Order)
 
-	if isDigit {
+	if !isDigit {
 		http.Error(w, "Неверный номер заказа", http.StatusUnprocessableEntity)
 		return
 	}
