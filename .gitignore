@@ -21,3 +21,5 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+.DS_Store
+.gitignore

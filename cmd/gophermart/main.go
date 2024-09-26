@@ -15,11 +15,18 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/storage/db"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/workers"
+	"log/slog"
 	"net/http"
 	"os"
 )
 
 func main() {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		slog.Error("Fatal", "error loading .env file = ", err)
+	}
+
 	// инициализируем Config
 	cfg := NewConfig()
 	cfg.Parsed()
@@ -27,11 +34,6 @@ func main() {
 	// инициализируем Logger
 	logs := logger.NewLogger(logger.WithLevel(cfg.LogLevel))
 	logs.Info("Logger start")
-
-	err := godotenv.Load(".env")
-	if err != nil {
-		logs.Error("Fatal", "error loading .env file = ", err)
-	}
 
 	// инициализируем DB
 	repo, err := db.NewDB(logs, cfg.AddrConDB)
@@ -73,13 +75,14 @@ func main() {
 
 	r.Post("/api/user/register", registerHandler.Post)
 	r.Post("/api/user/login", authorizeHandler.Post)
-	r.Group(func(r chi.Router) {
+
+	r.Route("/api/user", func(r chi.Router) {
 		r.Use(authorization.ValidAuth)
-		r.Post("/api/user/orders", ordersHandler.Post)
-		r.Get("/api/user/orders", ordersHandler.Get)
-		r.Get("/api/user/balance", balanceHandler.Get)
-		r.Post("/api/user/balance/withdraw", withdrawHandler.Post)
-		r.Get("/api/user/withdrawals", withdrawHandler.Get)
+		r.Post("/orders", ordersHandler.Post)
+		r.Get("/orders", ordersHandler.Get)
+		r.Get("/balance", balanceHandler.Get)
+		r.Post("/balance/withdraw", withdrawHandler.Post)
+		r.Get("/withdrawals", withdrawHandler.Get)
 	})
 
 	go worker.StartWorkerAccrual(ctx, cfg.AccrualSystemAddress)

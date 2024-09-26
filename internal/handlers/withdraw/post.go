@@ -52,7 +52,8 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	// берем login пользователя
 	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
 	if !ok || login == "" {
-		h.log.Info("Error: not userID")
+		h.log.Error("Error post order = not userID")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 

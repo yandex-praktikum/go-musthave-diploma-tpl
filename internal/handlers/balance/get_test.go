@@ -37,7 +37,7 @@ func TestHandlerGet(t *testing.T) {
 				Current:  555.5,
 				Withdraw: 50,
 			},
-			expectedStatus: http.StatusUnauthorized,
+			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:  "Error get balance",

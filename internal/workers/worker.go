@@ -8,7 +8,6 @@ import (
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/service/orders"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -65,8 +64,6 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 			continue
 		}
 
-		w.log.Info("Information worker: ", order, orderStatus)
-
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 		if err != nil {
 			w.log.Error("Error making request in worker :", err)
@@ -76,14 +73,11 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
 			w.log.Error("Error decoding response in worker:", err)
-			b, err := io.ReadAll(req.Body)
-			w.log.Info(string(b), err)
 			continue
 		}
 
 		if req.StatusCode == http.StatusTooManyRequests {
 			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
-			w.log.Info("Information worker: ", "Sleep = ", timeSleep, "time.Duration = ", time.Duration(timeSleep))
 			if err != nil {
 				time.Sleep(60 * time.Second)
 			} else {
@@ -92,7 +86,6 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		}
 
 		if orderStatus != accrual.Status {
-			w.log.Info("Information worker: ", "Accrual:", accrual)
 			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
 			err = w.storage.Save(querySave, accrual.Status, accrual.Accrual, order)
 			if err != nil {
@@ -114,7 +107,6 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 				w.log.Error("Error not found: ", err)
 				continue
 			}
-			w.log.Info("Information worker: ", "Check new status order: ", loyaltyStatus)
 		}
 	}
 }

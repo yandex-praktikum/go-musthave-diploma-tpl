@@ -19,23 +19,32 @@ func NewConfig() *Configs {
 func (c *Configs) Parsed() {
 	c.parseFlags()
 	// Проверка переменной окружения RUN_ADDRESS
-	if envRunAddress := os.Getenv("RUN_ADDRESS"); envRunAddress != "" {
-		c.RunAddress = envRunAddress
+	if c.RunAddress == "" {
+		if envRunAddress := os.Getenv("RUN_ADDRESS"); envRunAddress != "" {
+			c.RunAddress = envRunAddress
+		}
 	}
 
 	// Проверка переменной окружения LOG_LEVEL
-	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
-		c.LogLevel = envLogLevel
+	if c.LogLevel == "" {
+		if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+			c.LogLevel = envLogLevel
+		}
 	}
 
 	// Проверка переменной окружения DATABASE_URI
-	if envAddrConDB := os.Getenv("DATABASE_URI"); envAddrConDB != "" {
-		c.AddrConDB = envAddrConDB
+
+	if c.AddrConDB == "" {
+		if envAddrConDB := os.Getenv("DATABASE_URI"); envAddrConDB != "" {
+			c.AddrConDB = envAddrConDB
+		}
 	}
 
 	// Проверка переменной окружения ACCRUAL_SYSTEM_ADDRESS
-	if envAccrualSystemAddress := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); envAccrualSystemAddress != "" {
-		c.AccrualSystemAddress = envAccrualSystemAddress
+	if c.AccrualSystemAddress == "" {
+		if envAccrualSystemAddress := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); envAccrualSystemAddress != "" {
+			c.AccrualSystemAddress = envAccrualSystemAddress
+		}
 	}
 }
 

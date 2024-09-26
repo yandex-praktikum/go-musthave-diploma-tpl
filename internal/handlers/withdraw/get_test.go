@@ -21,7 +21,7 @@ func TestHandlerGet(t *testing.T) {
 	tests := []struct {
 		name            string
 		login           string
-		requestError    error
+		responseError   error
 		withdrawalsBody []*models.Withdrawals
 		expectedStatus  int
 	}{
@@ -53,7 +53,7 @@ func TestHandlerGet(t *testing.T) {
 					Sum:         &sum,
 					ProcessedAt: &now},
 			},
-			requestError:   errors.New("bad get withdrawals"),
+			responseError:  errors.New("bad get withdrawals"),
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
@@ -71,7 +71,7 @@ func TestHandlerGet(t *testing.T) {
 			ctx := context.Background()
 
 			repo := orders.NewMockStorage(ctrl)
-			repo.EXPECT().GetWithdrawals(ctx, tt.login).Return(tt.withdrawalsBody, tt.requestError).AnyTimes()
+			repo.EXPECT().GetWithdrawals(ctx, tt.login).Return(tt.withdrawalsBody, tt.responseError).AnyTimes()
 
 			serv := orders.NewService(repo, loger)
 

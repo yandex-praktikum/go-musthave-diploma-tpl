@@ -38,7 +38,7 @@ func TestHandlerGet(t *testing.T) {
 		{
 			name:           "User not authenticated",
 			login:          "",
-			expectedStatus: http.StatusUnauthorized,
+			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:  "No data to answer",

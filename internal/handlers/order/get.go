@@ -12,11 +12,8 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
 
 	if !ok || login == "" {
-		h.log.Info("Error get orders: not userID")
-		apiError, _ := json.Marshal(customerrors.APIError{Message: "user not authenticated"})
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized) // 401 Unauthorized для отсутствия пользователя
-		w.Write(apiError)
+		h.log.Error("Error post order = not userID")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -49,9 +46,6 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, r := range req {
-		h.log.Info("Information req get order", "order = ", r.Number, "status =", r.Status, "accrual = ", r.Accrual)
-	}
 	w.Header().Set("Content-Type", "application/json") // Перенесите перед w.WriteHeader
 	w.WriteHeader(http.StatusOK)
 

@@ -27,8 +27,8 @@ func NewHandler(ctx context.Context, storage *orders.Service, log *logger.Logger
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	login, ok := r.Context().Value(middleware.LoginContentKey).(string)
 	if !ok || login == "" {
-		h.log.Info("Error: not userID")
-		w.WriteHeader(http.StatusUnauthorized)
+		h.log.Error("Error post order = not userID")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -41,8 +41,6 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		w.Write(apiError)
 		return
 	}
-
-	h.log.Info("Information req balance", "current", balance.Current, "withdraw", balance.Withdraw)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
