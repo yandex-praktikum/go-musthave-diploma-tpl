@@ -8,7 +8,7 @@ import (
 	"gophermart/internal/middleware"
 	"gophermart/internal/models"
 	"gophermart/internal/service"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -149,7 +149,7 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
