@@ -1,7 +1,6 @@
 package balance
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
@@ -11,14 +10,12 @@ import (
 )
 
 type Handler struct {
-	ctx     context.Context
 	storage *orders.Service
 	log     *logger.Logger
 }
 
-func NewHandler(ctx context.Context, storage *orders.Service, log *logger.Logger) *Handler {
+func NewHandler(storage *orders.Service, log *logger.Logger) *Handler {
 	return &Handler{
-		ctx:     ctx,
 		storage: storage,
 		log:     log,
 	}

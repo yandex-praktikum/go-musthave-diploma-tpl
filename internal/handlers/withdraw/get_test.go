@@ -68,14 +68,12 @@ func TestHandlerGet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			loger := logger.NewLogger()
-			ctx := context.Background()
-
 			repo := orders.NewMockStorage(ctrl)
-			repo.EXPECT().GetWithdrawals(ctx, tt.login).Return(tt.withdrawalsBody, tt.responseError).AnyTimes()
+			repo.EXPECT().GetWithdrawals(tt.login).Return(tt.withdrawalsBody, tt.responseError).AnyTimes()
 
 			serv := orders.NewService(repo, loger)
 
-			handler := NewHandler(ctx, serv, loger)
+			handler := NewHandler(serv, loger)
 
 			req, err := http.NewRequest("GET", "/", nil)
 			if err != nil {

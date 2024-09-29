@@ -72,7 +72,6 @@ func TestHandlerGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			ctx := context.Background()
 			loger := logger.NewLogger()
 
 			repo := orders.NewMockStorage(ctrl)
@@ -80,7 +79,7 @@ func TestHandlerGet(t *testing.T) {
 
 			serv := orders.NewService(repo, loger)
 
-			handler := NewHandler(ctx, serv, loger)
+			handler := NewHandler(serv, loger)
 
 			req, err := http.NewRequest("GET", "/", nil)
 			if err != nil {

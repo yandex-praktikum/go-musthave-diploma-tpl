@@ -98,13 +98,12 @@ func TestHandlerPost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			loger := logger.NewLogger()
-			ctx := context.Background()
 
 			repo := orders.NewMockStorage(ctrl)
-			repo.EXPECT().CheckWriteOffOfFunds(ctx, tt.login, tt.requestBody.Order, tt.requestBody.Sum, gomock.Any()).Return(tt.responseError).AnyTimes()
+			repo.EXPECT().CheckWriteOffOfFunds(tt.login, tt.requestBody.Order, tt.requestBody.Sum, gomock.Any()).Return(tt.responseError).AnyTimes()
 
 			serv := orders.NewService(repo, loger)
-			handler := NewHandler(ctx, serv, loger)
+			handler := NewHandler(serv, loger)
 
 			req, err := http.NewRequest("POST", "/", nil)
 			if err != nil {

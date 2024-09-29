@@ -26,8 +26,8 @@ type AuthService interface {
 }
 
 type StorageAuth interface {
-	CheckTableUserLogin(ctx context.Context, login string) error
-	CheckTableUserPassword(ctx context.Context, password string) (string, bool)
+	CheckTableUserLogin(login string) error
+	CheckTableUserPassword(password string) (string, bool)
 	SaveTableUserAndUpdateToken(login, accessToken string) error
 	SaveTableUser(login, passwordHash string) error
 	SearchLoginByToken(accessToken string) (string, error)
@@ -55,8 +55,8 @@ func NewService(saltTKN, saltPSW []byte, storage StorageAuth) *ServiceAuth {
 	}
 }
 
-func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) error {
-	err := s.storage.CheckTableUserLogin(ctx, login)
+func (s *ServiceAuth) RegisterUser(login, password string) error {
+	err := s.storage.CheckTableUserLogin(login)
 
 	if errors.Is(err, customerrors.ErrUserAlreadyExists) {
 		return customerrors.ErrUserAlreadyExists
@@ -76,8 +76,8 @@ func (s *ServiceAuth) RegisterUser(ctx context.Context, login, password string) 
 	return nil
 }
 
-func (s *ServiceAuth) AuthUser(ctx context.Context, login, password string) (entity.Tokens, error) {
-	passwordHash, ok := s.storage.CheckTableUserPassword(ctx, login)
+func (s *ServiceAuth) AuthUser(login, password string) (entity.Tokens, error) {
+	passwordHash, ok := s.storage.CheckTableUserPassword(login)
 	if !ok {
 		return entity.Tokens{}, customerrors.ErrNotFound
 	}
@@ -87,7 +87,7 @@ func (s *ServiceAuth) AuthUser(ctx context.Context, login, password string) (ent
 		return entity.Tokens{}, customerrors.ErrIsTruePassword
 	}
 
-	tokens, err := s.GeneratedTokens(ctx, login)
+	tokens, err := s.GeneratedTokens(login)
 	if err != nil {
 		return tokens, err
 	}
@@ -136,7 +136,7 @@ func (s *ServiceAuth) RefreshToken(ctx context.Context, token string) (entity.To
 	}
 
 	// валидация прошла успешно, можем генерить новую пару
-	tokens, err := s.GeneratedTokens(ctx, claims.Login)
+	tokens, err := s.GeneratedTokens(claims.Login)
 	if err != nil {
 		return tokens, err
 	}
@@ -150,16 +150,16 @@ func (s *ServiceAuth) RefreshToken(ctx context.Context, token string) (entity.To
 	return tokens, nil
 }
 
-func (s *ServiceAuth) GeneratedTokens(ctx context.Context, login string) (entity.Tokens, error) {
+func (s *ServiceAuth) GeneratedTokens(login string) (entity.Tokens, error) {
 	accessTokenID := uuid.NewString()
 
-	accessToken, err := s.generateAccessToken(ctx, login)
+	accessToken, err := s.generateAccessToken(login)
 	if err != nil {
 		return entity.Tokens{}, err
 	}
 
 	// accessToken - служит доступом
-	refreshToken, err := s.generateRefreshToken(ctx, accessTokenID, login)
+	refreshToken, err := s.generateRefreshToken(accessTokenID, login)
 	if err != nil {
 		return entity.Tokens{}, err
 	}
@@ -176,7 +176,7 @@ func (s *ServiceAuth) GeneratedTokens(ctx context.Context, login string) (entity
 	}, nil
 }
 
-func (s *ServiceAuth) generateAccessToken(ctx context.Context, login string) (string, error) {
+func (s *ServiceAuth) generateAccessToken(login string) (string, error) {
 	now := time.Now()
 	claims := entity.AccessTokenClaims{
 		Login: login,
@@ -195,7 +195,7 @@ func (s *ServiceAuth) generateAccessToken(ctx context.Context, login string) (st
 	return signedToken, nil
 }
 
-func (s *ServiceAuth) generateRefreshToken(ctx context.Context, accessToken, login string) (string, error) {
+func (s *ServiceAuth) generateRefreshToken(accessToken, login string) (string, error) {
 	now := time.Now()
 	claims := entity.RefreshTokenClaims{
 		Login:         login,

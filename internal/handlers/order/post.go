@@ -1,7 +1,6 @@
 package order
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -16,14 +15,12 @@ import (
 )
 
 type Handler struct {
-	ctx     context.Context
 	service *orders.Service
 	log     *logger.Logger
 }
 
-func NewHandler(ctx context.Context, service *orders.Service, log *logger.Logger) *Handler {
+func NewHandler(service *orders.Service, log *logger.Logger) *Handler {
 	return &Handler{
-		ctx:     ctx,
 		service: service,
 		log:     log,
 	}

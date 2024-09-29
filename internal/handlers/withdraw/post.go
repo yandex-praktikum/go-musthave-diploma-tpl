@@ -1,7 +1,6 @@
 package withdraw
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -15,14 +14,12 @@ import (
 )
 
 type Handler struct {
-	ctx     context.Context
 	storage *orders.Service
 	log     *logger.Logger
 }
 
-func NewHandler(ctx context.Context, storage *orders.Service, log *logger.Logger) *Handler {
+func NewHandler(storage *orders.Service, log *logger.Logger) *Handler {
 	return &Handler{
-		ctx:     ctx,
 		storage: storage,
 		log:     log,
 	}
@@ -60,7 +57,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	// делаем запрос в базу
-	if err := h.storage.CheckWriteOffOfFunds(h.ctx, login, body.Order, body.Sum, now); err != nil {
+	if err := h.storage.CheckWriteOffOfFunds(login, body.Order, body.Sum, now); err != nil {
 		if errors.Is(err, customerrors.ErrNotData) {
 			h.log.Error("error withdraw", "error: ", err)
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "incorrect order"})

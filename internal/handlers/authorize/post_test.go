@@ -2,7 +2,6 @@ package authorize
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/golang/mock/gomock"
@@ -74,9 +73,6 @@ func TestHandlerPost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			ctx := context.Background()
-
 			loger := logger.NewLogger()
 
 			ctrl := gomock.NewController(t)
@@ -86,11 +82,11 @@ func TestHandlerPost(t *testing.T) {
 			authService := auth.NewService([]byte("test"), []byte("test"), repo)
 
 			passwordHash := authService.HashPassword(tt.requestBody.Password)
-			repo.EXPECT().CheckTableUserLogin(ctx, tt.requestBody.Login).Return(tt.resultBody.checkTableUserLogin).AnyTimes()
-			repo.EXPECT().CheckTableUserPassword(ctx, tt.requestBody.Password).Return(passwordHash, tt.resultBody.checkTableUserPassword).AnyTimes()
+			repo.EXPECT().CheckTableUserLogin(tt.requestBody.Login).Return(tt.resultBody.checkTableUserLogin).AnyTimes()
+			repo.EXPECT().CheckTableUserPassword(tt.requestBody.Password).Return(passwordHash, tt.resultBody.checkTableUserPassword).AnyTimes()
 			repo.EXPECT().SaveTableUser(tt.requestBody.Login, gomock.Any()).Return(tt.resultBody.saveTableUser).AnyTimes()
 			repo.EXPECT().SaveTableUserAndUpdateToken(tt.requestBody.Login, gomock.Any()).Return(tt.resultBody.saveTableUserAndUpdateToken).AnyTimes()
-			handler := NewHandler(ctx, authService, loger)
+			handler := NewHandler(authService, loger)
 
 			req, err := http.NewRequest("POST", "/", nil)
 			if err != nil {

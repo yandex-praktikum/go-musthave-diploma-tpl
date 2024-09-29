@@ -59,8 +59,6 @@ func TestHandlerPost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			ctx := context.Background()
 			loger := logger.NewLogger()
 			ctrl := gomock.NewController(t)
 
@@ -76,7 +74,7 @@ func TestHandlerPost(t *testing.T) {
 
 			req = req.WithContext(context.WithValue(req.Context(), middleware.LoginContentKey, tt.login))
 
-			handler := NewHandler(ctx, serv, loger)
+			handler := NewHandler(serv, loger)
 
 			w := httptest.NewRecorder()
 

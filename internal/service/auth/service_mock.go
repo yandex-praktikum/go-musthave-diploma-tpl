@@ -147,32 +147,32 @@ func (m *MockStorageAuth) EXPECT() *MockStorageAuthMockRecorder {
 }
 
 // CheckTableUserLogin mocks base method.
-func (m *MockStorageAuth) CheckTableUserLogin(ctx context.Context, login string) error {
+func (m *MockStorageAuth) CheckTableUserLogin(login string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckTableUserLogin", ctx, login)
+	ret := m.ctrl.Call(m, "CheckTableUserLogin", login)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CheckTableUserLogin indicates an expected call of CheckTableUserLogin.
-func (mr *MockStorageAuthMockRecorder) CheckTableUserLogin(ctx, login interface{}) *gomock.Call {
+func (mr *MockStorageAuthMockRecorder) CheckTableUserLogin(login interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserLogin", reflect.TypeOf((*MockStorageAuth)(nil).CheckTableUserLogin), ctx, login)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserLogin", reflect.TypeOf((*MockStorageAuth)(nil).CheckTableUserLogin), login)
 }
 
 // CheckTableUserPassword mocks base method.
-func (m *MockStorageAuth) CheckTableUserPassword(ctx context.Context, password string) (string, bool) {
+func (m *MockStorageAuth) CheckTableUserPassword(password string) (string, bool) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckTableUserPassword", ctx, password)
+	ret := m.ctrl.Call(m, "CheckTableUserPassword", password)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(bool)
 	return ret0, ret1
 }
 
 // CheckTableUserPassword indicates an expected call of CheckTableUserPassword.
-func (mr *MockStorageAuthMockRecorder) CheckTableUserPassword(ctx, password interface{}) *gomock.Call {
+func (mr *MockStorageAuthMockRecorder) CheckTableUserPassword(password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserPassword", reflect.TypeOf((*MockStorageAuth)(nil).CheckTableUserPassword), ctx, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserPassword", reflect.TypeOf((*MockStorageAuth)(nil).CheckTableUserPassword), password)
 }
 
 // SaveTableUser mocks base method.

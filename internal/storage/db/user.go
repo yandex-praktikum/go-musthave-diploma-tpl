@@ -73,11 +73,11 @@ func (d *DateBase) SearchLoginByToken(accessToken string) (string, error) {
 
 }
 
-func (d *DateBase) CheckTableUserLogin(ctx context.Context, login string) error {
+func (d *DateBase) CheckTableUserLogin(login string) error {
 	var existingLogin string
 	query := `SELECT login FROM users WHERE login = $1`
 
-	err := d.storage.QueryRowContext(ctx, query, login).Scan(&existingLogin)
+	err := d.storage.QueryRow(query, login).Scan(&existingLogin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
@@ -88,11 +88,11 @@ func (d *DateBase) CheckTableUserLogin(ctx context.Context, login string) error 
 	return customerrors.ErrUserAlreadyExists
 }
 
-func (d *DateBase) CheckTableUserPassword(ctx context.Context, login string) (string, bool) {
+func (d *DateBase) CheckTableUserPassword(login string) (string, bool) {
 	var existingPassword string
 	query := `SELECT password FROM users WHERE login = $1`
 
-	err := d.storage.QueryRowContext(ctx, query, login).Scan(&existingPassword)
+	err := d.storage.QueryRow(query, login).Scan(&existingPassword)
 
 	if err != nil {
 		return "", false

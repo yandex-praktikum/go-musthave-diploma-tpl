@@ -172,7 +172,7 @@ func (d *DateBase) GetBalanceUser(login string) (*models.Balance, error) {
 	return &balance, nil
 }
 
-func (d *DateBase) GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error) {
+func (d *DateBase) GetWithdrawals(login string) ([]*models.Withdrawals, error) {
 	var withdrawals []*models.Withdrawals
 	var userID int
 
@@ -192,7 +192,7 @@ func (d *DateBase) GetWithdrawals(ctx context.Context, login string) ([]*models.
 
 	// Создаем запрос для сбора информации по withdrawals
 	query := "SELECT order_id AS order, withdraw AS Sum, processed_at AS ProcessedAt FROM loyalty WHERE user_id = $1 ORDER BY processed_at ASC"
-	rows, err := tx.QueryContext(ctx, query, userID)
+	rows, err := tx.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (d *DateBase) GetWithdrawals(ctx context.Context, login string) ([]*models.
 
 }
 
-func (d *DateBase) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
+func (d *DateBase) CheckWriteOffOfFunds(login, order string, sum float32, now time.Time) error {
 	var sumBonus float32
 
 	userID, err := d.GetLoginID(login)

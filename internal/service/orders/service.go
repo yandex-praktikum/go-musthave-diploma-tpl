@@ -1,7 +1,6 @@
 package orders
 
 import (
-	"context"
 	"database/sql"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
@@ -16,8 +15,8 @@ type Storage interface {
 	GetUserByAccessToken(order string, login string, now time.Time) error
 	GetAllUserOrders(login string) ([]*models.OrdersUser, error)
 	GetBalanceUser(login string) (*models.Balance, error)
-	GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error)
-	CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error
+	GetWithdrawals(login string) ([]*models.Withdrawals, error)
+	CheckWriteOffOfFunds(login, order string, sum float32, now time.Time) error
 }
 
 type Service struct {

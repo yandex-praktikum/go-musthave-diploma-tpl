@@ -1,7 +1,6 @@
 package authorize
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -11,14 +10,12 @@ import (
 )
 
 type Handler struct {
-	ctx         context.Context
 	authService *auth.ServiceAuth
 	log         *logger.Logger
 }
 
-func NewHandler(ctx context.Context, authService *auth.ServiceAuth, log *logger.Logger) *Handler {
+func NewHandler(authService *auth.ServiceAuth, log *logger.Logger) *Handler {
 	return &Handler{
-		ctx:         ctx,
 		authService: authService,
 		log:         log,
 	}
@@ -35,7 +32,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.authService.AuthUser(h.ctx, body.Login, body.Password)
+	token, err := h.authService.AuthUser(body.Login, body.Password)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			h.log.Error("error authorize", "error:", err)

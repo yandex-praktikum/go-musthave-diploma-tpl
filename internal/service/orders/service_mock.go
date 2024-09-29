@@ -5,7 +5,6 @@
 package orders
 
 import (
-	context "context"
 	sql "database/sql"
 	reflect "reflect"
 	time "time"
@@ -38,17 +37,17 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CheckWriteOffOfFunds mocks base method.
-func (m *MockStorage) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
+func (m *MockStorage) CheckWriteOffOfFunds(login, order string, sum float32, now time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckWriteOffOfFunds", ctx, login, order, sum, now)
+	ret := m.ctrl.Call(m, "CheckWriteOffOfFunds", login, order, sum, now)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CheckWriteOffOfFunds indicates an expected call of CheckWriteOffOfFunds.
-func (mr *MockStorageMockRecorder) CheckWriteOffOfFunds(ctx, login, order, sum, now interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) CheckWriteOffOfFunds(login, order, sum, now interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckWriteOffOfFunds", reflect.TypeOf((*MockStorage)(nil).CheckWriteOffOfFunds), ctx, login, order, sum, now)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckWriteOffOfFunds", reflect.TypeOf((*MockStorage)(nil).CheckWriteOffOfFunds), login, order, sum, now)
 }
 
 // Get mocks base method.
@@ -116,18 +115,18 @@ func (mr *MockStorageMockRecorder) GetUserByAccessToken(order, login, now interf
 }
 
 // GetWithdrawals mocks base method.
-func (m *MockStorage) GetWithdrawals(ctx context.Context, login string) ([]*models.Withdrawals, error) {
+func (m *MockStorage) GetWithdrawals(login string) ([]*models.Withdrawals, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetWithdrawals", ctx, login)
+	ret := m.ctrl.Call(m, "GetWithdrawals", login)
 	ret0, _ := ret[0].([]*models.Withdrawals)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetWithdrawals indicates an expected call of GetWithdrawals.
-func (mr *MockStorageMockRecorder) GetWithdrawals(ctx, login interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) GetWithdrawals(login interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawals", reflect.TypeOf((*MockStorage)(nil).GetWithdrawals), ctx, login)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawals", reflect.TypeOf((*MockStorage)(nil).GetWithdrawals), login)
 }
 
 // Gets mocks base method.

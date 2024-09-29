@@ -15,7 +15,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := h.storage.GetWithdrawals(h.ctx, login)
+	req, err := h.storage.GetWithdrawals(login)
 
 	if err != nil {
 		h.log.Error("error withdraw", "error: ", err)

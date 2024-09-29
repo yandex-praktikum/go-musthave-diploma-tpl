@@ -63,11 +63,11 @@ func main() {
 	authorization := middleware.NewAuthMiddleware(serviceAuth)
 
 	// инициализируем Handlers
-	registerHandler := register.NewHandlers(ctx, serviceAuth, logs)
-	authorizeHandler := authorize.NewHandler(ctx, serviceAuth, logs)
-	ordersHandler := order.NewHandler(ctx, serv, logs)
-	balanceHandler := balance.NewHandler(ctx, serv, logs)
-	withdrawHandler := withdraw.NewHandler(ctx, serv, logs)
+	registerHandler := register.NewHandlers(serviceAuth, logs)
+	authorizeHandler := authorize.NewHandler(serviceAuth, logs)
+	ordersHandler := order.NewHandler(serv, logs)
+	balanceHandler := balance.NewHandler(serv, logs)
+	withdrawHandler := withdraw.NewHandler(serv, logs)
 
 	// инициализировали роутер и создали запросы
 	r := chi.NewRouter()

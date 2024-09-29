@@ -2,7 +2,6 @@ package register
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
@@ -94,13 +93,13 @@ func TestPost(t *testing.T) {
 			authService := auth.NewService([]byte("test"), []byte("test"), repo)
 			passwordHash := authService.HashPassword(tt.requestBody.Password)
 
-			repo.EXPECT().CheckTableUserLogin(context.Background(), tt.requestBody.Login).Return(tt.returnBody.checkTableUserLogin).AnyTimes()
+			repo.EXPECT().CheckTableUserLogin(tt.requestBody.Login).Return(tt.returnBody.checkTableUserLogin).AnyTimes()
 			repo.EXPECT().SaveTableUser(tt.requestBody.Login, passwordHash).Return(tt.returnBody.saveTableUser).AnyTimes()
-			repo.EXPECT().CheckTableUserPassword(context.Background(), tt.requestBody.Login).Return(passwordHash, tt.returnBody.checkTableUserPassword).AnyTimes()
+			repo.EXPECT().CheckTableUserPassword(tt.requestBody.Login).Return(passwordHash, tt.returnBody.checkTableUserPassword).AnyTimes()
 			repo.EXPECT().SaveTableUserAndUpdateToken(tt.requestBody.Login, gomock.Any()).Return(tt.returnBody.saveTableUserAndUpdateToken).AnyTimes()
 
 			// Create handlers
-			handlers := NewHandlers(context.Background(), authService, logger)
+			handlers := NewHandlers(authService, logger)
 
 			req, err := http.NewRequest("POST", "/", nil)
 			if err != nil {
