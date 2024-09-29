@@ -37,11 +37,9 @@ type Withdrawals struct {
 	ProcessedAt *time.Time `json:"processed_at"`
 }
 
-type statusKey string
-
 const (
-	NewOrder        statusKey = "NEW"        // Заказ загружен в систему, но не попал в обработку
-	ProcessingOrder statusKey = "PROCESSING" // Вознаграждение за заказ рассчитывается
-	InvalidOrder    statusKey = "INVALID"    // Система расчёта вознаграждений отказала в расчёте
-	ProcessedOrder  statusKey = "PROCESSED"  // Данные по заказу проверены и информация о расчёте успешно получена
+	NewOrder        = "NEW"        // Заказ загружен в систему, но не попал в обработку
+	ProcessingOrder = "PROCESSING" // Вознаграждение за заказ рассчитывается
+	InvalidOrder    = "INVALID"    // Система расчёта вознаграждений отказала в расчёте
+	ProcessedOrder  = "PROCESSED"  // Данные по заказу проверены и информация о расчёте успешно получена
 )

@@ -31,14 +31,14 @@ func (w *WorkerAccrual) StartWorkerAccrual(ctx context.Context, addressAccrual s
 	for {
 		select {
 		case <-ticker.C:
-			go w.getAccrual(ctx, addressAccrual)
+			go w.getAccrual(addressAccrual)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
+func (w *WorkerAccrual) getAccrual(addressAccrual string) {
 	query := "SELECT order_id, order_status FROM loyalty WHERE order_status IN ('REGISTERED', 'PROCESSING', 'NEW')" //берем только в статусе REGISTERED и PROCESSING и NEW
 	rows, err := w.storage.Gets(query)
 	if err != nil {

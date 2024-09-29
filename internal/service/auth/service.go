@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -17,11 +16,11 @@ import (
 
 //go:generate mockgen -source=./service.go -destination=service_mock.go -package=auth
 type AuthService interface {
-	RegisterUser(ctx context.Context, login, password string) error
-	AuthUser(ctx context.Context, login, password string) (entity.Tokens, error)
+	RegisterUser(login, password string) error
+	AuthUser(login, password string) (entity.Tokens, error)
 	VerifyUser(token string) (string, error)
-	RefreshToken(ctx context.Context, token string) (entity.Tokens, error)
-	GeneratedTokens(ctx context.Context, login string) (entity.Tokens, error)
+	RefreshToken(token string) (entity.Tokens, error)
+	GeneratedTokens(login string) (entity.Tokens, error)
 	HashPassword(password string) string
 }
 
@@ -115,7 +114,7 @@ func (s *ServiceAuth) VerifyUser(token string) (string, error) {
 	return claims.Login, nil
 }
 
-func (s *ServiceAuth) RefreshToken(ctx context.Context, token string) (entity.Tokens, error) {
+func (s *ServiceAuth) RefreshToken(token string) (entity.Tokens, error) {
 	claims := &entity.RefreshTokenClaims{}
 	var storageUser db2.DateBase
 	parsedRefreshToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {

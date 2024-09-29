@@ -251,7 +251,7 @@ func (d *DateBase) CheckWriteOffOfFunds(login, order string, sum float32, now ti
 	}
 
 	// сохраняем новый ордер
-	if err = d.SaveOrder(userID, order, string(models.NewOrder), now); err != nil {
+	if err = d.SaveOrder(userID, order, models.NewOrder, now); err != nil {
 		return err
 	}
 
