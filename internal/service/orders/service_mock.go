@@ -37,35 +37,6 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
 }
 
-// CheckTableUserLogin mocks base method.
-func (m *MockStorage) CheckTableUserLogin(ctx context.Context, login string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckTableUserLogin", ctx, login)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CheckTableUserLogin indicates an expected call of CheckTableUserLogin.
-func (mr *MockStorageMockRecorder) CheckTableUserLogin(ctx, login interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserLogin", reflect.TypeOf((*MockStorage)(nil).CheckTableUserLogin), ctx, login)
-}
-
-// CheckTableUserPassword mocks base method.
-func (m *MockStorage) CheckTableUserPassword(ctx context.Context, password string) (string, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckTableUserPassword", ctx, password)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// CheckTableUserPassword indicates an expected call of CheckTableUserPassword.
-func (mr *MockStorageMockRecorder) CheckTableUserPassword(ctx, password interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckTableUserPassword", reflect.TypeOf((*MockStorage)(nil).CheckTableUserPassword), ctx, password)
-}
-
 // CheckWriteOffOfFunds mocks base method.
 func (m *MockStorage) CheckWriteOffOfFunds(ctx context.Context, login, order string, sum float32, now time.Time) error {
 	m.ctrl.T.Helper()
@@ -196,32 +167,4 @@ func (mr *MockStorageMockRecorder) Save(query interface{}, args ...interface{}) 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{query}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockStorage)(nil).Save), varargs...)
-}
-
-// SaveTableUser mocks base method.
-func (m *MockStorage) SaveTableUser(login, passwordHash string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveTableUser", login, passwordHash)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SaveTableUser indicates an expected call of SaveTableUser.
-func (mr *MockStorageMockRecorder) SaveTableUser(login, passwordHash interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveTableUser", reflect.TypeOf((*MockStorage)(nil).SaveTableUser), login, passwordHash)
-}
-
-// SaveTableUserAndUpdateToken mocks base method.
-func (m *MockStorage) SaveTableUserAndUpdateToken(login, accessToken string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveTableUserAndUpdateToken", login, accessToken)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SaveTableUserAndUpdateToken indicates an expected call of SaveTableUserAndUpdateToken.
-func (mr *MockStorageMockRecorder) SaveTableUserAndUpdateToken(login, accessToken interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveTableUserAndUpdateToken", reflect.TypeOf((*MockStorage)(nil).SaveTableUserAndUpdateToken), login, accessToken)
 }

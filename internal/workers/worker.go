@@ -60,19 +60,19 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 		var accrual models.ResponseAccrual
 
 		if err = rows.Scan(&order, &orderStatus); err != nil {
-			w.log.Error("Error scanning rows in worker :", err)
+			w.log.Error("Error worker", "Error scanning rows in worker :", err)
 			continue
 		}
 
 		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
 		if err != nil {
-			w.log.Error("Error making request in worker :", err)
+			w.log.Error("Error worker", "Error making request in worker :", err)
 			continue
 		}
 		defer req.Body.Close()
 
 		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
-			w.log.Error("Error decoding response in worker:", err)
+			w.log.Error("Error worker", "Error decoding response in worker:", err)
 			continue
 		}
 
@@ -99,12 +99,12 @@ func (w *WorkerAccrual) getAccrual(ctx context.Context, addressAccrual string) {
 
 			checkRow, err := w.storage.Get(query, accrual.Order)
 			if err != nil {
-				w.log.Error("Error check data in worker: ", err)
+				w.log.Error("Error worker", "Error check data in worker: ", err)
 				continue
 			}
 
 			if err = checkRow.Scan(&loyaltyStatus); err != nil {
-				w.log.Error("Error not found: ", err)
+				w.log.Error("Error worker", "Error not found: ", err)
 				continue
 			}
 		}
