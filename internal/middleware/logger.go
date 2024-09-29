@@ -34,7 +34,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 func WithLogging(h http.Handler) http.Handler {
-	logFn := func(w http.ResponseWriter, r *http.Request) {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
 		responseData := &responseData{
@@ -58,5 +58,5 @@ func WithLogging(h http.Handler) http.Handler {
 			"size", responseData.size, // получаем перехваченный размер ответа
 		)
 	}
-	return http.HandlerFunc(logFn)
+	return http.HandlerFunc(fn)
 }
