@@ -3,23 +3,83 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kamencov/go-musthave-diploma-tpl/internal/customerrors"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
+	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 )
 
-func (d *DateBase) getAccrual(addressAccrual, order string) (*models.ResponseAccrual, error) {
-	var accrual models.ResponseAccrual
-	requestAccrual, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
-
+func (d *DateBase) GetAccrual(addressAccrual string) {
+	query := "SELECT order_id, order_status FROM loyalty WHERE order_status IN ('REGISTERED', 'PROCESSING', 'NEW')" //берем только в статусе REGISTERED и PROCESSING и NEW
+	rows, err := d.Gets(query)
 	if err != nil {
-		return nil, err
+		slog.Error("Error :", "gets rows in worker - ", customerrors.ErrNotData)
+		return
 	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			slog.Error("Error ", "closing row set:", err)
+		}
+	}()
 
-	if err = json.NewDecoder(requestAccrual.Body).Decode(&accrual); err != nil {
-		return nil, err
+	for rows.Next() {
+		var (
+			order       string
+			orderStatus string
+		)
+
+		var accrual models.ResponseAccrual
+
+		if err = rows.Scan(&order, &orderStatus); err != nil {
+			slog.Error("Error worker", "Error scanning rows in worker :", err)
+			continue
+		}
+
+		req, err := http.Get(fmt.Sprintf("%s/api/orders/%s", addressAccrual, order))
+		if err != nil {
+			slog.Error("Error worker", "Error making request in worker :", err)
+			continue
+		}
+		defer req.Body.Close()
+
+		if err = json.NewDecoder(req.Body).Decode(&accrual); err != nil {
+			slog.Error("Error worker", "Error decoding response in worker:", err)
+			continue
+		}
+
+		if req.StatusCode == http.StatusTooManyRequests {
+			timeSleep, err := strconv.Atoi(req.Header.Get("Retry-After"))
+			if err != nil {
+				time.Sleep(60 * time.Second)
+			} else {
+				time.Sleep(time.Duration(timeSleep) * time.Second)
+			}
+		}
+
+		if orderStatus != accrual.Status {
+			querySave := "UPDATE loyalty SET order_status = $1, bonus = $2 WHERE order_id = $3"
+			err = d.Save(querySave, accrual.Status, accrual.Accrual, order)
+			if err != nil {
+				slog.Error("Error: ", "saving data in worker: ", err)
+				continue
+			}
+
+			var loyaltyStatus string
+
+			query := "SELECT order_status FROM loyalty WHERE order_id = $1"
+
+			checkRow, err := d.Get(query, accrual.Order)
+			if err != nil {
+				slog.Error("Error worker", "Error check data in worker: ", err)
+				continue
+			}
+
+			if err = checkRow.Scan(&loyaltyStatus); err != nil {
+				slog.Error("Error worker", "Error not found: ", err)
+				continue
+			}
+		}
 	}
-
-	defer requestAccrual.Body.Close()
-
-	return &accrual, nil
 }

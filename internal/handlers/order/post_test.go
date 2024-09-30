@@ -50,7 +50,7 @@ func TestHandlerPost(t *testing.T) {
 			name:           "order another user",
 			body:           "22664155",
 			login:          "test",
-			responseError:  customerrors.ErrOrderIsAlready,
+			responseError:  customerrors.ErrOrderRegistered,
 			expectedStatus: http.StatusOK,
 		},
 		{

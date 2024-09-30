@@ -1,7 +1,6 @@
 package orders
 
 import (
-	"database/sql"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/logger"
 	"github.com/kamencov/go-musthave-diploma-tpl/internal/models"
 	"time"
@@ -9,9 +8,7 @@ import (
 
 //go:generate mockgen -source=./service.go -destination=service_mock.go -package=orders
 type Storage interface {
-	Save(query string, args ...interface{}) error
-	Get(query string, args ...interface{}) (*sql.Row, error)
-	Gets(query string, args ...interface{}) (*sql.Rows, error)
+	GetAccrual(addressAccrual string)
 	GetUserByAccessToken(order string, login string, now time.Time) error
 	GetAllUserOrders(login string) ([]*models.OrdersUser, error)
 	GetBalanceUser(login string) (*models.Balance, error)

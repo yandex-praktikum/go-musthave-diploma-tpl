@@ -68,7 +68,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, customerrors.ErrOrderIsAlready) {
+		if errors.Is(err, customerrors.ErrOrderRegistered) {
 			h.log.Error("error post order", "error:", err)
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "order number has already been uploaded by this user"})
 			w.WriteHeader(http.StatusOK)

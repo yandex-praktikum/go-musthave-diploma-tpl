@@ -2,6 +2,13 @@ package models
 
 import "time"
 
+const (
+	NewOrder        = "NEW"        // Заказ загружен в систему, но не попал в обработку
+	ProcessingOrder = "PROCESSING" // Вознаграждение за заказ рассчитывается
+	InvalidOrder    = "INVALID"    // Система расчёта вознаграждений отказала в расчёте
+	ProcessedOrder  = "PROCESSED"  // Данные по заказу проверены и информация о расчёте успешно получена
+)
+
 type Loyalty struct {
 	ID          int       `json:"id"`
 	UserID      int       `json:"user_id"`
@@ -36,10 +43,3 @@ type Withdrawals struct {
 	Sum         *float32   `json:"sum"`
 	ProcessedAt *time.Time `json:"processed_at"`
 }
-
-const (
-	NewOrder        = "NEW"        // Заказ загружен в систему, но не попал в обработку
-	ProcessingOrder = "PROCESSING" // Вознаграждение за заказ рассчитывается
-	InvalidOrder    = "INVALID"    // Система расчёта вознаграждений отказала в расчёте
-	ProcessedOrder  = "PROCESSED"  // Данные по заказу проверены и информация о расчёте успешно получена
-)

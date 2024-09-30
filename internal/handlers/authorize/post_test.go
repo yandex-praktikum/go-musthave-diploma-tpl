@@ -57,7 +57,7 @@ func TestHandlerPost(t *testing.T) {
 			name: "incorrect password",
 			resultBody: resultBody{
 				checkTableUserPassword:      true,
-				saveTableUserAndUpdateToken: customerrors.ErrIsTruePassword,
+				saveTableUserAndUpdateToken: customerrors.ErrWrongPassword,
 			},
 			expectedStatus: http.StatusForbidden,
 		},

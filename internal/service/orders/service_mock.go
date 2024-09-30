@@ -5,7 +5,6 @@
 package orders
 
 import (
-	sql "database/sql"
 	reflect "reflect"
 	time "time"
 
@@ -50,24 +49,16 @@ func (mr *MockStorageMockRecorder) CheckWriteOffOfFunds(login, order, sum, now i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckWriteOffOfFunds", reflect.TypeOf((*MockStorage)(nil).CheckWriteOffOfFunds), login, order, sum, now)
 }
 
-// Get mocks base method.
-func (m *MockStorage) Get(query string, args ...interface{}) (*sql.Row, error) {
+// GetAccrual mocks base method.
+func (m *MockStorage) GetAccrual(addressAccrual string) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{query}
-	for _, a := range args {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "Get", varargs...)
-	ret0, _ := ret[0].(*sql.Row)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	m.ctrl.Call(m, "GetAccrual", addressAccrual)
 }
 
-// Get indicates an expected call of Get.
-func (mr *MockStorageMockRecorder) Get(query interface{}, args ...interface{}) *gomock.Call {
+// GetAccrual indicates an expected call of GetAccrual.
+func (mr *MockStorageMockRecorder) GetAccrual(addressAccrual interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockStorage)(nil).Get), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccrual", reflect.TypeOf((*MockStorage)(nil).GetAccrual), addressAccrual)
 }
 
 // GetAllUserOrders mocks base method.
@@ -127,43 +118,4 @@ func (m *MockStorage) GetWithdrawals(login string) ([]*models.Withdrawals, error
 func (mr *MockStorageMockRecorder) GetWithdrawals(login interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawals", reflect.TypeOf((*MockStorage)(nil).GetWithdrawals), login)
-}
-
-// Gets mocks base method.
-func (m *MockStorage) Gets(query string, args ...interface{}) (*sql.Rows, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{query}
-	for _, a := range args {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "Gets", varargs...)
-	ret0, _ := ret[0].(*sql.Rows)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Gets indicates an expected call of Gets.
-func (mr *MockStorageMockRecorder) Gets(query interface{}, args ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Gets", reflect.TypeOf((*MockStorage)(nil).Gets), varargs...)
-}
-
-// Save mocks base method.
-func (m *MockStorage) Save(query string, args ...interface{}) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{query}
-	for _, a := range args {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "Save", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Save indicates an expected call of Save.
-func (mr *MockStorageMockRecorder) Save(query interface{}, args ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{query}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockStorage)(nil).Save), varargs...)
 }

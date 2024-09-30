@@ -57,11 +57,10 @@ func NewService(saltTKN, saltPSW []byte, storage StorageAuth) *ServiceAuth {
 func (s *ServiceAuth) RegisterUser(login, password string) error {
 	err := s.storage.CheckTableUserLogin(login)
 
-	if errors.Is(err, customerrors.ErrUserAlreadyExists) {
-		return customerrors.ErrUserAlreadyExists
-	}
-
 	if err != nil {
+		if errors.Is(err, customerrors.ErrUserAlreadyExists) {
+			return customerrors.ErrUserAlreadyExists
+		}
 		return err
 	}
 
@@ -83,7 +82,7 @@ func (s *ServiceAuth) AuthUser(login, password string) (entity.Tokens, error) {
 
 	isPasswordTrue := s.doPasswordMatch(passwordHash, password)
 	if !isPasswordTrue {
-		return entity.Tokens{}, customerrors.ErrIsTruePassword
+		return entity.Tokens{}, customerrors.ErrWrongPassword
 	}
 
 	tokens, err := s.GeneratedTokens(login)

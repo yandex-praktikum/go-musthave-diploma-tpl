@@ -42,7 +42,7 @@ func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, customerrors.ErrIsTruePassword) {
+		if errors.Is(err, customerrors.ErrWrongPassword) {
 			h.log.Error("error authorize", "error:", err)
 			apiError, _ := json.Marshal(customerrors.APIError{Message: "incorrect password"})
 			w.WriteHeader(http.StatusForbidden)

@@ -81,7 +81,7 @@ func (d *DateBase) GetUserByAccessToken(order string, login string, now time.Tim
 		return customerrors.ErrAnotherUsersOrder
 	}
 
-	return customerrors.ErrOrderIsAlready
+	return customerrors.ErrOrderRegistered
 }
 
 func (d *DateBase) GetAllUserOrders(login string) ([]*models.OrdersUser, error) {
