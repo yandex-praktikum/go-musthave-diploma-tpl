@@ -15,7 +15,7 @@ func TestIsLunaValid(t *testing.T) {
 		},
 		{
 			name:  "Invalid order",
-			order: "226641551",
+			order: "aaaa",
 		},
 	}
 
