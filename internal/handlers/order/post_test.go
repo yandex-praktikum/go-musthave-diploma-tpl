@@ -30,6 +30,11 @@ func TestHandlerPost(t *testing.T) {
 			expectedStatus: http.StatusAccepted,
 		},
 		{
+			name:           "User not authenticated",
+			login:          "",
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
 			name:           "invalid order numbers",
 			body:           "5",
 			expectedStatus: http.StatusUnprocessableEntity,
