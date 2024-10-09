@@ -7,6 +7,7 @@ import (
 	"gophermart/internal/accrual"
 	"gophermart/internal/middleware"
 	"gophermart/internal/models"
+	"gophermart/internal/repository"
 	"gophermart/internal/service"
 	"io"
 	"net/http"
@@ -24,11 +25,6 @@ type UserHandler struct {
 	AccrualSystemAddress string
 }
 
-type Withdraw struct {
-	Order string  `json:"order"`
-	Sum   float32 `json:"sum"`
-}
-
 func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
@@ -37,9 +33,9 @@ func (uh *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := uh.UserService.UserRepository.IsUserExists(user.Username)
+	userID := uh.UserService.GetUserID(user.Username)
 
-	if userID == -2 {
+	if userID == repository.DatabaseError {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
@@ -130,19 +126,10 @@ func (uh *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
 }
 
-func generateToken(user models.User) (string, error) {
-	claims := jwt.MapClaims{
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 72).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(middleware.SecretKey))
-}
-
 func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 	username := r.Context().Value(middleware.UsernameKey).(string)
 
-	userID := uh.UserService.UserRepository.IsUserExists(username)
+	userID := uh.UserService.GetUserID(username)
 
 	if userID < 0 {
 		http.Error(w, "пользователь не найден", http.StatusNotFound)
@@ -232,15 +219,10 @@ func (uh *UserHandler) SaveOrder(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-func isDigits(s string) bool {
-	re := regexp.MustCompile(`^\d+$`)
-	return re.MatchString(s)
-}
-
 func (uh *UserHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	username := r.Context().Value(middleware.UsernameKey).(string)
 
-	userID := uh.UserService.UserRepository.IsUserExists(username)
+	userID := uh.UserService.GetUserID(username)
 
 	if userID < 0 {
 		http.Error(w, "пользователь не найден", http.StatusNotFound)
@@ -275,7 +257,7 @@ func (uh *UserHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	username := r.Context().Value(middleware.UsernameKey).(string)
 
-	userID := uh.UserService.UserRepository.IsUserExists(username)
+	userID := uh.UserService.GetUserID(username)
 
 	if userID < 0 {
 		http.Error(w, "Пользователь не найден", http.StatusNotFound)
@@ -310,14 +292,14 @@ func (uh *UserHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	username := r.Context().Value(middleware.UsernameKey).(string)
 
-	userID := uh.UserService.UserRepository.IsUserExists(username)
+	userID := uh.UserService.GetUserID(username)
 
 	if userID < 0 {
 		http.Error(w, "Пользователь не найден", http.StatusNotFound)
 		return
 	}
 
-	var withdraw Withdraw
+	var withdraw models.Withdraw
 	err := json.NewDecoder(r.Body).Decode(&withdraw)
 
 	if err != nil {
@@ -347,12 +329,12 @@ func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 	var code int
 	code, err = uh.WithdrawService.Withdraw(userID, withdraw.Order, withdraw.Sum)
 
-	if code == -1 {
+	if code == repository.WithdrawTransactionError {
 		http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
-	if code == -2 {
+	if code == repository.NotEnoughFound {
 		http.Error(w, "На счету недостаточно средств", http.StatusPaymentRequired)
 		return
 	}
@@ -369,7 +351,7 @@ func (uh *UserHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 func (uh *UserHandler) Withdrawals(w http.ResponseWriter, r *http.Request) {
 	username := r.Context().Value(middleware.UsernameKey).(string)
 
-	userID := uh.UserService.UserRepository.IsUserExists(username)
+	userID := uh.UserService.GetUserID(username)
 
 	if userID < 0 {
 		http.Error(w, "Пользователь не найден", http.StatusNotFound)
@@ -426,4 +408,18 @@ func ValidateNumber(orderNumber string) bool {
 	}
 
 	return sum%10 == 0
+}
+
+func generateToken(user models.User) (string, error) {
+	claims := jwt.MapClaims{
+		"username": user.Username,
+		"exp":      time.Now().Add(time.Hour * 72).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(middleware.SecretKey))
+}
+
+func isDigits(s string) bool {
+	re := regexp.MustCompile(`^\d+$`)
+	return re.MatchString(s)
 }

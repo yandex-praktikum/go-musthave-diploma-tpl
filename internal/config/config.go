@@ -16,14 +16,6 @@ type Config struct {
 func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
-	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8088", "Адрес HTTP-сервера")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", "http://localhost:8080", "Адрес системы расчета")
-	flag.StringVar(
-		&cfg.DatabaseDsn,
-		"b", "postgres://postgres:326717@localhost:5432/gofermart?sslmode=disable",
-		"Строка подключения к базе данных")
-	flag.Parse()
-
 	if ServerAddress := os.Getenv("RUN_ADDRESS"); ServerAddress != "" {
 		cfg.ServerAddress = ServerAddress
 	}
@@ -39,6 +31,14 @@ func InitConfig() (*Config, error) {
 	if AccrualSystemAddress := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); AccrualSystemAddress != "" {
 		cfg.AccrualSystemAddress = AccrualSystemAddress
 	}
+
+	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8088", "Адрес HTTP-сервера")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", "http://localhost:8080", "Адрес системы расчета")
+	flag.StringVar(
+		&cfg.DatabaseDsn,
+		"b", "postgres://postgres:326717@localhost:5432/gofermart?sslmode=disable",
+		"Строка подключения к базе данных")
+	flag.Parse()
 
 	if cfg.ServerAddress == "" {
 		return nil, fmt.Errorf("ServerAddress is required")

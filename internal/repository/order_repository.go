@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/shopspring/decimal"
 	"gophermart/storage"
 	"time"
 )
@@ -17,15 +18,15 @@ type OrderRepository struct {
 }
 
 type OrderData struct {
-	Number     string    `json:"number"`
-	Status     string    `json:"status"`
-	Accrual    float32   `json:"accrual"`
-	UploadedAt time.Time `json:"uploaded_at"`
+	Number     string          `json:"number"`
+	Status     string          `json:"status"`
+	Accrual    decimal.Decimal `json:"accrual"`
+	UploadedAt time.Time       `json:"uploaded_at"`
 }
 
 type UserBalance struct {
-	Current   float32 `json:"current"`
-	Withdrawn float32 `json:"withdrawn"`
+	Current   decimal.Decimal `json:"current"`
+	Withdrawn decimal.Decimal `json:"withdrawn"`
 }
 
 func (or *OrderRepository) IsOrderExist(orderNumber string, userID int) (int, error) {
@@ -57,7 +58,7 @@ func (or *OrderRepository) SaveOrder(orderNumber string, userID int) error {
 	return err
 }
 
-func (or *OrderRepository) UpdateOrder(orderNumber string, accrual float32, status string) error {
+func (or *OrderRepository) UpdateOrder(orderNumber string, accrual decimal.Decimal, status string) error {
 	currentTime := time.Now()
 
 	query := "UPDATE orders SET status = $1, accrual = $2, updated_at = $3 WHERE number = $4"

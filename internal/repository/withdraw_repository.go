@@ -12,17 +12,17 @@ type WithdrawRepository struct {
 }
 
 type WithdrawInfo struct {
-	OrderNumber string    `json:"order"`
-	Sum         float32   `json:"sum"`
-	ProcessedAt time.Time `json:"processed_at"`
+	OrderNumber string          `json:"order"`
+	Sum         decimal.Decimal `json:"sum"`
+	ProcessedAt time.Time       `json:"processed_at"`
 }
 
-func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum float32) (int, error) {
-	var userBalance float32
+func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum decimal.Decimal) (int, error) {
+	var userBalance decimal.Decimal
 	tx, err := wr.DBStorage.Conn.BeginTx(wr.DBStorage.Ctx, pgx.TxOptions{})
 
 	if err != nil {
-		return -1, fmt.Errorf("ошибка при начале транзакции: %v", err)
+		return WithdrawTransactionError, fmt.Errorf("ошибка при начале транзакции: %v", err)
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,7 +34,7 @@ func (wr *WithdrawRepository) Withdraw(userID int, orderNumber string, sum float
 	err = tx.QueryRow(wr.DBStorage.Ctx, query, userID).Scan(&userBalance)
 
 	if err != nil {
-		return -1, err
+		return WithdrawTransactionError, err
 	}
 
 	if userBalance < sum {

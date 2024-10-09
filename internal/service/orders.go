@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/shopspring/decimal"
 	"gophermart/internal/repository"
 )
 
@@ -16,7 +17,7 @@ func (or *OrderService) SaveOrder(orderNumber string, userID int) error {
 	return or.OrderRepository.SaveOrder(orderNumber, userID)
 }
 
-func (or *OrderService) UpdateOrder(orderNumber string, accrual float32, status string) error {
+func (or *OrderService) UpdateOrder(orderNumber string, accrual decimal.Decimal, status string) error {
 	return or.OrderRepository.UpdateOrder(orderNumber, accrual, status)
 }
 

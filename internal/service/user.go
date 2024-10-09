@@ -10,8 +10,8 @@ type UserService struct {
 	UserRepository *repository.UserRepository
 }
 
-func (us *UserService) IsUserExist(username string) int {
-	return us.UserRepository.IsUserExists(username)
+func (us *UserService) GetUserID(username string) int {
+	return us.UserRepository.GetUserId(username)
 }
 
 func (us *UserService) RegisterUser(user models.User) (models.User, error) {

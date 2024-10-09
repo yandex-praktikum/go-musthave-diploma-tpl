@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-resty/resty/v2 v2.15.2
 	github.com/jackc/pgx/v4 v4.18.3
+	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.27.0
 	gorm.io/driver/postgres v1.5.9
