@@ -82,13 +82,13 @@ func (r *OrderRepoPG) AddBalanceTransaction(userID int64, orderID *int64, amount
 }
 
 func (r *OrderRepoPG) GetOrderAccrual(orderID int64) (*float64, error) {
-	var accrual float64
+	var accrual sql.NullFloat64
 	err := r.db.QueryRow(`SELECT SUM(amount) FROM balance_transactions WHERE order_id=$1 AND type='ACCRUAL'`, orderID).Scan(&accrual)
 	if err != nil {
 		return nil, err
 	}
-	if accrual == 0 {
+	if !accrual.Valid {
 		return nil, nil
 	}
-	return &accrual, nil
+	return &accrual.Float64, nil
 }
