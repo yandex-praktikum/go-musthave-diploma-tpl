@@ -18,6 +18,7 @@ type UserService interface {
 
 type OrderService interface {
 	UploadOrder(orderNumber string, userID int64) error
+	GetOrdersByUserID(userID int64) ([]models.Order, error)
 }
 
 type Handler struct {
@@ -124,10 +125,47 @@ func (h *Handler) UploadOrderHandler() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) GetOrdersHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDStr, ok := GetUserIDFromContext(r.Context())
+		if !ok {
+			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
+			return
+		}
+		user, err := h.UserService.GetUserByLogin(userIDStr)
+		if err != nil {
+			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
+			return
+		}
+		orders, err := h.OrderService.GetOrdersByUserID(user.ID)
+		if err != nil {
+			http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+		if len(orders) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		var resp []map[string]interface{}
+		for _, o := range orders {
+			item := map[string]interface{}{
+				"number":      o.OrderNumber,
+				"status":      o.Status,
+				"uploaded_at": o.CreatedAt.Format(time.RFC3339),
+			}
+			resp = append(resp, item)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
 func SetupRouters(h *Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/api/user/register", h.RegisterHandler())
 	r.Post("/api/user/login", h.LoginHandler())
 	r.With(AuthMiddleware).Post("/api/user/orders", h.UploadOrderHandler())
+	r.With(AuthMiddleware).Get("/api/user/orders", h.GetOrdersHandler())
 	return r
 }

@@ -19,6 +19,7 @@ func Migrate(db *sql.DB) error {
 			id SERIAL PRIMARY KEY,
 			order_number TEXT UNIQUE NOT NULL,
 			user_id INTEGER NOT NULL REFERENCES users(id),
+			status TEXT NOT NULL DEFAULT 'NEW',
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 		);
 	`)

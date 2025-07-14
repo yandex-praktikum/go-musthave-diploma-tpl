@@ -13,6 +13,7 @@ type Order struct {
 	ID          int64     `db:"id"`
 	OrderNumber string    `db:"order_number"`
 	UserID      int64     `db:"user_id"`
+	Status      string    `db:"status"`
 	CreatedAt   time.Time `db:"created_at"`
 }
 type RegisterRequest struct {

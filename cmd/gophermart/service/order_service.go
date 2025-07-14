@@ -11,6 +11,7 @@ type OrderRepo interface {
 	CreateOrder(orderNumber string, userID int64) error
 	GetOrderByNumber(orderNumber string) (*models.Order, error)
 	GetOrderByNumberAndUserID(orderNumber string, userID int64) (*models.Order, error)
+	GetOrdersByUserID(userID int64) ([]models.Order, error)
 }
 
 type OrderService struct {
@@ -75,4 +76,8 @@ func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
 		return err
 	}
 	return nil
+}
+
+func (s *OrderService) GetOrdersByUserID(userID int64) ([]models.Order, error) {
+	return s.OrderRepo.GetOrdersByUserID(userID)
 }
