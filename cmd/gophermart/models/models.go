@@ -27,3 +27,12 @@ type OrderResponse struct {
 	Accrual    *float64 `json:"accrual,omitempty"`
 	UploadedAt string   `json:"uploaded_at"`
 }
+
+type BalanceTransaction struct {
+	ID        int64     `db:"id"`
+	UserID    int64     `db:"user_id"`
+	OrderID   *int64    `db:"order_id"`
+	Amount    float64   `db:"amount"`
+	Type      string    `db:"type"`
+	CreatedAt time.Time `db:"created_at"`
+}

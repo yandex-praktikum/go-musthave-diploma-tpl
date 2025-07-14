@@ -20,6 +20,7 @@ type UserService interface {
 type OrderService interface {
 	UploadOrder(orderNumber string, userID int64) error
 	GetOrdersByUserID(userID int64) ([]models.Order, error)
+	GetOrderAccrual(orderID int64) (*float64, error)
 }
 
 type Handler struct {
@@ -150,9 +151,14 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 		}
 		resp := make([]models.OrderResponse, 0, len(orders))
 		for _, o := range orders {
+			accrual, err := h.OrderService.GetOrderAccrual(o.ID)
+			if err != nil {
+				h.Logger.Error("Ошибка получения начисления для заказа", zap.Error(err))
+			}
 			resp = append(resp, models.OrderResponse{
 				Number:     o.OrderNumber,
 				Status:     o.Status,
+				Accrual:    accrual,
 				UploadedAt: o.CreatedAt.Format(time.RFC3339),
 			})
 		}

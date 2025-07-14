@@ -1,8 +1,15 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"strings"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/AlexeySalamakhin/gophermart/cmd/gophermart/models"
 )
@@ -12,6 +19,10 @@ type OrderRepo interface {
 	GetOrderByNumber(orderNumber string) (*models.Order, error)
 	GetOrderByNumberAndUserID(orderNumber string, userID int64) (*models.Order, error)
 	GetOrdersByUserID(userID int64) ([]models.Order, error)
+	GetOrdersForStatusUpdate() ([]models.Order, error)
+	UpdateOrderStatus(orderID int64, status string) error
+	AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error
+	GetOrderAccrual(orderID int64) (*float64, error)
 }
 
 type OrderService struct {
@@ -80,4 +91,62 @@ func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
 
 func (s *OrderService) GetOrdersByUserID(userID int64) ([]models.Order, error) {
 	return s.OrderRepo.GetOrdersByUserID(userID)
+}
+
+func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr string, logger *zap.Logger) {
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		client := &http.Client{Timeout: 5 * time.Second}
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("Order status worker stopped")
+				return
+			case <-ticker.C:
+				orders, err := s.OrderRepo.GetOrdersForStatusUpdate()
+				if err != nil {
+					logger.Error("Ошибка получения заказов для обновления статуса", zap.Error(err))
+					continue
+				}
+				for _, order := range orders {
+					url := fmt.Sprintf("%s/api/orders/%s", accrualAddr, order.OrderNumber)
+					resp, err := client.Get(url)
+					if err != nil {
+						logger.Error("Ошибка запроса к accrual-сервису", zap.Error(err))
+						continue
+					}
+					if resp.StatusCode == http.StatusNoContent {
+						_ = s.OrderRepo.UpdateOrderStatus(order.ID, "INVALID")
+						resp.Body.Close()
+						continue
+					}
+					if resp.StatusCode != http.StatusOK {
+						logger.Error("Неожиданный статус accrual-сервиса", zap.String("status", resp.Status))
+						resp.Body.Close()
+						continue
+					}
+					var accrualResp struct {
+						Order   string   `json:"order"`
+						Status  string   `json:"status"`
+						Accrual *float64 `json:"accrual,omitempty"`
+					}
+					if err := json.NewDecoder(resp.Body).Decode(&accrualResp); err != nil {
+						logger.Error("Ошибка декодирования ответа accrual", zap.Error(err))
+						resp.Body.Close()
+						continue
+					}
+					resp.Body.Close()
+					_ = s.OrderRepo.UpdateOrderStatus(order.ID, accrualResp.Status)
+					if accrualResp.Accrual != nil && accrualResp.Status == "PROCESSED" {
+						_ = s.OrderRepo.AddBalanceTransaction(order.UserID, &order.ID, *accrualResp.Accrual, "ACCRUAL")
+					}
+				}
+			}
+		}
+	}()
+}
+
+func (s *OrderService) GetOrderAccrual(orderID int64) (*float64, error) {
+	return s.OrderRepo.GetOrderAccrual(orderID)
 }

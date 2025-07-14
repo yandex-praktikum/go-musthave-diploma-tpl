@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -47,6 +48,10 @@ func main() {
 	orderService := service.NewOrderService(orderRepo, userRepo)
 	h := routers.NewHandler(userService, orderService, logger)
 	r := routers.SetupRoutersWithLogger(h, logger)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	orderService.StartOrderStatusWorker(ctx, cfg.AccrualSystemAddress, logger)
 
 	logger.Info("Сервер запущен", zap.String("address", cfg.RunAddress))
 	if err := http.ListenAndServe(cfg.RunAddress, r); err != nil {

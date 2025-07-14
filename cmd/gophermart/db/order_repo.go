@@ -53,3 +53,42 @@ func (r *OrderRepoPG) GetOrdersByUserID(userID int64) ([]models.Order, error) {
 	}
 	return orders, nil
 }
+
+func (r *OrderRepoPG) GetOrdersForStatusUpdate() ([]models.Order, error) {
+	rows, err := r.db.Query(`SELECT id, order_number, user_id, status, created_at FROM orders WHERE status IN ('NEW', 'PROCESSING')`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var orders []models.Order
+	for rows.Next() {
+		var o models.Order
+		if err := rows.Scan(&o.ID, &o.OrderNumber, &o.UserID, &o.Status, &o.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, o)
+	}
+	return orders, nil
+}
+
+func (r *OrderRepoPG) UpdateOrderStatus(orderID int64, status string) error {
+	_, err := r.db.Exec(`UPDATE orders SET status=$1 WHERE id=$2`, status, orderID)
+	return err
+}
+
+func (r *OrderRepoPG) AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error {
+	_, err := r.db.Exec(`INSERT INTO balance_transactions (user_id, order_id, amount, type) VALUES ($1, $2, $3, $4)`, userID, orderID, amount, txType)
+	return err
+}
+
+func (r *OrderRepoPG) GetOrderAccrual(orderID int64) (*float64, error) {
+	var accrual float64
+	err := r.db.QueryRow(`SELECT SUM(amount) FROM balance_transactions WHERE order_id=$1 AND type='ACCRUAL'`, orderID).Scan(&accrual)
+	if err != nil {
+		return nil, err
+	}
+	if accrual == 0 {
+		return nil, nil
+	}
+	return &accrual, nil
+}
