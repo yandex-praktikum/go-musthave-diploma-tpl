@@ -49,30 +49,30 @@ func isValidLuhn(number string) bool {
 	return sum%10 == 0
 }
 
-func (s *OrderService) UploadOrder(orderNumber string, userID int64) (int, error) {
+func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
 	orderNumber = strings.TrimSpace(orderNumber)
 	if orderNumber == "" {
-		return 400, ErrInvalidOrderFormat
+		return ErrInvalidOrderFormat
 	}
 	for _, c := range orderNumber {
 		if c < '0' || c > '9' {
-			return 422, ErrInvalidOrderNumber
+			return ErrInvalidOrderNumber
 		}
 	}
 	if !isValidLuhn(orderNumber) {
-		return 422, ErrInvalidOrderNumber
+		return ErrInvalidOrderNumber
 	}
 	order, err := s.OrderRepo.GetOrderByNumber(orderNumber)
 	if err == nil && order != nil {
 		if order.UserID == userID {
-			return 200, ErrOrderAlreadyUploadedByUser
+			return ErrOrderAlreadyUploadedByUser
 		} else {
-			return 409, ErrOrderAlreadyUploadedByAnother
+			return ErrOrderAlreadyUploadedByAnother
 		}
 	}
 	err = s.OrderRepo.CreateOrder(orderNumber, userID)
 	if err != nil {
-		return 500, err
+		return err
 	}
-	return 202, nil
+	return nil
 }

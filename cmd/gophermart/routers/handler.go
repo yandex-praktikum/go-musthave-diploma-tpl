@@ -17,7 +17,7 @@ type UserService interface {
 }
 
 type OrderService interface {
-	UploadOrder(orderNumber string, userID int64) (int, error)
+	UploadOrder(orderNumber string, userID int64) error
 }
 
 type Handler struct {
@@ -104,12 +104,23 @@ func (h *Handler) UploadOrderHandler() http.HandlerFunc {
 			return
 		}
 		orderNumber := string(orderNumberBytes[:n])
-		status, err := h.OrderService.UploadOrder(orderNumber, user.ID)
+		err = h.OrderService.UploadOrder(orderNumber, user.ID)
 		if err != nil {
-			http.Error(w, err.Error(), status)
+			switch err {
+			case service.ErrInvalidOrderFormat:
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			case service.ErrInvalidOrderNumber:
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			case service.ErrOrderAlreadyUploadedByUser:
+				w.WriteHeader(http.StatusOK)
+			case service.ErrOrderAlreadyUploadedByAnother:
+				http.Error(w, err.Error(), http.StatusConflict)
+			default:
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
-		w.WriteHeader(status)
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
