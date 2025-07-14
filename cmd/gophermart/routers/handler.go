@@ -22,6 +22,7 @@ type OrderService interface {
 	GetOrdersByUserID(userID int64) ([]models.Order, error)
 	GetOrderAccrual(orderID int64) (*float64, error)
 	GetUserBalance(userID int64) (float64, float64, error)
+	WithdrawBalance(userID int64, orderNumber string, sum float64) error
 }
 
 type Handler struct {
@@ -199,6 +200,46 @@ func (h *Handler) GetUserBalanceHandler() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDStr, ok := GetUserIDFromContext(r.Context())
+		if !ok {
+			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
+			return
+		}
+		user, err := h.UserService.GetUserByLogin(userIDStr)
+		if err != nil {
+			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
+			return
+		}
+		var req struct {
+			Order string  `json:"order"`
+			Sum   float64 `json:"sum"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "неверный формат запроса", http.StatusUnprocessableEntity)
+			return
+		}
+		if req.Order == "" || req.Sum <= 0 {
+			http.Error(w, "неверный номер заказа или сумма", http.StatusUnprocessableEntity)
+			return
+		}
+		err = h.OrderService.WithdrawBalance(user.ID, req.Order, req.Sum)
+		if err != nil {
+			switch err {
+			case service.ErrInsufficientFunds:
+				http.Error(w, "недостаточно средств", 402)
+			case service.ErrInvalidOrderNumber:
+				http.Error(w, "неверный номер заказа", 422)
+			default:
+				http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
 	r := chi.NewRouter()
 	r.Use(LoggingMiddleware(logger))
@@ -207,5 +248,6 @@ func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
 	r.With(AuthMiddleware).Post("/api/user/orders", h.UploadOrderHandler())
 	r.With(AuthMiddleware).Get("/api/user/orders", h.GetOrdersHandler())
 	r.With(AuthMiddleware).Get("/api/user/balance", h.GetUserBalanceHandler())
+	r.With(AuthMiddleware).Post("/api/user/balance/withdraw", h.WithdrawBalanceHandler())
 	return r
 }

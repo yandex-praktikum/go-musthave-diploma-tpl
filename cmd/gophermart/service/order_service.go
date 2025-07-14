@@ -40,6 +40,7 @@ var (
 	ErrOrderAlreadyUploadedByAnother = errors.New("order already uploaded by another user")
 	ErrInvalidOrderFormat            = errors.New("invalid order format")
 	ErrInvalidOrderNumber            = errors.New("invalid order number")
+	ErrInsufficientFunds             = errors.New("недостаточно средств")
 )
 
 func isValidLuhn(number string) bool {
@@ -154,4 +155,31 @@ func (s *OrderService) GetOrderAccrual(orderID int64) (*float64, error) {
 
 func (s *OrderService) GetUserBalance(userID int64) (current float64, withdrawn float64, err error) {
 	return s.OrderRepo.GetUserBalance(userID)
+}
+
+func (s *OrderService) WithdrawBalance(userID int64, orderNumber string, sum float64) error {
+	if !isValidLuhn(orderNumber) {
+		return ErrInvalidOrderNumber
+	}
+	current, _, err := s.GetUserBalance(userID)
+	if err != nil {
+		return err
+	}
+	if sum > current {
+		return ErrInsufficientFunds
+	}
+	// создаём заказ для списания, если его нет
+	order, err := s.OrderRepo.GetOrderByNumber(orderNumber)
+	if err != nil || order == nil {
+		err = s.OrderRepo.CreateOrder(orderNumber, userID)
+		if err != nil {
+			return err
+		}
+		order, err = s.OrderRepo.GetOrderByNumber(orderNumber)
+		if err != nil {
+			return err
+		}
+	}
+	// записываем транзакцию списания
+	return s.OrderRepo.AddBalanceTransaction(userID, &order.ID, sum, "WITHDRAWAL")
 }
