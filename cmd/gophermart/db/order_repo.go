@@ -92,3 +92,12 @@ func (r *OrderRepoPG) GetOrderAccrual(orderID int64) (*float64, error) {
 	}
 	return &accrual.Float64, nil
 }
+
+func (r *OrderRepoPG) GetUserBalance(userID int64) (current float64, withdrawn float64, err error) {
+	err = r.db.QueryRow(`SELECT COALESCE(SUM(CASE WHEN type = 'ACCRUAL' THEN amount ELSE 0 END), 0) as accrual, COALESCE(SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END), 0) as withdrawn FROM balance_transactions WHERE user_id = $1`, userID).Scan(&current, &withdrawn)
+	if err != nil {
+		return 0, 0, err
+	}
+	current = current - withdrawn
+	return current, withdrawn, nil
+}

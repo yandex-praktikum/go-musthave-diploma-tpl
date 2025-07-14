@@ -23,6 +23,7 @@ type OrderRepo interface {
 	UpdateOrderStatus(orderID int64, status string) error
 	AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error
 	GetOrderAccrual(orderID int64) (*float64, error)
+	GetUserBalance(userID int64) (current float64, withdrawn float64, err error)
 }
 
 type OrderService struct {
@@ -149,4 +150,8 @@ func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr s
 
 func (s *OrderService) GetOrderAccrual(orderID int64) (*float64, error) {
 	return s.OrderRepo.GetOrderAccrual(orderID)
+}
+
+func (s *OrderService) GetUserBalance(userID int64) (current float64, withdrawn float64, err error) {
+	return s.OrderRepo.GetUserBalance(userID)
 }

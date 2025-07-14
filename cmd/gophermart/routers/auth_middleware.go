@@ -7,7 +7,9 @@ import (
 	"github.com/AlexeySalamakhin/gophermart/cmd/gophermart/auth"
 )
 
-var userIDKey = struct{}{}
+type contextKey string
+
+var userIDKey = contextKey("userID")
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
