@@ -52,6 +52,9 @@ func (r *OrderRepoPG) GetOrdersByUserID(userID int64) ([]models.Order, error) {
 		}
 		orders = append(orders, o)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return orders, nil
 }
 
@@ -68,6 +71,9 @@ func (r *OrderRepoPG) GetOrdersForStatusUpdate() ([]models.Order, error) {
 			return nil, err
 		}
 		orders = append(orders, o)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return orders, nil
 }
