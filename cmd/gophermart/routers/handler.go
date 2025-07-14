@@ -8,6 +8,7 @@ import (
 	"github.com/AlexeySalamakhin/gophermart/cmd/gophermart/models"
 	"github.com/AlexeySalamakhin/gophermart/cmd/gophermart/service"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type UserService interface {
@@ -24,10 +25,11 @@ type OrderService interface {
 type Handler struct {
 	UserService  UserService
 	OrderService OrderService
+	Logger       *zap.Logger
 }
 
-func NewHandler(userService *service.UserService, orderService *service.OrderService) *Handler {
-	return &Handler{UserService: userService, OrderService: orderService}
+func NewHandler(userService *service.UserService, orderService *service.OrderService, logger *zap.Logger) *Handler {
+	return &Handler{UserService: userService, OrderService: orderService, Logger: logger}
 }
 
 func (h *Handler) RegisterHandler() http.HandlerFunc {
@@ -146,14 +148,13 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		var resp []map[string]interface{}
+		resp := make([]models.OrderResponse, 0, len(orders))
 		for _, o := range orders {
-			item := map[string]interface{}{
-				"number":      o.OrderNumber,
-				"status":      o.Status,
-				"uploaded_at": o.CreatedAt.Format(time.RFC3339),
-			}
-			resp = append(resp, item)
+			resp = append(resp, models.OrderResponse{
+				Number:     o.OrderNumber,
+				Status:     o.Status,
+				UploadedAt: o.CreatedAt.Format(time.RFC3339),
+			})
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -161,8 +162,9 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 	}
 }
 
-func SetupRouters(h *Handler) http.Handler {
+func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
 	r := chi.NewRouter()
+	r.Use(LoggingMiddleware(logger))
 	r.Post("/api/user/register", h.RegisterHandler())
 	r.Post("/api/user/login", h.LoginHandler())
 	r.With(AuthMiddleware).Post("/api/user/orders", h.UploadOrderHandler())

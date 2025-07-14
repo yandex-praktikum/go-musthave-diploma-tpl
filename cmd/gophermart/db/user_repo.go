@@ -33,9 +33,3 @@ func (r *UserRepoPG) GetUserByLogin(login string) (*models.User, error) {
 	}
 	return &u, nil
 }
-
-type UserRepo interface {
-	CreateUser(login, passwordHash string) error
-	IsLoginExist(login string) (bool, error)
-	GetUserByLogin(login string) (*models.User, error)
-}
