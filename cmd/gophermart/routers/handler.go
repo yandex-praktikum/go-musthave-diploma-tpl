@@ -23,6 +23,7 @@ type OrderService interface {
 	GetOrderAccrual(orderID int64) (*float64, error)
 	GetUserBalance(userID int64) (float64, float64, error)
 	WithdrawBalance(userID int64, orderNumber string, sum float64) error
+	GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error)
 }
 
 type Handler struct {
@@ -240,6 +241,33 @@ func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) GetUserWithdrawalsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userIDStr, ok := GetUserIDFromContext(r.Context())
+		if !ok {
+			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
+			return
+		}
+		user, err := h.UserService.GetUserByLogin(userIDStr)
+		if err != nil {
+			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
+			return
+		}
+		withdrawals, err := h.OrderService.GetUserWithdrawals(user.ID)
+		if err != nil {
+			http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
+			return
+		}
+		if len(withdrawals) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(withdrawals)
+	}
+}
+
 func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
 	r := chi.NewRouter()
 	r.Use(LoggingMiddleware(logger))
@@ -249,5 +277,6 @@ func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
 	r.With(AuthMiddleware).Get("/api/user/orders", h.GetOrdersHandler())
 	r.With(AuthMiddleware).Get("/api/user/balance", h.GetUserBalanceHandler())
 	r.With(AuthMiddleware).Post("/api/user/balance/withdraw", h.WithdrawBalanceHandler())
+	r.With(AuthMiddleware).Get("/api/user/withdrawals", h.GetUserWithdrawalsHandler())
 	return r
 }

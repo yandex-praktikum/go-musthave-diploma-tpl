@@ -24,6 +24,7 @@ type OrderRepo interface {
 	AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error
 	GetOrderAccrual(orderID int64) (*float64, error)
 	GetUserBalance(userID int64) (current float64, withdrawn float64, err error)
+	GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error)
 }
 
 type OrderService struct {
@@ -168,7 +169,6 @@ func (s *OrderService) WithdrawBalance(userID int64, orderNumber string, sum flo
 	if sum > current {
 		return ErrInsufficientFunds
 	}
-	// создаём заказ для списания, если его нет
 	order, err := s.OrderRepo.GetOrderByNumber(orderNumber)
 	if err != nil || order == nil {
 		err = s.OrderRepo.CreateOrder(orderNumber, userID)
@@ -180,6 +180,9 @@ func (s *OrderService) WithdrawBalance(userID int64, orderNumber string, sum flo
 			return err
 		}
 	}
-	// записываем транзакцию списания
 	return s.OrderRepo.AddBalanceTransaction(userID, &order.ID, sum, "WITHDRAWAL")
+}
+
+func (s *OrderService) GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error) {
+	return s.OrderRepo.GetUserWithdrawals(userID)
 }

@@ -36,3 +36,9 @@ type BalanceTransaction struct {
 	Type      string    `db:"type"`
 	CreatedAt time.Time `db:"created_at"`
 }
+
+type WithdrawalResponse struct {
+	Order       string  `json:"order"`
+	Sum         float64 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
+}

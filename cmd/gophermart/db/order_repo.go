@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/AlexeySalamakhin/gophermart/cmd/gophermart/models"
 )
@@ -100,4 +101,35 @@ func (r *OrderRepoPG) GetUserBalance(userID int64) (current float64, withdrawn f
 	}
 	current = current - withdrawn
 	return current, withdrawn, nil
+}
+
+func (r *OrderRepoPG) GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error) {
+	rows, err := r.db.Query(`SELECT order_id, amount, created_at FROM balance_transactions WHERE user_id=$1 AND type='WITHDRAWAL' ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var withdrawals []models.WithdrawalResponse
+	for rows.Next() {
+		var orderID sql.NullInt64
+		var sum float64
+		var processedAt sql.NullTime
+		if err := rows.Scan(&orderID, &sum, &processedAt); err != nil {
+			return nil, err
+		}
+		orderNumber := ""
+		if orderID.Valid {
+			var num string
+			err = r.db.QueryRow(`SELECT order_number FROM orders WHERE id=$1`, orderID.Int64).Scan(&num)
+			if err == nil {
+				orderNumber = num
+			}
+		}
+		withdrawals = append(withdrawals, models.WithdrawalResponse{
+			Order:       orderNumber,
+			Sum:         sum,
+			ProcessedAt: processedAt.Time.Format(time.RFC3339),
+		})
+	}
+	return withdrawals, nil
 }
