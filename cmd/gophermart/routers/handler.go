@@ -229,9 +229,9 @@ func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 		if err != nil {
 			switch err {
 			case service.ErrInsufficientFunds:
-				http.Error(w, "недостаточно средств", 402)
+				http.Error(w, "недостаточно средств", http.StatusPaymentRequired)
 			case service.ErrInvalidOrderNumber:
-				http.Error(w, "неверный номер заказа", 422)
+				http.Error(w, "неверный номер заказа", http.StatusUnprocessableEntity)
 			default:
 				http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 			}
