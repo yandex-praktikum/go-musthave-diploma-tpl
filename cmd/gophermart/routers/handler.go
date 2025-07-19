@@ -94,14 +94,9 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 
 func (h *Handler) UploadOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userIDStr, ok := GetUserIDFromContext(r.Context())
+		user, ok := h.getUserFromRequest(r)
 		if !ok {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
-			return
-		}
-		user, err := h.UserService.GetUserByLogin(userIDStr)
-		if err != nil {
-			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
 			return
 		}
 		orderNumberBytes := make([]byte, 64)
@@ -133,14 +128,9 @@ func (h *Handler) UploadOrderHandler() http.HandlerFunc {
 
 func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userIDStr, ok := GetUserIDFromContext(r.Context())
+		user, ok := h.getUserFromRequest(r)
 		if !ok {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
-			return
-		}
-		user, err := h.UserService.GetUserByLogin(userIDStr)
-		if err != nil {
-			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
 			return
 		}
 		orders, err := h.OrderService.GetOrdersByUserID(user.ID)
@@ -173,14 +163,9 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 
 func (h *Handler) GetUserBalanceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userIDStr, ok := GetUserIDFromContext(r.Context())
+		user, ok := h.getUserFromRequest(r)
 		if !ok {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
-			return
-		}
-		user, err := h.UserService.GetUserByLogin(userIDStr)
-		if err != nil {
-			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
 			return
 		}
 		current, withdrawn, err := h.OrderService.GetUserBalance(user.ID)
@@ -203,14 +188,9 @@ func (h *Handler) GetUserBalanceHandler() http.HandlerFunc {
 
 func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userIDStr, ok := GetUserIDFromContext(r.Context())
+		user, ok := h.getUserFromRequest(r)
 		if !ok {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
-			return
-		}
-		user, err := h.UserService.GetUserByLogin(userIDStr)
-		if err != nil {
-			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
 			return
 		}
 		var req struct {
@@ -225,7 +205,7 @@ func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 			http.Error(w, "неверный номер заказа или сумма", http.StatusUnprocessableEntity)
 			return
 		}
-		err = h.OrderService.WithdrawBalance(user.ID, req.Order, req.Sum)
+		err := h.OrderService.WithdrawBalance(user.ID, req.Order, req.Sum)
 		if err != nil {
 			switch err {
 			case service.ErrInsufficientFunds:
@@ -243,14 +223,9 @@ func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 
 func (h *Handler) GetUserWithdrawalsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userIDStr, ok := GetUserIDFromContext(r.Context())
+		user, ok := h.getUserFromRequest(r)
 		if !ok {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
-			return
-		}
-		user, err := h.UserService.GetUserByLogin(userIDStr)
-		if err != nil {
-			http.Error(w, "пользователь не найден", http.StatusUnauthorized)
 			return
 		}
 		withdrawals, err := h.OrderService.GetUserWithdrawals(user.ID)
@@ -266,6 +241,18 @@ func (h *Handler) GetUserWithdrawalsHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(withdrawals)
 	}
+}
+
+func (h *Handler) getUserFromRequest(r *http.Request) (*models.User, bool) {
+	userIDStr, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		return nil, false
+	}
+	user, err := h.UserService.GetUserByLogin(userIDStr)
+	if err != nil {
+		return nil, false
+	}
+	return user, true
 }
 
 func SetupRoutersWithLogger(h *Handler, logger *zap.Logger) http.Handler {
