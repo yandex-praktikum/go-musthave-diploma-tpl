@@ -137,5 +137,8 @@ func (r *OrderRepoPG) GetUserWithdrawals(userID int64) ([]models.WithdrawalRespo
 			ProcessedAt: processedAt.Time.Format(time.RFC3339),
 		})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return withdrawals, nil
 }
