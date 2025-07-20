@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -12,18 +13,18 @@ import (
 )
 
 type UserService interface {
-	Register(req models.RegisterRequest) (string, error)
-	Login(req models.RegisterRequest) (string, error)
-	GetUserByLogin(login string) (*models.User, error)
+	Register(ctx context.Context, req models.RegisterRequest) (string, error)
+	Login(ctx context.Context, req models.RegisterRequest) (string, error)
+	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 }
 
 type OrderService interface {
-	UploadOrder(orderNumber string, userID int64) error
-	GetOrdersByUserID(userID int64) ([]models.Order, error)
-	GetOrderAccrual(orderID int64) (*float64, error)
-	GetUserBalance(userID int64) (float64, float64, error)
-	WithdrawBalance(userID int64, orderNumber string, sum float64) error
-	GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error)
+	UploadOrder(ctx context.Context, orderNumber string, userID int64) error
+	GetOrdersByUserID(ctx context.Context, userID int64) ([]models.Order, error)
+	GetOrderAccrual(ctx context.Context, orderID int64) (*float64, error)
+	GetUserBalance(ctx context.Context, userID int64) (float64, float64, error)
+	WithdrawBalance(ctx context.Context, userID int64, orderNumber string, sum float64) error
+	GetUserWithdrawals(ctx context.Context, userID int64) ([]models.WithdrawalResponse, error)
 }
 
 type Handler struct {
@@ -43,7 +44,7 @@ func (h *Handler) RegisterHandler() http.HandlerFunc {
 			http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 			return
 		}
-		token, err := h.UserService.Register(req)
+		token, err := h.UserService.Register(r.Context(), req)
 		if err != nil {
 			switch err {
 			case service.ErrUserExists:
@@ -71,7 +72,7 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 			http.Error(w, "неверный формат запроса", http.StatusBadRequest)
 			return
 		}
-		token, err := h.UserService.Login(req)
+		token, err := h.UserService.Login(r.Context(), req)
 		if err != nil {
 			switch err {
 			case service.ErrUserNotFound, service.ErrInvalidPassword:
@@ -106,7 +107,7 @@ func (h *Handler) UploadOrderHandler() http.HandlerFunc {
 			return
 		}
 		orderNumber := string(orderNumberBytes[:n])
-		err = h.OrderService.UploadOrder(orderNumber, user.ID)
+		err = h.OrderService.UploadOrder(r.Context(), orderNumber, user.ID)
 		if err != nil {
 			switch err {
 			case service.ErrInvalidOrderFormat:
@@ -133,7 +134,7 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
 			return
 		}
-		orders, err := h.OrderService.GetOrdersByUserID(user.ID)
+		orders, err := h.OrderService.GetOrdersByUserID(r.Context(), user.ID)
 		if err != nil {
 			http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 			return
@@ -144,7 +145,7 @@ func (h *Handler) GetOrdersHandler() http.HandlerFunc {
 		}
 		resp := make([]models.OrderResponse, 0, len(orders))
 		for _, o := range orders {
-			accrual, err := h.OrderService.GetOrderAccrual(o.ID)
+			accrual, err := h.OrderService.GetOrderAccrual(r.Context(), o.ID)
 			if err != nil {
 				h.Logger.Error("Ошибка получения начисления для заказа", zap.Error(err))
 			}
@@ -168,7 +169,7 @@ func (h *Handler) GetUserBalanceHandler() http.HandlerFunc {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
 			return
 		}
-		current, withdrawn, err := h.OrderService.GetUserBalance(user.ID)
+		current, withdrawn, err := h.OrderService.GetUserBalance(r.Context(), user.ID)
 		if err != nil {
 			http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 			return
@@ -205,7 +206,7 @@ func (h *Handler) WithdrawBalanceHandler() http.HandlerFunc {
 			http.Error(w, "неверный номер заказа или сумма", http.StatusUnprocessableEntity)
 			return
 		}
-		err := h.OrderService.WithdrawBalance(user.ID, req.Order, req.Sum)
+		err := h.OrderService.WithdrawBalance(r.Context(), user.ID, req.Order, req.Sum)
 		if err != nil {
 			switch err {
 			case service.ErrInsufficientFunds:
@@ -228,7 +229,7 @@ func (h *Handler) GetUserWithdrawalsHandler() http.HandlerFunc {
 			http.Error(w, "пользователь не аутентифицирован", http.StatusUnauthorized)
 			return
 		}
-		withdrawals, err := h.OrderService.GetUserWithdrawals(user.ID)
+		withdrawals, err := h.OrderService.GetUserWithdrawals(r.Context(), user.ID)
 		if err != nil {
 			http.Error(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 			return
@@ -248,7 +249,7 @@ func (h *Handler) getUserFromRequest(r *http.Request) (*models.User, bool) {
 	if !ok {
 		return nil, false
 	}
-	user, err := h.UserService.GetUserByLogin(userIDStr)
+	user, err := h.UserService.GetUserByLogin(r.Context(), userIDStr)
 	if err != nil {
 		return nil, false
 	}

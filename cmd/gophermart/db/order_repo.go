@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,31 +16,31 @@ func NewOrderRepoPG(db *sql.DB) *OrderRepoPG {
 	return &OrderRepoPG{db: db}
 }
 
-func (r *OrderRepoPG) CreateOrder(orderNumber string, userID int64) error {
-	_, err := r.db.Exec(`INSERT INTO orders (order_number, user_id, status) VALUES ($1, $2, $3)`, orderNumber, userID, "NEW")
+func (r *OrderRepoPG) CreateOrder(ctx context.Context, orderNumber string, userID int64) error {
+	_, err := r.db.ExecContext(ctx, `INSERT INTO orders (order_number, user_id, status) VALUES ($1, $2, $3)`, orderNumber, userID, "NEW")
 	return err
 }
 
-func (r *OrderRepoPG) GetOrderByNumber(orderNumber string) (*models.Order, error) {
+func (r *OrderRepoPG) GetOrderByNumber(ctx context.Context, orderNumber string) (*models.Order, error) {
 	var o models.Order
-	err := r.db.QueryRow(`SELECT id, order_number, user_id, status, created_at FROM orders WHERE order_number=$1`, orderNumber).Scan(&o.ID, &o.OrderNumber, &o.UserID, &o.Status, &o.CreatedAt)
+	err := r.db.QueryRowContext(ctx, `SELECT id, order_number, user_id, status, created_at FROM orders WHERE order_number=$1`, orderNumber).Scan(&o.ID, &o.OrderNumber, &o.UserID, &o.Status, &o.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &o, nil
 }
 
-func (r *OrderRepoPG) GetOrderByNumberAndUserID(orderNumber string, userID int64) (*models.Order, error) {
+func (r *OrderRepoPG) GetOrderByNumberAndUserID(ctx context.Context, orderNumber string, userID int64) (*models.Order, error) {
 	var o models.Order
-	err := r.db.QueryRow(`SELECT id, order_number, user_id, status, created_at FROM orders WHERE order_number=$1 AND user_id=$2`, orderNumber, userID).Scan(&o.ID, &o.OrderNumber, &o.UserID, &o.Status, &o.CreatedAt)
+	err := r.db.QueryRowContext(ctx, `SELECT id, order_number, user_id, status, created_at FROM orders WHERE order_number=$1 AND user_id=$2`, orderNumber, userID).Scan(&o.ID, &o.OrderNumber, &o.UserID, &o.Status, &o.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &o, nil
 }
 
-func (r *OrderRepoPG) GetOrdersByUserID(userID int64) ([]models.Order, error) {
-	rows, err := r.db.Query(`SELECT id, order_number, user_id, status, created_at FROM orders WHERE user_id=$1 ORDER BY created_at DESC`, userID)
+func (r *OrderRepoPG) GetOrdersByUserID(ctx context.Context, userID int64) ([]models.Order, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id, order_number, user_id, status, created_at FROM orders WHERE user_id=$1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +59,8 @@ func (r *OrderRepoPG) GetOrdersByUserID(userID int64) ([]models.Order, error) {
 	return orders, nil
 }
 
-func (r *OrderRepoPG) GetOrdersForStatusUpdate() ([]models.Order, error) {
-	rows, err := r.db.Query(`SELECT id, order_number, user_id, status, created_at FROM orders WHERE status IN ('NEW', 'PROCESSING')`)
+func (r *OrderRepoPG) GetOrdersForStatusUpdate(ctx context.Context) ([]models.Order, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id, order_number, user_id, status, created_at FROM orders WHERE status IN ('NEW', 'PROCESSING')`)
 	if err != nil {
 		return nil, err
 	}
@@ -78,19 +79,19 @@ func (r *OrderRepoPG) GetOrdersForStatusUpdate() ([]models.Order, error) {
 	return orders, nil
 }
 
-func (r *OrderRepoPG) UpdateOrderStatus(orderID int64, status string) error {
-	_, err := r.db.Exec(`UPDATE orders SET status=$1 WHERE id=$2`, status, orderID)
+func (r *OrderRepoPG) UpdateOrderStatus(ctx context.Context, orderID int64, status string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE orders SET status=$1 WHERE id=$2`, status, orderID)
 	return err
 }
 
-func (r *OrderRepoPG) AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error {
-	_, err := r.db.Exec(`INSERT INTO balance_transactions (user_id, order_id, amount, type) VALUES ($1, $2, $3, $4)`, userID, orderID, amount, txType)
+func (r *OrderRepoPG) AddBalanceTransaction(ctx context.Context, userID int64, orderID *int64, amount float64, txType string) error {
+	_, err := r.db.ExecContext(ctx, `INSERT INTO balance_transactions (user_id, order_id, amount, type) VALUES ($1, $2, $3, $4)`, userID, orderID, amount, txType)
 	return err
 }
 
-func (r *OrderRepoPG) GetOrderAccrual(orderID int64) (*float64, error) {
+func (r *OrderRepoPG) GetOrderAccrual(ctx context.Context, orderID int64) (*float64, error) {
 	var accrual sql.NullFloat64
-	err := r.db.QueryRow(`SELECT SUM(amount) FROM balance_transactions WHERE order_id=$1 AND type='ACCRUAL'`, orderID).Scan(&accrual)
+	err := r.db.QueryRowContext(ctx, `SELECT SUM(amount) FROM balance_transactions WHERE order_id=$1 AND type='ACCRUAL'`, orderID).Scan(&accrual)
 	if err != nil {
 		return nil, err
 	}
@@ -100,8 +101,8 @@ func (r *OrderRepoPG) GetOrderAccrual(orderID int64) (*float64, error) {
 	return &accrual.Float64, nil
 }
 
-func (r *OrderRepoPG) GetUserBalance(userID int64) (current float64, withdrawn float64, err error) {
-	err = r.db.QueryRow(`SELECT COALESCE(SUM(CASE WHEN type = 'ACCRUAL' THEN amount ELSE 0 END), 0) as accrual, COALESCE(SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END), 0) as withdrawn FROM balance_transactions WHERE user_id = $1`, userID).Scan(&current, &withdrawn)
+func (r *OrderRepoPG) GetUserBalance(ctx context.Context, userID int64) (current float64, withdrawn float64, err error) {
+	err = r.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(CASE WHEN type = 'ACCRUAL' THEN amount ELSE 0 END), 0) as accrual, COALESCE(SUM(CASE WHEN type = 'WITHDRAWAL' THEN amount ELSE 0 END), 0) as withdrawn FROM balance_transactions WHERE user_id = $1`, userID).Scan(&current, &withdrawn)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -109,8 +110,8 @@ func (r *OrderRepoPG) GetUserBalance(userID int64) (current float64, withdrawn f
 	return current, withdrawn, nil
 }
 
-func (r *OrderRepoPG) GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error) {
-	rows, err := r.db.Query(`SELECT order_id, amount, created_at FROM balance_transactions WHERE user_id=$1 AND type='WITHDRAWAL' ORDER BY created_at DESC`, userID)
+func (r *OrderRepoPG) GetUserWithdrawals(ctx context.Context, userID int64) ([]models.WithdrawalResponse, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT order_id, amount, created_at FROM balance_transactions WHERE user_id=$1 AND type='WITHDRAWAL' ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +127,7 @@ func (r *OrderRepoPG) GetUserWithdrawals(userID int64) ([]models.WithdrawalRespo
 		orderNumber := ""
 		if orderID.Valid {
 			var num string
-			err = r.db.QueryRow(`SELECT order_number FROM orders WHERE id=$1`, orderID.Int64).Scan(&num)
+			err = r.db.QueryRowContext(ctx, `SELECT order_number FROM orders WHERE id=$1`, orderID.Int64).Scan(&num)
 			if err == nil {
 				orderNumber = num
 			}

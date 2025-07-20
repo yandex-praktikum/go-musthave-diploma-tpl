@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -10,9 +11,9 @@ import (
 )
 
 type UserRepo interface {
-	CreateUser(login, passwordHash string) error
-	IsLoginExist(login string) (bool, error)
-	GetUserByLogin(login string) (*models.User, error)
+	CreateUser(ctx context.Context, login, passwordHash string) error
+	IsLoginExist(ctx context.Context, login string) (bool, error)
+	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 }
 
 type UserService struct {
@@ -29,12 +30,12 @@ func NewUserService(repo UserRepo) *UserService {
 	return &UserService{UserRepo: repo}
 }
 
-func (s *UserService) Register(req models.RegisterRequest) (string, error) {
+func (s *UserService) Register(ctx context.Context, req models.RegisterRequest) (string, error) {
 	req.Login = strings.TrimSpace(req.Login)
 	if req.Login == "" || req.Password == "" {
 		return "", errors.New("неверный формат запроса")
 	}
-	exists, err := s.UserRepo.IsLoginExist(req.Login)
+	exists, err := s.UserRepo.IsLoginExist(ctx, req.Login)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +46,7 @@ func (s *UserService) Register(req models.RegisterRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := s.UserRepo.CreateUser(req.Login, string(hash)); err != nil {
+	if err := s.UserRepo.CreateUser(ctx, req.Login, string(hash)); err != nil {
 		return "", err
 	}
 	token, err := auth.GenerateJWT(req.Login)
@@ -55,12 +56,12 @@ func (s *UserService) Register(req models.RegisterRequest) (string, error) {
 	return token, nil
 }
 
-func (s *UserService) Login(req models.RegisterRequest) (string, error) {
+func (s *UserService) Login(ctx context.Context, req models.RegisterRequest) (string, error) {
 	req.Login = strings.TrimSpace(req.Login)
 	if req.Login == "" || req.Password == "" {
 		return "", errors.New("неверный формат запроса")
 	}
-	user, err := s.UserRepo.GetUserByLogin(req.Login)
+	user, err := s.UserRepo.GetUserByLogin(ctx, req.Login)
 	if err != nil {
 		return "", ErrUserNotFound
 	}
@@ -74,6 +75,6 @@ func (s *UserService) Login(req models.RegisterRequest) (string, error) {
 	return token, nil
 }
 
-func (s *UserService) GetUserByLogin(login string) (*models.User, error) {
-	return s.UserRepo.GetUserByLogin(login)
+func (s *UserService) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
+	return s.UserRepo.GetUserByLogin(ctx, login)
 }

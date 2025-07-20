@@ -15,16 +15,16 @@ import (
 )
 
 type OrderRepo interface {
-	CreateOrder(orderNumber string, userID int64) error
-	GetOrderByNumber(orderNumber string) (*models.Order, error)
-	GetOrderByNumberAndUserID(orderNumber string, userID int64) (*models.Order, error)
-	GetOrdersByUserID(userID int64) ([]models.Order, error)
-	GetOrdersForStatusUpdate() ([]models.Order, error)
-	UpdateOrderStatus(orderID int64, status string) error
-	AddBalanceTransaction(userID int64, orderID *int64, amount float64, txType string) error
-	GetOrderAccrual(orderID int64) (*float64, error)
-	GetUserBalance(userID int64) (current float64, withdrawn float64, err error)
-	GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error)
+	CreateOrder(ctx context.Context, orderNumber string, userID int64) error
+	GetOrderByNumber(ctx context.Context, orderNumber string) (*models.Order, error)
+	GetOrderByNumberAndUserID(ctx context.Context, orderNumber string, userID int64) (*models.Order, error)
+	GetOrdersByUserID(ctx context.Context, userID int64) ([]models.Order, error)
+	GetOrdersForStatusUpdate(ctx context.Context) ([]models.Order, error)
+	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
+	AddBalanceTransaction(ctx context.Context, userID int64, orderID *int64, amount float64, txType string) error
+	GetOrderAccrual(ctx context.Context, orderID int64) (*float64, error)
+	GetUserBalance(ctx context.Context, userID int64) (current float64, withdrawn float64, err error)
+	GetUserWithdrawals(ctx context.Context, userID int64) ([]models.WithdrawalResponse, error)
 }
 
 type OrderService struct {
@@ -64,7 +64,7 @@ func isValidLuhn(number string) bool {
 	return sum%10 == 0
 }
 
-func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
+func (s *OrderService) UploadOrder(ctx context.Context, orderNumber string, userID int64) error {
 	orderNumber = strings.TrimSpace(orderNumber)
 	if orderNumber == "" {
 		return ErrInvalidOrderFormat
@@ -77,7 +77,7 @@ func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
 	if !isValidLuhn(orderNumber) {
 		return ErrInvalidOrderNumber
 	}
-	order, err := s.OrderRepo.GetOrderByNumber(orderNumber)
+	order, err := s.OrderRepo.GetOrderByNumber(ctx, orderNumber)
 	if err == nil && order != nil {
 		if order.UserID == userID {
 			return ErrOrderAlreadyUploadedByUser
@@ -85,15 +85,15 @@ func (s *OrderService) UploadOrder(orderNumber string, userID int64) error {
 			return ErrOrderAlreadyUploadedByAnother
 		}
 	}
-	err = s.OrderRepo.CreateOrder(orderNumber, userID)
+	err = s.OrderRepo.CreateOrder(ctx, orderNumber, userID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *OrderService) GetOrdersByUserID(userID int64) ([]models.Order, error) {
-	return s.OrderRepo.GetOrdersByUserID(userID)
+func (s *OrderService) GetOrdersByUserID(ctx context.Context, userID int64) ([]models.Order, error) {
+	return s.OrderRepo.GetOrdersByUserID(ctx, userID)
 }
 
 func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr string, logger *zap.Logger) {
@@ -107,7 +107,7 @@ func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr s
 				logger.Info("Order status worker stopped")
 				return
 			case <-ticker.C:
-				orders, err := s.OrderRepo.GetOrdersForStatusUpdate()
+				orders, err := s.OrderRepo.GetOrdersForStatusUpdate(ctx)
 				if err != nil {
 					logger.Error("Ошибка получения заказов для обновления статуса", zap.Error(err))
 					continue
@@ -120,7 +120,7 @@ func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr s
 						continue
 					}
 					if resp.StatusCode == http.StatusNoContent {
-						_ = s.OrderRepo.UpdateOrderStatus(order.ID, "INVALID")
+						_ = s.OrderRepo.UpdateOrderStatus(ctx, order.ID, "INVALID")
 						resp.Body.Close()
 						continue
 					}
@@ -140,9 +140,9 @@ func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr s
 						continue
 					}
 					resp.Body.Close()
-					_ = s.OrderRepo.UpdateOrderStatus(order.ID, accrualResp.Status)
+					_ = s.OrderRepo.UpdateOrderStatus(ctx, order.ID, accrualResp.Status)
 					if accrualResp.Accrual != nil && accrualResp.Status == "PROCESSED" {
-						_ = s.OrderRepo.AddBalanceTransaction(order.UserID, &order.ID, *accrualResp.Accrual, "ACCRUAL")
+						_ = s.OrderRepo.AddBalanceTransaction(ctx, order.UserID, &order.ID, *accrualResp.Accrual, "ACCRUAL")
 					}
 				}
 			}
@@ -150,39 +150,39 @@ func (s *OrderService) StartOrderStatusWorker(ctx context.Context, accrualAddr s
 	}()
 }
 
-func (s *OrderService) GetOrderAccrual(orderID int64) (*float64, error) {
-	return s.OrderRepo.GetOrderAccrual(orderID)
+func (s *OrderService) GetOrderAccrual(ctx context.Context, orderID int64) (*float64, error) {
+	return s.OrderRepo.GetOrderAccrual(ctx, orderID)
 }
 
-func (s *OrderService) GetUserBalance(userID int64) (current float64, withdrawn float64, err error) {
-	return s.OrderRepo.GetUserBalance(userID)
+func (s *OrderService) GetUserBalance(ctx context.Context, userID int64) (current float64, withdrawn float64, err error) {
+	return s.OrderRepo.GetUserBalance(ctx, userID)
 }
 
-func (s *OrderService) WithdrawBalance(userID int64, orderNumber string, sum float64) error {
+func (s *OrderService) WithdrawBalance(ctx context.Context, userID int64, orderNumber string, sum float64) error {
 	if !isValidLuhn(orderNumber) {
 		return ErrInvalidOrderNumber
 	}
-	current, _, err := s.GetUserBalance(userID)
+	current, _, err := s.GetUserBalance(ctx, userID)
 	if err != nil {
 		return err
 	}
 	if sum > current {
 		return ErrInsufficientFunds
 	}
-	order, err := s.OrderRepo.GetOrderByNumber(orderNumber)
+	order, err := s.OrderRepo.GetOrderByNumber(ctx, orderNumber)
 	if err != nil || order == nil {
-		err = s.OrderRepo.CreateOrder(orderNumber, userID)
+		err = s.OrderRepo.CreateOrder(ctx, orderNumber, userID)
 		if err != nil {
 			return err
 		}
-		order, err = s.OrderRepo.GetOrderByNumber(orderNumber)
+		order, err = s.OrderRepo.GetOrderByNumber(ctx, orderNumber)
 		if err != nil {
 			return err
 		}
 	}
-	return s.OrderRepo.AddBalanceTransaction(userID, &order.ID, sum, "WITHDRAWAL")
+	return s.OrderRepo.AddBalanceTransaction(ctx, userID, &order.ID, sum, "WITHDRAWAL")
 }
 
-func (s *OrderService) GetUserWithdrawals(userID int64) ([]models.WithdrawalResponse, error) {
-	return s.OrderRepo.GetUserWithdrawals(userID)
+func (s *OrderService) GetUserWithdrawals(ctx context.Context, userID int64) ([]models.WithdrawalResponse, error) {
+	return s.OrderRepo.GetUserWithdrawals(ctx, userID)
 }
