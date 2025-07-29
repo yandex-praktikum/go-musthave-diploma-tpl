@@ -29,6 +29,11 @@ jobs:
           chmod -R +x $GITHUB_WORKSPACE/.tools/statictest
           mv $GITHUB_WORKSPACE/.tools/statictest /usr/local/bin/statictest
 
+      - name: Generate mocks
+        run: |
+          go install github.com/vektra/mockery/v2@latest
+          make generate-mocks
+
       - name: Run statictest
         run: |
           go vet -vettool=$(which statictest) ./...
