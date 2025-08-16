@@ -50,6 +50,42 @@ jobs:
           (cd cmd/gophermart && go build -buildvcs=false -o gophermart)
           (cd cmd/accrual && chmod +x accrual_linux_amd64)
 
+      - name: Install goose
+        run: |
+          echo "Go version: $(go version)"
+          echo "GOPATH: $GOPATH"
+          echo "GOROOT: $GOROOT"
+          echo "HOME: $HOME"
+          echo "Current PATH: $PATH"
+          
+          # Устанавливаем goose (для совместимости)
+          go install github.com/pressly/goose/v3/cmd/goose@latest
+          
+          # Проверяем где установился
+          echo "Goose installed at: $(which goose)"
+          ls -la $HOME/go/bin/ || echo "No $HOME/go/bin directory"
+          ls -la /usr/local/go/bin/ || echo "No /usr/local/go/bin directory"
+          
+          # Добавляем в PATH для следующих шагов
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Run migrations
+        run: |
+          echo "=== Migration step ==="
+          echo "PATH: $PATH"
+          echo "HOME: $HOME"
+          echo "Looking for goose..."
+          which goose || echo "Goose not in PATH"
+          ls -la $HOME/go/bin/goose || echo "Goose not in $HOME/go/bin"
+          
+          # Проверяем подключение к БД
+          echo "Testing database connection..."
+          pg_isready -h postgres -p 5432 -U postgres || echo "Database not ready"
+          
+          # Запускаем миграции используя новый механизм tools
+          echo "Running migrations..."
+          go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations postgres "postgresql://postgres:postgres@postgres/praktikum?sslmode=disable" up
+
       - name: Test
         run: |
           gophermarttest \

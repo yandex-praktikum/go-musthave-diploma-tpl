@@ -21,3 +21,8 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+.idea
+.tools
+
+# Generated mocks
+internal/*/mocks/
