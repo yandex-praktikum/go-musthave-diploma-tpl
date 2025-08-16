@@ -1,0 +1,46 @@
+### Registration User
+POST http://localhost:8080/api/user/register
+Content-Type: application/json
+
+{
+  "login": "user5",
+  "password": "password3"
+}
+
+### Login User
+POST http://localhost:8080/api/user/login
+Content-Type: application/json
+
+{
+  "login": "user",
+  "password": "password"
+}
+
+### Login User WRONG
+POST http://localhost:8080/api/user/login
+Content-Type: application/json
+
+{
+  "login": "user1",
+  "password": "password1"
+}
+
+### POST Order num
+POST http://localhost:8080/api/user/orders
+Cookie: gophermart_session=MTY3MDkxNDc1NXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fEoeBWLpGEONoAJ-BcRp3VXhqxLjmTXrl3W4HKqY3gQW
+Content-Type: text/plain
+
+372478458238126
+
+
+### GET list of orders
+GET http://localhost:8080/api/user/orders
+Cookie: gophermart_session=MTY3MDkxNDc1NXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fEoeBWLpGEONoAJ-BcRp3VXhqxLjmTXrl3W4HKqY3gQW
+
+### Get balance
+GET http://localhost:8080/api/user/balance
+Cookie: gophermart_session=MTY3MDc4MDAxMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fDN6m6THH18gChzUmgXtyMSB2ZetbTuDdvODK2IhWC80
+
+### Get info about order
+GET http://localhost:8080/api/orders/372478458238126 HTTP/1.1
+Cookie: gophermart_session=MTY3MDc4MDAxMXxEdi1CQkFFQ180SUFBUkFCRUFBQUh2LUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FEYVc1MEJBSUFBZz09fDN6m6THH18gChzUmgXtyMSB2ZetbTuDdvODK2IhWC80

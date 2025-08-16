@@ -1,0 +1,35 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+title
+Регистрация пользователя
+end title
+
+User -> Handler: POST /api/user/register
+note right
+{
+    "login": "<login>",
+    "password": "<password>"
+}
+end note
+Handler --> User: StatusCode: 500, bad request)
+
+Handler -> Usecases: register(username,password)
+
+Usecases -> Repository: register(username, password)
+Repository -> Repository: getUser
+Repository --> Usecases: ErrUserBusy
+
+Usecases --> Handler: ErrUserBusy
+
+Handler --> User: StatusCode: 409
+Repository -> Repository: createUser
+Repository -> Usecases: user_id
+Usecases -> UseCases: setCookie()
+
+Usecases -> Handler: user_id
+
+Handler -> User: StatusCode: 200, session: cookie
+
+@enduml
+
