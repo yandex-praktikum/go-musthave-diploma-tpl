@@ -1,0 +1,2 @@
+ALTER TABLE orders ALTER COLUMN status SET DEFAULT 'NEW';
+UPDATE orders SET status = 'NEW' WHERE status IS NULL;
