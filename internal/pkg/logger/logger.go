@@ -27,15 +27,10 @@ func Errorf(ctx context.Context, format string, args ...any) {
 	logger.Errorf(format, args...)
 }
 
-var defaultSugarLogger, _ = zap.NewDevelopment()
-
 // FromContext извлекает logger из контекста
 func FromContext(ctx context.Context) *zap.SugaredLogger {
 	logger := ctx.Value(key)
-	sugarLogger, ok := logger.(*zap.SugaredLogger)
-	if !ok {
-		return defaultSugarLogger.Sugar()
-	}
-
+	// логгер должен быть всегда, тк проинициализирован при инициализации
+	sugarLogger, _ := logger.(*zap.SugaredLogger)
 	return sugarLogger
 }

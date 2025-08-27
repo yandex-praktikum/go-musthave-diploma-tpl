@@ -3,6 +3,7 @@ package loyalty
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 
 	"github.com/kdv2001/loyalty/internal/domain"
@@ -12,7 +13,9 @@ import (
 
 func (i *Implementation) WithdrawPoints(ctx context.Context,
 	userID domain.ID, o domain.Operation) error {
-	tx, err := i.c.Begin(ctx)
+	tx, err := i.c.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
+	})
 	if err != nil {
 		return serviceerrors.NewAppError(err)
 	}

@@ -3,6 +3,7 @@ package loyalty
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -13,7 +14,7 @@ import (
 )
 
 type loyaltyClient interface {
-	GetAccruals(ctx context.Context, orderID domain.ID) (domain.Order, error)
+	GetAccruals(ctx context.Context, orderID domain.ID) (*domain.Order, error)
 }
 
 type loyaltyStore interface {
@@ -58,65 +59,109 @@ func (i *Implementation) GetOrders(ctx context.Context, userID domain.ID) (domai
 }
 
 func (i *Implementation) ProcessAccrual(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
+	err := i.processAccrual(ctx)
+	if err != nil {
+		_ = serviceerrors.AppErrorFromError(err).LogServerError(ctx)
+	}
+}
+
+const workersNums = 3
+
+// TODO подумать, как делать это из разных подов
+func (i *Implementation) processAccrual(ctx context.Context) error {
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Errorf(ctx, "recovered from panic: %v", err)
 		}
 	}()
 
+	wg := sync.WaitGroup{}
+	workChan := make(chan domain.Order, workersNums)
+	for j := 0; j < workersNums; j++ {
+		wg.Add(1)
+		go i.AccrualPoints(ctx, workChan, &wg)
+	}
+	go i.startSendWork(ctx, workChan)
+
+	wg.Wait()
+
+	return nil
+}
+
+func (i *Implementation) startSendWork(ctx context.Context, workChan chan domain.Order) {
+	ticker := time.NewTicker(3 * time.Second)
+LOOP:
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			break LOOP
 		case <-ticker.C:
-			err := i.processAccrual(ctx)
+			orders, err := i.store.GetOrderForAccruals(ctx)
 			if err != nil {
-				_ = serviceerrors.AppErrorFromError(err).LogServerError(ctx)
+				logger.Errorf(ctx, err.Error())
 			}
+
+			for _, order := range orders {
+				select {
+				case <-ctx.Done():
+					break LOOP
+				default:
+					workChan <- order
+				}
+			}
+		}
+	}
+
+	close(workChan)
+}
+
+func (i *Implementation) AccrualPoints(ctx context.Context,
+	orders chan domain.Order, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for order := range orders {
+		err := i.accrualPoints(ctx, order)
+		if err != nil {
+			_ = serviceerrors.AppErrorFromError(err).LogServerError(ctx)
 		}
 	}
 }
 
-// TODO подумать, как делать это из разных подов
-func (i *Implementation) processAccrual(ctx context.Context) error {
-	orders, err := i.store.GetOrderForAccruals(ctx)
+func (i *Implementation) accrualPoints(ctx context.Context,
+	order domain.Order) error {
+	logger.Infof(ctx, "start accrual %v", order.ID)
+	var res *domain.Order
+	res, err := i.loyaltyClient.GetAccruals(ctx, order.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrNoContent):
+			return nil
+		}
+
+		return err
+	}
+	if res == nil {
+		return nil
+	}
+
+	if res.State != domain.Processed {
+		logger.Infof(ctx, "update accrual state for order %d", order.ID)
+		order.State = res.State
+		err = i.store.UpdateOrderStatus(ctx, order)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	order.State = res.State
+	order.AccrualAmount = res.AccrualAmount
+
+	err = i.store.AccrualPoints(ctx, order)
 	if err != nil {
 		return err
 	}
 
-	for _, order := range orders {
-		var res domain.Order
-		tCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-		defer cancel()
-		res, err = i.loyaltyClient.GetAccruals(tCtx, order.ID)
-		if err != nil {
-			switch {
-			case errors.Is(err, domain.ErrNoContent):
-				continue
-			}
-
-			return err
-		}
-
-		if res.State != domain.Processed {
-			order.State = res.State
-			err = i.store.UpdateOrderStatus(tCtx, order)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-
-		order.State = res.State
-		order.AccrualAmount = res.AccrualAmount
-
-		err = i.store.AccrualPoints(tCtx, order)
-		if err != nil {
-			return err
-		}
-	}
-
+	logger.Infof(ctx, "finish accrual points for order %d", order.ID)
 	return nil
 }
 

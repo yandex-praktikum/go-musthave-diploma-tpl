@@ -137,7 +137,7 @@ func (i *Implementation) AddOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isValidID := LuhnAlgorithm(string(body)); !isValidID {
+	if isValidID := checkLuhnAlgorithm(string(body)); !isValidID {
 		writeError(ctx, w,
 			serviceerrors.NewUnprocessableEntity().Wrap(nil, "invalid order id"))
 		return
@@ -314,7 +314,7 @@ func (i *Implementation) WithdrawalPoints(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if isValidID := LuhnAlgorithm(req.Order); !isValidID {
+	if isValidID := checkLuhnAlgorithm(req.Order); !isValidID {
 		writeError(ctx, w,
 			serviceerrors.NewUnprocessableEntity().Wrap(nil, "invalid order id"))
 		return
@@ -402,7 +402,7 @@ func writeError(ctx context.Context, w http.ResponseWriter, err error) {
 	http.Error(w, appErr.String(), appErr.Code)
 }
 
-func LuhnAlgorithm(number string) bool {
+func checkLuhnAlgorithm(number string) bool {
 	sum := 0
 	alternate := false
 	for i := len(number) - 1; i >= 0; i-- {

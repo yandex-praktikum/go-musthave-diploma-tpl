@@ -14,6 +14,7 @@ import (
 
 	accrualSystemHTTP "github.com/kdv2001/loyalty/internal/clients/accrualSystem/http"
 	httpHandlers "github.com/kdv2001/loyalty/internal/handlers/http"
+	"github.com/kdv2001/loyalty/internal/pkg/logger"
 	"github.com/kdv2001/loyalty/internal/store/postgress/auth"
 	"github.com/kdv2001/loyalty/internal/store/postgress/loyalty"
 	"github.com/kdv2001/loyalty/internal/store/postgress/session"
@@ -27,6 +28,12 @@ func main() {
 
 func initService() error {
 	ctx := context.Background()
+	zapLog, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("failed to init looger: %w", err)
+	}
+	sugarLogger := zapLog.Sugar()
+	ctx = logger.ToContext(ctx, sugarLogger)
 
 	initValues, err := initFlags()
 	if err != nil {
@@ -67,15 +74,8 @@ func initService() error {
 	}
 
 	accrualClient := accrualSystemHTTP.NewClient(client, *u)
-	//accrualClientMock := mock.NewClient()
 	userUC := user.NewImplementation(authStore, sessionStore)
 	loyaltyUC := loyaltyUseCase.NewImplementation(ctx, accrualClient, loyaltyStore)
-
-	log, err := zap.NewDevelopment()
-	if err != nil {
-		return fmt.Errorf("failed to init looger: %w", err)
-	}
-	sugarLogger := log.Sugar()
 
 	chiMux := chi.NewMux()
 	chiMux.Use(
@@ -96,7 +96,6 @@ func initService() error {
 		rWithAuth.Get("/balance", handlers.GetBalance)
 		rWithAuth.Post("/balance/withdraw", handlers.WithdrawalPoints)
 		rWithAuth.Get("/withdrawals", handlers.GetWithdrawals)
-
 	})
 
 	sugarLogger.Infof("start listen and serve")
