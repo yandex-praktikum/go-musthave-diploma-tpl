@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -27,13 +28,13 @@ type TokenResponse struct {
 type UserHandler struct {
 	serverAddr   string
 	secretKey    string
-	userUseCase  usecase.Usecase
+	userUseCase  usecase.UseCase
 	orderUseCae  usecase.OrderUseCase
 	sessionStore *repository.SessionStore
 	logger       *zap.Logger
 }
 
-func NewUserHandler(userUseCase usecase.Usecase, orderUseCae usecase.OrderUseCase, serverAddr, secretKey string, sessionStore *repository.SessionStore, logger *zap.Logger) *UserHandler {
+func NewUserHandler(userUseCase usecase.UseCase, orderUseCae usecase.OrderUseCase, serverAddr, secretKey string, sessionStore *repository.SessionStore, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userUseCase:  userUseCase,
 		orderUseCae:  orderUseCae,
@@ -108,6 +109,8 @@ func (h *UserHandler) ChiMux() *chi.Mux {
 	r.Post("/api/user/login", h.loginHandler)
 	r.Post("/api/user/orders", h.createOrders)
 	r.Get("/api/user/orders", h.listOrders)
+	r.Get("/api/user/balance", h.getUserBalance)
+	r.Post("/api/user/balance/withdraw", h.createWithdraw)
 
 	return r
 }
@@ -403,7 +406,7 @@ func (h *UserHandler) createOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !utils.IsValidLuhn(strconv.Itoa(orderNumber)) {
-		http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -411,9 +414,21 @@ func (h *UserHandler) createOrders(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	order, errCreateOrder := h.orderUseCae.CreateOrder(ctx, resp.UserID, strconv.Itoa(orderNumber))
+
 	if errCreateOrder != nil {
+		if repository.IsDuplicateError(errCreateOrder) {
+			http.Error(w, "Invalid request", http.StatusConflict)
+			return
+		}
+		if repository.IsForeignKeyError(errCreateOrder) {
+			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+			return
+		}
+
 		http.Error(w, errCreateOrder.Error(), http.StatusInternalServerError)
+		return
 	}
+
 	if order == nil {
 		http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
 	}
@@ -451,4 +466,84 @@ func (h *UserHandler) listOrders(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *UserHandler) getUserBalance(w http.ResponseWriter, r *http.Request) {
+	var sessionToken string
+	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
+		sessionToken = cookie.Value
+	}
+
+	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	getBalance, errGetBalance := h.userUseCase.GetUserBalance(ctx, resp.UserID)
+	if errGetBalance != nil {
+		http.Error(w, errGetBalance.Error(), http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(getBalance)
+
+}
+
+type Withdraw struct {
+	Order string  `json:"order"`
+	Sum   float64 `json:"sum"`
+}
+
+func (h *UserHandler) createWithdraw(w http.ResponseWriter, r *http.Request) {
+	var sessionToken string
+	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
+		sessionToken = cookie.Value
+	}
+
+	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var withdraw Withdraw
+	err = json.NewDecoder(r.Body).Decode(&withdraw)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !utils.IsValidLuhn(withdraw.Order) {
+		http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	errGetBalance := h.userUseCase.WithdrawBalance(ctx, resp.UserID, withdraw.Order, withdraw.Sum)
+	if errGetBalance != nil {
+		if repository.IsDuplicateError(errGetBalance) {
+			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+			return
+		}
+		if repository.IsForeignKeyError(errGetBalance) {
+			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+			return
+		}
+		e := errors.New("insufficient balance")
+		if errors.As(errGetBalance, &e) {
+			http.Error(w, "Payment required", http.StatusPaymentRequired)
+			return
+		}
+
+		http.Error(w, errGetBalance.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
 }

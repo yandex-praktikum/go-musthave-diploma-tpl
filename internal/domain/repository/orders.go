@@ -10,7 +10,7 @@ import (
 )
 
 // CreateOrder создает новый заказ
-func (r *Repository) CreateOrder(ctx context.Context, userID int, number string) (*entity.Order, error) {
+func (r *Repository) CreateOrder(ctx context.Context, userID int, number string, status entity.OrderStatus) (*entity.Order, error) {
 	query := `
 		INSERT INTO orders (number, user_id, status)
 		VALUES ($1, $2, $3)
@@ -18,7 +18,7 @@ func (r *Repository) CreateOrder(ctx context.Context, userID int, number string)
 	`
 	var createdAt, updatedAt time.Time
 	order := &entity.Order{}
-	err := r.db.QueryRow(ctx, query, number, userID, entity.OrderStatusNew).Scan(
+	err := r.db.QueryRow(ctx, query, number, userID, status).Scan(
 		&order.ID,
 		&createdAt,
 		&updatedAt,
@@ -31,26 +31,33 @@ func (r *Repository) CreateOrder(ctx context.Context, userID int, number string)
 	order.UpdatedAt = updatedAt.Format(time.RFC3339)
 
 	if err != nil {
-		if isDuplicateError(err) {
-			existingOrder, err := r.GetOrderByNumber(ctx, number)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get existing order: %w", err)
-			}
-
-			if existingOrder.UserID != userID {
-				return nil, fmt.Errorf("order already exists for another user")
-			}
-			return existingOrder, nil
-		}
-
-		if isForeignKeyError(err) {
-			return nil, fmt.Errorf("user not found")
-		}
-
-		return nil, fmt.Errorf("failed to create order: %w", err)
+		return nil, err
 	}
 
 	return order, nil
+}
+
+// UpdateOrderAccrual обновляет начисление заказа и статус
+func (r *Repository) UpdateOrderAccrual(ctx context.Context, orderID int, accrual float64, status entity.OrderStatus) error {
+	query := `
+        UPDATE orders
+        SET 
+            accrual = $1,
+            status = $2,
+            updated_at = NOW()
+        WHERE id = $3
+    `
+
+	result, err := r.db.Exec(ctx, query, accrual, status, orderID)
+	if err != nil {
+		return fmt.Errorf("failed to update order accrual: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("order not found")
+	}
+
+	return nil
 }
 
 // GetOrderByID получает заказ по ID
@@ -307,32 +314,6 @@ func (r *Repository) GetOrdersByStatus(ctx context.Context, status entity.OrderS
 	return orders, nil
 }
 
-// UpdateOrderAccrual обновляет начисление заказа
-func (r *Repository) UpdateOrderAccrual(ctx context.Context, orderID int, accrual float64) error {
-	query := `
-		UPDATE orders
-		SET 
-			accrual = $1,
-			updated_at = NOW(),
-			status = CASE 
-				WHEN $1 > 0 THEN 'PROCESSED'::order_status
-				ELSE 'INVALID'::order_status
-			END
-		WHERE id = $2
-	`
-
-	result, err := r.db.Exec(ctx, query, accrual, orderID)
-	if err != nil {
-		return fmt.Errorf("failed to update order accrual: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("order not found")
-	}
-
-	return nil
-}
-
 // UpdateOrderStatus обновляет статус заказа
 func (r *Repository) UpdateOrderStatus(ctx context.Context, orderID int, status entity.OrderStatus) error {
 	query := `
@@ -377,7 +358,7 @@ func (r *Repository) UpdateOrder(ctx context.Context, order *entity.Order) error
 	)
 
 	if err != nil {
-		if isForeignKeyError(err) {
+		if IsForeignKeyError(err) {
 			return fmt.Errorf("user not found")
 		}
 		return fmt.Errorf("failed to update order: %w", err)

@@ -50,6 +50,7 @@ type OrdersRepository interface {
 	GetOrdersForProcessing(ctx context.Context, limit int) ([]*entity.Order, error)
 	GetActiveOrders(ctx context.Context) ([]*entity.Order, error)
 	UpdateStatus(ctx context.Context, number string, status entity.OrderStatus, accrual *float64) error
+	CreateWithdraw(ctx context.Context, withdraw *entity.Withdraw) error
 }
 
 // Repository реализация Store
@@ -90,8 +91,8 @@ func (r *Repository) Close() {
 	r.db.Close()
 }
 
-// isDuplicateError проверяет, является ли ошибка нарушением уникальности
-func isDuplicateError(err error) bool {
+// IsDuplicateError проверяет, является ли ошибка нарушением уникальности
+func IsDuplicateError(err error) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		return pgErr.Code == "23505"
@@ -99,8 +100,8 @@ func isDuplicateError(err error) bool {
 	return false
 }
 
-// isForeignKeyError проверяет, является ли ошибка нарушением внешнего ключа
-func isForeignKeyError(err error) bool {
+// IsForeignKeyError проверяет, является ли ошибка нарушением внешнего ключа
+func IsForeignKeyError(err error) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		return pgErr.Code == "23503"

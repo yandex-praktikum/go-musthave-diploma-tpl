@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
+	"log"
 	"time"
 )
 
@@ -30,7 +31,7 @@ func (r *Repository) CreateUser(ctx context.Context, login, password string) (*e
 	user.UpdatedAt = updatedAt.Format(time.RFC3339)
 
 	if err != nil {
-		if isDuplicateError(err) {
+		if IsDuplicateError(err) {
 			return nil, fmt.Errorf("user with login '%s' already exists", login)
 		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -117,7 +118,7 @@ func (r *Repository) UpdateUser(ctx context.Context, user *entity.User) error {
 	)
 
 	if err != nil {
-		if isDuplicateError(err) {
+		if IsDuplicateError(err) {
 			return fmt.Errorf("login '%s' already exists", user.Login)
 		}
 		return fmt.Errorf("failed to update user: %w", err)
@@ -136,7 +137,7 @@ func (r *Repository) DeleteUser(ctx context.Context, id int) error {
 
 	result, err := r.db.Exec(ctx, query, id)
 	if err != nil {
-		if isForeignKeyError(err) {
+		if IsForeignKeyError(err) {
 			return fmt.Errorf("cannot delete user with existing orders")
 		}
 		return fmt.Errorf("failed to delete user: %w", err)
@@ -193,20 +194,27 @@ func (r *Repository) DeactivateUser(ctx context.Context, userID int) error {
 	return nil
 }
 
-// GetUserBalance получает баланс пользователя
 func (r *Repository) GetUserBalance(ctx context.Context, userID int) (*entity.UserBalance, error) {
 	query := `
-		SELECT 
-			$1::int as user_id,
-			COALESCE(SUM(CASE WHEN status = 'PROCESSED' THEN accrual ELSE 0 END), 0) as current,
-			COALESCE(SUM(CASE WHEN status = 'INVALID' THEN 0 ELSE accrual END), 0) as withdrawn
-		FROM orders
-		WHERE user_id = $1
-	`
+        WITH processed_orders AS (
+            -- Все PROCESSED заказы (начисления и списания)
+            SELECT accrual
+            FROM orders
+            WHERE user_id = $1 AND status = 'PROCESSED'
+        )
+        SELECT 
+            $1::int as user_id,
+            -- Текущий баланс: сумма всех PROCESSED accrual
+            COALESCE(SUM(accrual), 0) as current,
+            -- Сумма списаний: сумма отрицательных accrual по модулю
+            COALESCE(ABS(SUM(CASE WHEN accrual < 0 THEN accrual ELSE 0 END)), 0) as withdrawn
+        FROM processed_orders
+    `
 
+	var id int
 	balance := &entity.UserBalance{}
 	err := r.db.QueryRow(ctx, query, userID).Scan(
-		&balance.UserID,
+		&id,
 		&balance.Current,
 		&balance.Withdrawn,
 	)
@@ -214,6 +222,8 @@ func (r *Repository) GetUserBalance(ctx context.Context, userID int) (*entity.Us
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user balance: %w", err)
 	}
+
+	log.Printf("balance: %#v, user_id: %#v", balance, userID)
 
 	return balance, nil
 }

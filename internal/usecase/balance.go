@@ -46,19 +46,26 @@ func (uc *useCase) WithdrawBalance(ctx context.Context, userID int, orderNumber 
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	// Откатываем транзакцию только при ошибке
+	defer func() {
+		if err != nil {
+			err := tx.Rollback(ctx)
+			if err != nil {
+				return
+			}
+		}
+	}()
 
 	// Создаем заказ на списание
-	order, err := uc.repo.CreateOrder(ctx, userID, orderNumber)
+	order, err := uc.repo.CreateOrder(ctx, userID, orderNumber, entity.OrderStatusProcessed)
 	if err != nil {
 		if err.Error() == "order already exists for another user" {
 			return ErrOrderAlreadyExists
 		}
 		return fmt.Errorf("failed to create withdrawal order: %w", err)
 	}
-
 	// Устанавливаем отрицательную сумму (списание)
-	err = uc.repo.UpdateOrderAccrual(ctx, order.ID, -amount)
+	err = uc.repo.UpdateOrderAccrual(ctx, order.ID, -amount, entity.OrderStatusProcessed)
 	if err != nil {
 		return fmt.Errorf("failed to update withdrawal order: %w", err)
 	}
@@ -75,7 +82,7 @@ func (uc *useCase) WithdrawBalance(ctx context.Context, userID int, orderNumber 
 }
 
 // GetWithdrawals получает историю списаний
-func (uc *useCase) GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdrawal, error) {
+func (uc *useCase) GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdraw, error) {
 	// Получаем все заказы пользователя с отрицательным accrual
 	orders, err := uc.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {
@@ -83,11 +90,11 @@ func (uc *useCase) GetWithdrawals(ctx context.Context, userID int) ([]entity.Wit
 	}
 
 	// Фильтруем заказы с отрицательным accrual
-	var withdrawals []entity.Withdrawal
+	var withdrawals []entity.Withdraw
 	for _, order := range orders {
 		if order.Accrual != nil && *order.Accrual < 0 {
-			withdrawals = append(withdrawals, entity.Withdrawal{
-				OrderNumber: order.Number,
+			withdrawals = append(withdrawals, entity.Withdraw{
+				Order:       order.Number,
 				Sum:         -*order.Accrual, // Преобразуем отрицательное в положительное
 				ProcessedAt: order.UpdatedAt,
 			})

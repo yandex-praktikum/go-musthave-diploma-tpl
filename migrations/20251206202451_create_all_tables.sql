@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS orders
     user_id    INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
+-- Индексы для быстрого поиска
 CREATE INDEX idx_orders_user_id ON orders (user_id);
 CREATE UNIQUE INDEX idx_users_login ON users (login);
 CREATE UNIQUE INDEX idx_orders_number ON orders (number);

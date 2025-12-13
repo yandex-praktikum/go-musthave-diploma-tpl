@@ -51,26 +51,7 @@ func (uc *orderUseCase) CreateOrder(ctx context.Context, userID int, orderNumber
 		return nil, fmt.Errorf("invalid order number")
 	}
 
-	// Проверяем, существует ли уже такой заказ
-	exists, err := uc.repo.ExistsByNumber(ctx, orderNumber)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check order existence: %w", err)
-	}
-
-	if exists {
-		// Получаем заказ, чтобы проверить, принадлежит ли он текущему пользователю
-		existingOrder, err := uc.repo.GetOrderByNumber(ctx, orderNumber)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get existing order: %w", err)
-		}
-
-		if existingOrder.UserID == userID {
-			return existingOrder, nil
-		}
-		return nil, fmt.Errorf("order already exists for another user")
-	}
-
-	order, err := uc.repo.CreateOrder(ctx, userID, orderNumber)
+	order, err := uc.repo.CreateOrder(ctx, userID, orderNumber, entity.OrderStatusNew)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
@@ -112,8 +93,7 @@ func (uc *orderUseCase) GetOrderByNumber(ctx context.Context, number string) (*e
 // ProcessOrderResult обрабатывает результат опроса заказа
 func (uc *orderUseCase) ProcessOrderResult(ctx context.Context, result worker.PollResult) error {
 	if result.Error != nil {
-		// Логируем ошибку, но не меняем статус заказа
-		// (воркер может повторить попытку)
+
 		return fmt.Errorf("poll error for order %s: %w", result.OrderNumber, result.Error)
 	}
 

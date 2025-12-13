@@ -20,11 +20,10 @@ var (
 	ErrInvalidOrderStatus  = errors.New("invalid order status")
 )
 
-// Usecase интерфейс бизнес-логики
-type Usecase interface {
+// UseCase интерфейс бизнес-логики
+type UseCase interface {
 	AuthUsecase
 	UsersUsecase
-	//OrdersUsecase
 	BalanceUsecase
 }
 
@@ -63,12 +62,12 @@ type OrdersUsecase interface {
 type BalanceUsecase interface {
 	GetUserBalance(ctx context.Context, userID int) (*entity.UserBalance, error)
 	WithdrawBalance(ctx context.Context, userID int, orderNumber string, amount float64) error
-	GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdrawal, error)
+	GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdraw, error)
 }
 
-// useCase реализация Usecase
+// useCase реализация UseCase
 type useCase struct {
-	repo               repository.Store
+	repo               repository.Repository
 	hashCost           int
 	jwtSecret          []byte
 	sessionTokenExpiry time.Duration
@@ -76,9 +75,9 @@ type useCase struct {
 	worker             worker.OrderWorker
 }
 
-// NewUsecase создает новый экземпляр useCase
-func NewUsecase(repo repository.Store, jwtSecret string,
-	hashCost int, sessionTokenExpiry, refreshTokenExpiry time.Duration) Usecase {
+// NewUseCase создает новый экземпляр useCase
+func NewUseCase(repo repository.Repository, jwtSecret string,
+	hashCost int, sessionTokenExpiry, refreshTokenExpiry time.Duration) UseCase {
 	return &useCase{
 		repo:               repo,
 		hashCost:           hashCost,

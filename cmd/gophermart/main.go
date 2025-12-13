@@ -46,8 +46,8 @@ func main() {
 		logger.Fatal("can't init database", zap.Error(errInitDB))
 	}
 
-	useCaseUser := usecase.NewUsecase(
-		userRepo,
+	useCaseUser := usecase.NewUseCase(
+		*userRepo,
 		cfg.SecretKey, // Секрет для JWT
 		12,            // Стоимость хеширования (bcrypt cost)
 		1*time.Hour,
