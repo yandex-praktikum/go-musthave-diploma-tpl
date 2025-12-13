@@ -11,8 +11,8 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/worker"
 )
 
-// OrderUsecase определяет бизнес-логику для работы с заказами
-type OrderUsecase interface {
+// OrderUseCase определяет бизнес-логику для работы с заказами
+type OrderUseCase interface {
 	CreateOrder(ctx context.Context, userID int, orderNumber string) (*entity.Order, error)
 	GetUserOrders(ctx context.Context, userID int) ([]entity.Order, error)
 	GetOrderByNumber(ctx context.Context, number string) (*entity.Order, error)
@@ -20,12 +20,12 @@ type OrderUsecase interface {
 	LoadActiveOrdersToWorker(ctx context.Context) error
 	StartOrderProcessing(ctx context.Context) error
 	StopOrderProcessing(ctx context.Context) error
+	GetProcessingStats(ctx context.Context) (map[entity.OrderStatus]int, error)
 }
 
-type orderUsecase struct {
-	repo     repository.Repository
-	worker   worker.OrderWorker
-	orderAPI OrderAPI
+type orderUseCase struct {
+	repo   repository.Repository
+	worker worker.OrderWorker
 }
 
 // OrderAPI интерфейс для внешнего API заказов
@@ -33,21 +33,19 @@ type OrderAPI interface {
 	GetOrderInfo(ctx context.Context, orderNumber string) (*orderclient.OrderResponse, error)
 }
 
-// NewOrderUsecase создает новый usecase для заказов
-func NewOrderUsecase(
+// NewOrderUseCase создает новый useCase для заказов
+func NewOrderUseCase(
 	repo repository.Repository,
 	worker worker.OrderWorker,
-	orderAPI OrderAPI,
-) OrderUsecase {
-	return &orderUsecase{
-		repo:     repo,
-		worker:   worker,
-		orderAPI: orderAPI,
+) OrderUseCase {
+	return &orderUseCase{
+		repo:   repo,
+		worker: worker,
 	}
 }
 
 // CreateOrder создает новый заказ
-func (uc *orderUsecase) CreateOrder(ctx context.Context, userID int, orderNumber string) (*entity.Order, error) {
+func (uc *orderUseCase) CreateOrder(ctx context.Context, userID int, orderNumber string) (*entity.Order, error) {
 	// Проверяем номер заказа с помощью алгоритма Луна
 	if !utils.IsValidLuhn(orderNumber) {
 		return nil, fmt.Errorf("invalid order number")
@@ -88,7 +86,7 @@ func (uc *orderUsecase) CreateOrder(ctx context.Context, userID int, orderNumber
 }
 
 // GetUserOrders возвращает заказы пользователя
-func (uc *orderUsecase) GetUserOrders(ctx context.Context, userID int) ([]entity.Order, error) {
+func (uc *orderUseCase) GetUserOrders(ctx context.Context, userID int) ([]entity.Order, error) {
 	orders, err := uc.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user orders: %w", err)
@@ -98,7 +96,7 @@ func (uc *orderUsecase) GetUserOrders(ctx context.Context, userID int) ([]entity
 }
 
 // GetOrderByNumber возвращает заказ по номеру
-func (uc *orderUsecase) GetOrderByNumber(ctx context.Context, number string) (*entity.Order, error) {
+func (uc *orderUseCase) GetOrderByNumber(ctx context.Context, number string) (*entity.Order, error) {
 	order, err := uc.repo.GetOrderByNumber(ctx, number)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order: %w", err)
@@ -112,7 +110,7 @@ func (uc *orderUsecase) GetOrderByNumber(ctx context.Context, number string) (*e
 }
 
 // ProcessOrderResult обрабатывает результат опроса заказа
-func (uc *orderUsecase) ProcessOrderResult(ctx context.Context, result worker.PollResult) error {
+func (uc *orderUseCase) ProcessOrderResult(ctx context.Context, result worker.PollResult) error {
 	if result.Error != nil {
 		// Логируем ошибку, но не меняем статус заказа
 		// (воркер может повторить попытку)
@@ -154,7 +152,7 @@ func (uc *orderUsecase) ProcessOrderResult(ctx context.Context, result worker.Po
 }
 
 // LoadActiveOrdersToWorker загружает активные заказы в воркер
-func (uc *orderUsecase) LoadActiveOrdersToWorker(ctx context.Context) error {
+func (uc *orderUseCase) LoadActiveOrdersToWorker(ctx context.Context) error {
 	activeOrders, err := uc.repo.GetActiveOrders(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get active orders: %w", err)
@@ -171,7 +169,7 @@ func (uc *orderUsecase) LoadActiveOrdersToWorker(ctx context.Context) error {
 }
 
 // StartOrderProcessing запускает обработку заказов
-func (uc *orderUsecase) StartOrderProcessing(ctx context.Context) error {
+func (uc *orderUseCase) StartOrderProcessing(ctx context.Context) error {
 	// Загружаем активные заказы в воркер
 	if err := uc.LoadActiveOrdersToWorker(ctx); err != nil {
 		return fmt.Errorf("failed to load active orders: %w", err)
@@ -189,13 +187,13 @@ func (uc *orderUsecase) StartOrderProcessing(ctx context.Context) error {
 }
 
 // StopOrderProcessing останавливает обработку заказов
-func (uc *orderUsecase) StopOrderProcessing(ctx context.Context) error {
+func (uc *orderUseCase) StopOrderProcessing(ctx context.Context) error {
 	uc.worker.Stop()
 	return nil
 }
 
 // processWorkerResults обрабатывает результаты из воркера
-func (uc *orderUsecase) processWorkerResults(ctx context.Context) {
+func (uc *orderUseCase) processWorkerResults(ctx context.Context) {
 	results := uc.worker.Results()
 
 	for {
@@ -213,4 +211,31 @@ func (uc *orderUsecase) processWorkerResults(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// GetProcessingStats возвращает статистику обработки заказов
+func (uc *orderUseCase) GetProcessingStats(ctx context.Context) (map[entity.OrderStatus]int, error) {
+	stats := uc.worker.GetOrderStats()
+
+	// Получаем общую статистику из БД
+	activeOrders, err := uc.repo.GetActiveOrders(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active orders: %w", err)
+	}
+
+	// Добавляем информацию о заказах, которые еще не загружены в воркер
+	dbStats := make(map[entity.OrderStatus]int)
+	for _, order := range activeOrders {
+		dbStats[order.Status]++
+	}
+
+	// Объединяем статистику
+	for status, count := range dbStats {
+		if _, exists := stats[status]; !exists {
+			stats[status] = 0
+		}
+		stats[status] += count
+	}
+
+	return stats, nil
 }

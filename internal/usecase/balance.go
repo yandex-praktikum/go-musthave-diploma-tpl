@@ -9,7 +9,7 @@ import (
 )
 
 // GetUserBalance получает баланс пользователя
-func (uc *usecase) GetUserBalance(ctx context.Context, userID int) (*entity.UserBalance, error) {
+func (uc *useCase) GetUserBalance(ctx context.Context, userID int) (*entity.UserBalance, error) {
 	balance, err := uc.repo.GetUserBalance(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user balance: %w", err)
@@ -19,7 +19,7 @@ func (uc *usecase) GetUserBalance(ctx context.Context, userID int) (*entity.User
 }
 
 // WithdrawBalance списывает средства с баланса
-func (uc *usecase) WithdrawBalance(ctx context.Context, userID int, orderNumber string, amount float64) error {
+func (uc *useCase) WithdrawBalance(ctx context.Context, userID int, orderNumber string, amount float64) error {
 	// Проверяем валидность номера заказа
 	if !validateOrderNumber(orderNumber) {
 		return ErrInvalidOrderNumber
@@ -75,7 +75,7 @@ func (uc *usecase) WithdrawBalance(ctx context.Context, userID int, orderNumber 
 }
 
 // GetWithdrawals получает историю списаний
-func (uc *usecase) GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdrawal, error) {
+func (uc *useCase) GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdrawal, error) {
 	// Получаем все заказы пользователя с отрицательным accrual
 	orders, err := uc.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {

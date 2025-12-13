@@ -10,7 +10,7 @@ import (
 )
 
 // GetUserProfile получает профиль пользователя
-func (uc *usecase) GetUserProfile(ctx context.Context, userID int) (*entity.User, error) {
+func (uc *useCase) GetUserProfile(ctx context.Context, userID int) (*entity.User, error) {
 	user, err := uc.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user profile: %w", err)
@@ -23,7 +23,7 @@ func (uc *usecase) GetUserProfile(ctx context.Context, userID int) (*entity.User
 }
 
 // UpdateUserPassword обновляет пароль пользователя
-func (uc *usecase) UpdateUserPassword(ctx context.Context, userID int, oldPassword, newPassword string) error {
+func (uc *useCase) UpdateUserPassword(ctx context.Context, userID int, oldPassword, newPassword string) error {
 	// Получаем текущего пользователя
 	user, err := uc.repo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -57,7 +57,7 @@ func (uc *usecase) UpdateUserPassword(ctx context.Context, userID int, oldPasswo
 }
 
 // DeactivateAccount деактивирует аккаунт пользователя
-func (uc *usecase) DeactivateAccount(ctx context.Context, userID int) error {
+func (uc *useCase) DeactivateAccount(ctx context.Context, userID int) error {
 	// Проверяем, что у пользователя нет активных заказов
 	orders, err := uc.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {

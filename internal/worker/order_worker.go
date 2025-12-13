@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/skiphead/go-musthave-diploma-tpl/infra/client/orderclient"
+	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
+	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/repository"
 	"log"
 	"sync"
 	"time"
@@ -24,56 +26,68 @@ type OrderWorker interface {
 	RemoveOrder(orderNumber string) error
 	Results() <-chan PollResult
 	GetActiveOrders() []string
-}
-
-// OrderAPIClient интерфейс для клиента API заказов
-type OrderAPIClient interface {
-	GetOrderInfo(ctx context.Context, orderNumber string) (*orderclient.OrderResponse, error)
+	GetOrderStats() map[entity.OrderStatus]int
+	ReloadOrdersFromDB(ctx context.Context) error
 }
 
 type orderWorker struct {
-	client      orderclient.Client
-	workers     int
-	interval    time.Duration
-	tasks       map[string]context.CancelFunc
-	mu          sync.RWMutex
-	wg          sync.WaitGroup
-	stopChan    chan struct{}
-	isRunning   bool
-	resultChan  chan PollResult
-	orderBuffer chan string
+	client          orderclient.Client
+	repo            repository.Repository
+	workers         int
+	interval        time.Duration
+	dbCheckInterval time.Duration
+	tasks           map[string]*orderTask
+	mu              sync.RWMutex
+	wg              sync.WaitGroup
+	stopChan        chan struct{}
+	isRunning       bool
+	resultChan      chan PollResult
+	orderChan       chan string
+}
+
+type orderTask struct {
+	orderNumber string
+	cancel      context.CancelFunc
+	lastPolled  time.Time
+	status      entity.OrderStatus
 }
 
 // Config конфигурация воркера
 type Config struct {
-	Client        orderclient.Client
-	Workers       int
-	Interval      time.Duration
-	BufferSize    int
-	ResultBufSize int
+	Client          orderclient.Client
+	Repo            repository.Repository
+	Workers         int
+	Interval        time.Duration
+	DBCheckInterval time.Duration
+	OrderChanSize   int
+	ResultChanSize  int
 }
 
 // DefaultConfig возвращает конфигурацию по умолчанию
-func DefaultConfig(client orderclient.Client) Config {
+func DefaultConfig(client orderclient.Client, repo repository.Repository) Config {
 	return Config{
-		Client:        client,
-		Workers:       3,
-		Interval:      15 * time.Second,
-		BufferSize:    100,
-		ResultBufSize: 100,
+		Client:          client,
+		Repo:            repo,
+		Workers:         3,
+		Interval:        15 * time.Second,
+		DBCheckInterval: 30 * time.Second,
+		OrderChanSize:   100,
+		ResultChanSize:  100,
 	}
 }
 
 // NewOrderWorker создает нового воркера для заказов
 func NewOrderWorker(config Config) OrderWorker {
 	return &orderWorker{
-		client:      config.Client,
-		workers:     config.Workers,
-		interval:    config.Interval,
-		tasks:       make(map[string]context.CancelFunc),
-		stopChan:    make(chan struct{}),
-		resultChan:  make(chan PollResult, config.ResultBufSize),
-		orderBuffer: make(chan string, config.BufferSize),
+		client:          config.Client,
+		repo:            config.Repo,
+		workers:         config.Workers,
+		interval:        config.Interval,
+		dbCheckInterval: config.DBCheckInterval,
+		tasks:           make(map[string]*orderTask),
+		stopChan:        make(chan struct{}),
+		resultChan:      make(chan PollResult, config.ResultChanSize),
+		orderChan:       make(chan string, config.OrderChanSize),
 	}
 }
 
@@ -85,15 +99,24 @@ func (w *orderWorker) Start(ctx context.Context) error {
 
 	w.isRunning = true
 
-	// Запускаем воркеры для обработки буфера заказов
-	for i := 0; i < w.workers; i++ {
-		w.wg.Add(1)
-		go w.processOrderBuffer(ctx, i)
+	// Загружаем активные заказы из БД при старте
+	if err := w.ReloadOrdersFromDB(ctx); err != nil {
+		return fmt.Errorf("failed to load orders from DB: %w", err)
 	}
 
-	// Запускаем воркер для чтения из буфера и запуска опросов
+	// Запускаем воркеры для обработки заказов
+	for i := 0; i < w.workers; i++ {
+		w.wg.Add(1)
+		go w.processOrders(ctx, i)
+	}
+
+	// Запускаем планировщик для перечитывания заказов из БД
 	w.wg.Add(1)
-	go w.bufferProcessor(ctx)
+	go w.scheduleDBReload(ctx)
+
+	// Запускаем распределитель заказов
+	w.wg.Add(1)
+	go w.distributeOrders(ctx)
 
 	log.Printf("Order worker started with %d workers", w.workers)
 	return nil
@@ -113,8 +136,71 @@ func (w *orderWorker) Stop() {
 	log.Println("Order worker stopped")
 }
 
+// ReloadOrdersFromDB перечитывает активные заказы из базы данных
+func (w *orderWorker) ReloadOrdersFromDB(ctx context.Context) error {
+	activeOrders, err := w.repo.GetActiveOrders(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get active orders: %w", err)
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// Обновляем существующие задачи и добавляем новые
+	currentOrders := make(map[string]bool)
+	for _, order := range activeOrders {
+		currentOrders[order.Number] = true
+
+		if task, exists := w.tasks[order.Number]; exists {
+			// Обновляем статус существующей задачи
+			task.status = order.Status
+		} else {
+			// Добавляем новую задачу
+			ctxPoll, cancel := context.WithCancel(context.Background())
+			w.tasks[order.Number] = &orderTask{
+				orderNumber: order.Number,
+				cancel:      cancel,
+				status:      order.Status,
+				lastPolled:  time.Time{},
+			}
+
+			// Запускаем горутину для опроса этого заказа
+			w.wg.Add(1)
+			go w.pollOrder(ctxPoll, order.Number)
+			log.Printf("Loaded order %s from DB (status: %s)", order.Number, order.Status)
+		}
+	}
+
+	// Удаляем задачи для заказов, которых больше нет в активных
+	for orderNumber, task := range w.tasks {
+		if !currentOrders[orderNumber] {
+			task.cancel()
+			delete(w.tasks, orderNumber)
+			log.Printf("Removed order %s from worker (no longer active in DB)", orderNumber)
+		}
+	}
+
+	log.Printf("Reloaded orders from DB: %d active, %d in worker", len(activeOrders), len(w.tasks))
+	return nil
+}
+
 // AddOrder добавляет заказ для отслеживания
 func (w *orderWorker) AddOrder(ctx context.Context, orderNumber string, interval time.Duration) error {
+	// Проверяем существование заказа в БД
+	order, err := w.repo.GetOrderByNumber(ctx, orderNumber)
+	if err != nil {
+		return fmt.Errorf("failed to check order in DB: %w", err)
+	}
+
+	if order == nil {
+		return fmt.Errorf("order %s not found in database", orderNumber)
+	}
+
+	// Проверяем, активен ли заказ
+	if order.Status != entity.OrderStatusNew && order.Status != entity.OrderStatusProcessing {
+		return fmt.Errorf("order %s is not in active status (current: %s)", orderNumber, order.Status)
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -123,19 +209,27 @@ func (w *orderWorker) AddOrder(ctx context.Context, orderNumber string, interval
 		return fmt.Errorf("order %s is already being tracked", orderNumber)
 	}
 
-	if interval == 0 {
-		interval = w.interval
+	// Добавляем задачу
+	ctxPoll, cancel := context.WithCancel(context.Background())
+	w.tasks[orderNumber] = &orderTask{
+		orderNumber: orderNumber,
+		cancel:      cancel,
+		status:      order.Status,
+		lastPolled:  time.Time{},
 	}
 
-	// Создаем контекст для отмены опроса этого заказа
-	ctxPoll, cancel := context.WithCancel(context.Background())
-	w.tasks[orderNumber] = cancel
-
-	// Запускаем горутину для периодического опроса заказа
+	// Запускаем горутину для опроса этого заказа
 	w.wg.Add(1)
-	go w.pollOrder(ctxPoll, orderNumber, interval)
+	go w.pollOrder(ctxPoll, orderNumber)
 
-	log.Printf("Started tracking order %s (interval: %v)", orderNumber, interval)
+	// Отправляем заказ в канал для немедленной обработки
+	select {
+	case w.orderChan <- orderNumber:
+		log.Printf("Added order %s to worker (status: %s)", orderNumber, order.Status)
+	default:
+		log.Printf("Order channel is full, order %s will be processed later", orderNumber)
+	}
+
 	return nil
 }
 
@@ -144,13 +238,13 @@ func (w *orderWorker) RemoveOrder(orderNumber string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	cancel, exists := w.tasks[orderNumber]
+	task, exists := w.tasks[orderNumber]
 	if !exists {
 		return fmt.Errorf("order %s is not being tracked", orderNumber)
 	}
 
 	// Отменяем контекст, чтобы остановить опрос
-	cancel()
+	task.cancel()
 	delete(w.tasks, orderNumber)
 
 	log.Printf("Stopped tracking order %s", orderNumber)
@@ -168,36 +262,17 @@ func (w *orderWorker) GetActiveOrders() []string {
 	defer w.mu.RUnlock()
 
 	orders := make([]string, 0, len(w.tasks))
-	for order := range w.tasks {
-		orders = append(orders, order)
+	for orderNumber := range w.tasks {
+		orders = append(orders, orderNumber)
 	}
 	return orders
 }
 
-// bufferProcessor обрабатывает буфер заказов
-func (w *orderWorker) bufferProcessor(ctx context.Context) {
+// scheduleDBReload планирует перечитывание заказов из БД
+func (w *orderWorker) scheduleDBReload(ctx context.Context) {
 	defer w.wg.Done()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-w.stopChan:
-			return
-		case orderNumber := <-w.orderBuffer:
-			// Помещаем заказ в буфер для обработки
-			w.wg.Add(1)
-
-			go w.processSingleOrder(ctx, orderNumber)
-		}
-	}
-}
-
-// processOrderBuffer обрабатывает заказы из буфера
-func (w *orderWorker) processOrderBuffer(ctx context.Context, workerID int) {
-	defer w.wg.Done()
-
-	ticker := time.NewTicker(w.interval / time.Duration(w.workers))
+	ticker := time.NewTicker(w.dbCheckInterval)
 	defer ticker.Stop()
 
 	for {
@@ -207,31 +282,100 @@ func (w *orderWorker) processOrderBuffer(ctx context.Context, workerID int) {
 		case <-w.stopChan:
 			return
 		case <-ticker.C:
-			// Получаем список заказов для обработки
-			orders := w.GetActiveOrders()
-			// Распределяем заказы между воркерами
-			if len(orders) > 0 {
-				// Простой round-robin распределитель
-				index := workerID % len(orders)
-				if index < len(orders) {
-					orderNumber := orders[index]
-					select {
-					case w.orderBuffer <- orderNumber:
-						// Заказ добавлен в буфер
-					default:
-						log.Printf("Order buffer is full, dropping order %s", orderNumber)
-					}
-				}
+			if err := w.ReloadOrdersFromDB(ctx); err != nil {
+				log.Printf("Failed to reload orders from DB: %v", err)
 			}
 		}
 	}
 }
 
-// pollOrder периодически опрашивает заказ
-func (w *orderWorker) pollOrder(ctx context.Context, orderNumber string, interval time.Duration) {
+// distributeOrders распределяет заказы между воркерами
+func (w *orderWorker) distributeOrders(ctx context.Context) {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(w.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case orderNumber := <-w.orderChan:
+			// Отправляем заказ на обработку (просто для немедленного опроса)
+			w.pollImmediately(ctx, orderNumber)
+		case <-ticker.C:
+			// Распределяем заказы для регулярного опроса
+			w.distributeRegularPolls(ctx)
+		}
+	}
+}
+
+// distributeRegularPolls распределяет заказы для регулярного опроса
+func (w *orderWorker) distributeRegularPolls(ctx context.Context) {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	now := time.Now()
+	for orderNumber, task := range w.tasks {
+		// Проверяем, нужно ли опрашивать этот заказ
+		if shouldPoll(task.status, task.lastPolled, w.interval, now) {
+			select {
+			case w.orderChan <- orderNumber:
+				task.lastPolled = now
+			default:
+				log.Printf("Order channel is full, skipping order %s", orderNumber)
+			}
+		}
+	}
+}
+
+// shouldPoll определяет, нужно ли опрашивать заказ
+func shouldPoll(status entity.OrderStatus, lastPolled time.Time, interval time.Duration, now time.Time) bool {
+	// Если заказ в финальном статусе, не опрашиваем
+	if status == entity.OrderStatusInvalid || status == entity.OrderStatusProcessed {
+		return false
+	}
+
+	// Если никогда не опрашивали или прошло больше интервала
+	if lastPolled.IsZero() || now.Sub(lastPolled) > interval {
+		return true
+	}
+
+	return false
+}
+
+// pollImmediately выполняет немедленный опрос заказа
+func (w *orderWorker) pollImmediately(ctx context.Context, orderNumber string) {
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.doPoll(ctx, orderNumber)
+	}()
+}
+
+// processOrders обрабатывает заказы
+func (w *orderWorker) processOrders(ctx context.Context, workerID int) {
+	defer w.wg.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case orderNumber := <-w.orderChan:
+			w.doPoll(ctx, orderNumber)
+		}
+	}
+}
+
+// pollOrder периодически опрашивает заказ
+func (w *orderWorker) pollOrder(ctx context.Context, orderNumber string) {
+	defer w.wg.Done()
+
+	ticker := time.NewTicker(w.interval)
 	defer ticker.Stop()
 
 	for {
@@ -243,26 +387,73 @@ func (w *orderWorker) pollOrder(ctx context.Context, orderNumber string, interva
 			log.Printf("Worker stopped, exiting poll for order %s", orderNumber)
 			return
 		case <-ticker.C:
-			// Опрашиваем заказ
 			w.doPoll(ctx, orderNumber)
+
+			// Проверяем статус заказа в БД после опроса
+			w.checkOrderStatus(ctx, orderNumber)
 		}
 	}
 }
 
-// processSingleOrder обрабатывает один заказ
-func (w *orderWorker) processSingleOrder(ctx context.Context, orderNumber string) {
-	defer w.wg.Done()
+// checkOrderStatus проверяет статус заказа в БД
+func (w *orderWorker) checkOrderStatus(ctx context.Context, orderNumber string) {
+	order, err := w.repo.GetOrderByNumber(ctx, orderNumber)
+	if err != nil {
+		log.Printf("Failed to check order %s status in DB: %v", orderNumber, err)
+		return
+	}
 
-	w.doPoll(ctx, orderNumber)
+	if order == nil {
+		// Заказ удален из БД, удаляем из воркера
+		w.RemoveOrder(orderNumber)
+		return
+	}
+
+	// Обновляем статус задачи
+	w.mu.Lock()
+	if task, exists := w.tasks[orderNumber]; exists {
+		task.status = order.Status
+
+		// Если заказ перешел в финальный статус, удаляем его
+		if order.Status == entity.OrderStatusInvalid || order.Status == entity.OrderStatusProcessed {
+			w.mu.Unlock()
+			w.RemoveOrder(orderNumber)
+			return
+		}
+	}
+	w.mu.Unlock()
 }
 
 // doPoll выполняет один опрос заказа
 func (w *orderWorker) doPoll(ctx context.Context, orderNumber string) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	// Сначала проверяем актуальность заказа в БД
+	order, err := w.repo.GetOrderByNumber(ctx, orderNumber)
+	if err != nil {
+		// Если ошибка при получении заказа, логируем и продолжаем
+		log.Printf("Failed to get order %s from DB: %v", orderNumber, err)
+	} else if order == nil {
+		// Заказ удален из БД, удаляем из воркера
+		w.RemoveOrder(orderNumber)
+		return
+	} else if order.Status != entity.OrderStatusNew && order.Status != entity.OrderStatusProcessing {
+		// Заказ уже не в активном статусе, удаляем из воркера
+		w.RemoveOrder(orderNumber)
+		return
+	}
+
+	// Выполняем опрос внешнего API
+	ctxPoll, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	orderInfo, err := w.client.GetOrderInfo(ctx, orderNumber)
-	fmt.Println(orderInfo, orderNumber)
+	orderInfo, err := w.client.GetOrderInfo(ctxPoll, orderNumber)
+
+	// Обновляем время последнего опроса
+	w.mu.Lock()
+	if task, exists := w.tasks[orderNumber]; exists {
+		task.lastPolled = time.Now()
+	}
+	w.mu.Unlock()
+
 	// Отправляем результат в канал
 	select {
 	case w.resultChan <- PollResult{
@@ -287,25 +478,42 @@ func (w *orderWorker) AddBatch(ctx context.Context, orders []string, interval ti
 	return nil
 }
 
-// CleanupCompletedOrders очищает завершенные заказы
-func (w *orderWorker) CleanupCompletedOrders(activeOrders []string) {
+// GetOrderStats возвращает статистику по заказам
+func (w *orderWorker) GetOrderStats() map[entity.OrderStatus]int {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	stats := make(map[entity.OrderStatus]int)
+	for _, task := range w.tasks {
+		stats[task.status]++
+	}
+	return stats
+}
+
+// CleanupStaleOrders очищает устаревшие задачи
+func (w *orderWorker) CleanupStaleOrders(ctx context.Context) error {
+	activeOrders, err := w.repo.GetActiveOrders(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get active orders: %w", err)
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	// Создаем map для быстрого поиска активных заказов
+	// Создаем map активных заказов для быстрого поиска
 	activeMap := make(map[string]bool)
 	for _, order := range activeOrders {
-		activeMap[order] = true
+		activeMap[order.Number] = true
 	}
 
-	// Удаляем заказы, которых нет в активных
-	for orderNumber := range w.tasks {
+	// Удаляем задачи для заказов, которых нет в активных
+	for orderNumber, task := range w.tasks {
 		if !activeMap[orderNumber] {
-			if cancel, exists := w.tasks[orderNumber]; exists {
-				cancel()
-				delete(w.tasks, orderNumber)
-				log.Printf("Cleaned up completed order %s from worker", orderNumber)
-			}
+			task.cancel()
+			delete(w.tasks, orderNumber)
+			log.Printf("Cleaned up stale order %s from worker", orderNumber)
 		}
 	}
+
+	return nil
 }

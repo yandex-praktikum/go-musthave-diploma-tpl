@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/skiphead/go-musthave-diploma-tpl/infra/client/orderclient"
@@ -13,8 +12,6 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/repository"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/usecase"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/worker"
-	"github.com/skiphead/go-musthave-diploma-tpl/pkg/accrualclient"
-
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -49,71 +46,24 @@ func main() {
 		logger.Fatal("can't init database", zap.Error(errInitDB))
 	}
 
-	usecaseUser := usecase.NewUsecase(
+	useCaseUser := usecase.NewUsecase(
 		userRepo,
 		cfg.SecretKey, // Секрет для JWT
 		12,            // Стоимость хеширования (bcrypt cost)
 		1*time.Hour,
 		24*time.Hour)
-
-	fmt.Println(usecaseUser.GetUserBalance(context.Background(), 1))
-	orderUseCase := getOrderUseCase(userRepo)
-	if err := orderUseCase.StartOrderProcessing(context.Background()); err != nil {
-		log.Fatal("Failed to start order processing:", err)
+	// Инициализация клиента API
+	orderClient := orderclient.NewWithDefaults(
+		orderclient.WithBaseURL(cfg.AccrualSystemAddress),
+	)
+	orderUseCase := getOrderUseCase(orderClient, userRepo)
+	if errOrderUseCase := orderUseCase.StartOrderProcessing(context.Background()); errOrderUseCase != nil {
+		logger.Fatal("Failed to start order processing:", zap.Error(errOrderUseCase))
 	}
-	/*
-		orders := []string{
-			"79927398713",
-		}
-
-		for _, order := range orders {
-			// Для каждого заказа можно задать свой интервал
-			interval := 10 * time.Second
-			if order == "79927398713" {
-				interval = 5 * time.Second // Чаще проверяем
-			}
-
-			if err := workerPool.Add(ctx, order, interval); err != nil {
-				log.Printf("Failed to add %s: %v", order, err)
-			}
-		}
-
-		go func() {
-			for result := range workerPool.Results() {
-				if result.Error != nil {
-					log.Printf("❌ %s: %v", result.OrderNumber, result.Error)
-					continue
-				}
-
-				if result.OrderInfo != nil {
-					fmt.Printf("✅ %s: %s (accrual: %.2f)\n",
-						result.OrderNumber,
-						result.OrderInfo.Status,
-						result.OrderInfo.Order)
-				}
-				if result.OrderInfo.Status == orderclient.StatusProcessed {
-					if err := workerPool.Remove(result.OrderNumber); err != nil {
-						log.Printf("Failed to remove order: %v", err)
-					}
-				}
-			}
-		}()
-
-		go func() {
-			time.Sleep(30 * time.Second)
-
-			// Добавляем новый заказ
-			if err := workerPool.Add(ctx, "79927398713", 15*time.Second); err != nil {
-				log.Printf("Failed to add new order: %v", err)
-			}
-
-		}()
-
-	*/
 
 	// Создание обработчика URL
 	handler := handlers.NewUserHandler(
-		usecaseUser,
+		useCaseUser,
 		orderUseCase,
 		cfg.RunAddress,
 		cfg.AccrualSystemAddress,
@@ -127,7 +77,7 @@ func main() {
 	}
 
 	// Запуск сервера
-	runServer(server)
+	runServer(server, logger)
 
 }
 
@@ -139,7 +89,7 @@ func main() {
 // - Запускает сервер в отдельном канале для обработки ошибок
 // - Ожидает сигналов OS Interrupt или SIGTERM
 // - Выполняет graceful shutdown с таймаутом 10 секунд
-func runServer(server *delivery.Server) {
+func runServer(server *delivery.Server, logger *zap.Logger) {
 	serverErrChan := server.Start()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -147,17 +97,17 @@ func runServer(server *delivery.Server) {
 
 	select {
 	case <-ctx.Done():
-		zap.L().Info("Received shutdown signal")
+		logger.Info("Received shutdown signal")
 	case err := <-serverErrChan:
 		if err != nil {
-			zap.L().Error("Server error", zap.Error(err))
+			logger.Error("Server error", zap.Error(err))
 		}
 	}
 
 	if err := server.Shutdown(10 * time.Second); err != nil {
-		zap.L().Error("Server shutdown error", zap.Error(err))
+		logger.Error("Server shutdown error", zap.Error(err))
 	} else {
-		zap.L().Info("Server shutdown completed")
+		logger.Info("Server shutdown completed")
 	}
 }
 
@@ -194,21 +144,13 @@ func initDatabase(cfg *config.AppConfig) (*repository.Repository, error) {
 	return repo, nil
 }
 
-func getOrderUseCase(repo *repository.Repository) usecase.OrderUsecase {
-
-	// Инициализация клиента API
-	orderClient := orderclient.NewWithDefaults(
-		orderclient.WithBaseURL("http://localhost:8081"),
-	)
-
-	// Адаптер для клиента
-	orderAPI := accrualclient.NewAdapter(orderClient)
+func getOrderUseCase(client *orderclient.Client, repo *repository.Repository) usecase.OrderUseCase {
 
 	// Инициализация воркера
-	orderWorker := worker.NewOrderWorker(worker.DefaultConfig(*orderClient))
+	orderWorker := worker.NewOrderWorker(worker.DefaultConfig(*client, *repo))
 
 	// Инициализация usecase
-	orderUseCase := usecase.NewOrderUsecase(*repo, orderWorker, orderAPI)
+	orderUseCase := usecase.NewOrderUseCase(*repo, orderWorker)
 
 	return orderUseCase
 }

@@ -37,7 +37,7 @@ type RefreshClaims struct {
 }
 
 // Register регистрирует нового пользователя
-func (uc *usecase) Register(ctx context.Context, login, password string) (*entity.User, error) {
+func (uc *useCase) Register(ctx context.Context, login, password string) (*entity.User, error) {
 	// Валидация логина
 	if err := validateLogin(login); err != nil {
 		return nil, fmt.Errorf("invalid login: %w", err)
@@ -62,7 +62,7 @@ func (uc *usecase) Register(ctx context.Context, login, password string) (*entit
 }
 
 // Authenticate аутентифицирует пользователя
-func (uc *usecase) Authenticate(ctx context.Context, login, password string) (*entity.User, error) {
+func (uc *useCase) Authenticate(ctx context.Context, login, password string) (*entity.User, error) {
 	// Получаем пользователя по логину
 	user, err := uc.repo.GetUserByLogin(ctx, login)
 	if err != nil {
@@ -83,7 +83,7 @@ func (uc *usecase) Authenticate(ctx context.Context, login, password string) (*e
 	return user, nil
 }
 
-func (uc *usecase) GetUserByLogin(ctx context.Context, login string) (*entity.User, error) {
+func (uc *useCase) GetUserByLogin(ctx context.Context, login string) (*entity.User, error) {
 	if err := validateLogin(login); err != nil {
 		return nil, fmt.Errorf("invalid login: %w", err)
 	}
@@ -97,7 +97,7 @@ func (uc *usecase) GetUserByLogin(ctx context.Context, login string) (*entity.Us
 }
 
 // GenerateAccessToken создает короткоживущий access token
-func (uc *usecase) GenerateAccessToken(userID int, sessionID string) (string, error) {
+func (uc *useCase) GenerateAccessToken(userID int, sessionID string) (string, error) {
 	claims := AccessClaims{
 		UserID:    userID,
 		SessionID: sessionID,
@@ -113,7 +113,7 @@ func (uc *usecase) GenerateAccessToken(userID int, sessionID string) (string, er
 }
 
 // GenerateRefreshToken создает долгоживущий refresh token
-func (uc *usecase) GenerateRefreshToken(userID int, sessionID string) (string, error) {
+func (uc *useCase) GenerateRefreshToken(userID int, sessionID string) (string, error) {
 	claims := RefreshClaims{
 		UserID:    userID,
 		SessionID: sessionID,
@@ -129,7 +129,7 @@ func (uc *usecase) GenerateRefreshToken(userID int, sessionID string) (string, e
 }
 
 // GenerateSessionID создает уникальный идентификатор сессии
-func (uc *usecase) GenerateSessionID() (string, error) {
+func (uc *useCase) GenerateSessionID() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
@@ -138,7 +138,7 @@ func (uc *usecase) GenerateSessionID() (string, error) {
 }
 
 // ValidateAccessToken валидирует access token
-func (uc *usecase) ValidateAccessToken(tokenString string) (*AccessClaims, error) {
+func (uc *useCase) ValidateAccessToken(tokenString string) (*AccessClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &AccessClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -158,7 +158,7 @@ func (uc *usecase) ValidateAccessToken(tokenString string) (*AccessClaims, error
 }
 
 // ValidateRefreshToken валидирует refresh token
-func (uc *usecase) ValidateRefreshToken(tokenString string) (*RefreshClaims, error) {
+func (uc *useCase) ValidateRefreshToken(tokenString string) (*RefreshClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &RefreshClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -178,7 +178,7 @@ func (uc *usecase) ValidateRefreshToken(tokenString string) (*RefreshClaims, err
 }
 
 // RotateTokens обновляет оба токена
-func (uc *usecase) RotateTokens(userID int) (accessToken, refreshToken, newSessionID string, err error) {
+func (uc *useCase) RotateTokens(userID int) (accessToken, refreshToken, newSessionID string, err error) {
 	// Генерируем новую сессию
 	newSessionID, err = uc.GenerateSessionID()
 	if err != nil {

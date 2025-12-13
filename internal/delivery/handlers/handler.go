@@ -28,12 +28,12 @@ type UserHandler struct {
 	serverAddr   string
 	secretKey    string
 	userUseCase  usecase.Usecase
-	orderUseCae  usecase.OrderUsecase
+	orderUseCae  usecase.OrderUseCase
 	sessionStore *repository.SessionStore
 	logger       *zap.Logger
 }
 
-func NewUserHandler(userUseCase usecase.Usecase, orderUseCae usecase.OrderUsecase, serverAddr, secretKey string, sessionStore *repository.SessionStore, logger *zap.Logger) *UserHandler {
+func NewUserHandler(userUseCase usecase.Usecase, orderUseCae usecase.OrderUseCase, serverAddr, secretKey string, sessionStore *repository.SessionStore, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
 		userUseCase:  userUseCase,
 		orderUseCae:  orderUseCae,

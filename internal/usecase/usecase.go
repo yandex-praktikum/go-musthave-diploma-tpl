@@ -66,8 +66,8 @@ type BalanceUsecase interface {
 	GetWithdrawals(ctx context.Context, userID int) ([]entity.Withdrawal, error)
 }
 
-// usecase реализация Usecase
-type usecase struct {
+// useCase реализация Usecase
+type useCase struct {
 	repo               repository.Store
 	hashCost           int
 	jwtSecret          []byte
@@ -76,10 +76,10 @@ type usecase struct {
 	worker             worker.OrderWorker
 }
 
-// NewUsecase создает новый экземпляр usecase
+// NewUsecase создает новый экземпляр useCase
 func NewUsecase(repo repository.Store, jwtSecret string,
 	hashCost int, sessionTokenExpiry, refreshTokenExpiry time.Duration) Usecase {
-	return &usecase{
+	return &useCase{
 		repo:               repo,
 		hashCost:           hashCost,
 		jwtSecret:          []byte(jwtSecret),
