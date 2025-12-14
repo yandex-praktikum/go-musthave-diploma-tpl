@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
@@ -13,31 +16,49 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/pkg/utils"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"strconv"
-
-	"net/http"
-	"time"
 )
 
-type TokenResponse struct {
-	SessionToken string `json:"session_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
-}
+// Константы
+const (
+	readTimeout  = 15 * time.Second
+	writeTimeout = 5 * time.Second
+)
 
+// Структуры ответов
+type (
+	TokenResponse struct {
+		SessionToken string `json:"session_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int64  `json:"expires_in"`
+	}
+
+	WithdrawRequest struct {
+		Order string  `json:"order"`
+		Sum   float64 `json:"sum"`
+	}
+)
+
+// UserHandler обработчик HTTP-запросов пользователя
 type UserHandler struct {
 	serverAddr   string
 	secretKey    string
 	userUseCase  usecase.UseCase
-	orderUseCae  usecase.OrderUseCase
+	orderUseCase usecase.OrderUseCase
 	sessionStore *repository.SessionStore
 	logger       *zap.Logger
 }
 
-func NewUserHandler(userUseCase usecase.UseCase, orderUseCae usecase.OrderUseCase, serverAddr, secretKey string, sessionStore *repository.SessionStore, logger *zap.Logger) *UserHandler {
+// NewUserHandler создает новый экземпляр UserHandler
+func NewUserHandler(
+	userUseCase usecase.UseCase,
+	orderUseCase usecase.OrderUseCase,
+	serverAddr, secretKey string,
+	sessionStore *repository.SessionStore,
+	logger *zap.Logger,
+) *UserHandler {
 	return &UserHandler{
 		userUseCase:  userUseCase,
-		orderUseCae:  orderUseCae,
+		orderUseCase: orderUseCase,
 		serverAddr:   serverAddr,
 		secretKey:    secretKey,
 		sessionStore: sessionStore,
@@ -45,316 +66,162 @@ func NewUserHandler(userUseCase usecase.UseCase, orderUseCae usecase.OrderUseCas
 	}
 }
 
-// Временное хранилище для рефреш-токенов (в продакшене используйте Redis или БД)
-var (
-	sessionStore = repository.NewSessionStore()
-)
+// ==================== Маршрутизация ====================
 
-// Устанавливает куки с токенами
-func (h *UserHandler) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string) {
-	// Access Token - короткоживущий, только HTTP
-	http.SetCookie(w, &http.Cookie{
-		Name:     usecase.AccessCookieName,
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   usecase.SecureCookie,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(usecase.AccessDuration.Seconds()),
-		Expires:  time.Now().Add(usecase.AccessDuration),
-	})
-
-	// Refresh Token - долгоживущий, только HTTP
-	http.SetCookie(w, &http.Cookie{
-		Name:     usecase.RefreshCookieName,
-		Value:    refreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   usecase.SecureCookie,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(usecase.RefreshDuration.Seconds()),
-		Expires:  time.Now().Add(usecase.RefreshDuration),
-	})
-}
-
-// Очищает куки авторизации
-func clearAuthCookies(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     usecase.AccessCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   usecase.SecureCookie,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
-		Expires:  time.Now().Add(-24 * time.Hour),
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     usecase.RefreshCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   usecase.SecureCookie,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
-		Expires:  time.Now().Add(-24 * time.Hour),
-	})
-}
-
+// ChiMux создает роутер с настройкой маршрутов
 func (h *UserHandler) ChiMux() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(h.loggingMiddleware)
+
+	// Группа аутентификации
 	r.Post("/api/user/register", h.registerUser)
 	r.Post("/api/user/login", h.loginHandler)
-	r.Post("/api/user/orders", h.createOrders)
+
+	// Группа заказов
+	r.Post("/api/user/orders", h.createOrder)
 	r.Get("/api/user/orders", h.listOrders)
+
+	// Группа баланса
 	r.Get("/api/user/balance", h.getUserBalance)
 	r.Post("/api/user/balance/withdraw", h.createWithdraw)
-	r.Get("/api/user/withdrawals", h.GetWithdrawals)
+	r.Get("/api/user/withdrawals", h.getWithdrawals)
+
+	// Группа сессий (дополнительные эндпоинты)
+	r.Post("/api/user/refresh", h.refreshHandler)
+	r.Post("/api/user/logout", h.logoutHandler)
+	r.Post("/api/user/logout/all", h.logoutAllHandler)
+	r.Get("/api/user/sessions", h.sessionsHandler)
 
 	return r
 }
 
+// ==================== Аутентификация ====================
+
+// registerUser регистрирует нового пользователя
 func (h *UserHandler) registerUser(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+	if !h.validateContentType(w, r, "application/json") {
 		return
 	}
 
-	body, err := h.readRequestBody(r)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
 	var req entity.User
-	errUnmarshal := json.Unmarshal(body, &req)
-	if errUnmarshal != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := h.decodeJSONBody(w, r, &req); err != nil {
+		h.renderError(w, r, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	//передача данных в usecase
-	//генерация токена
-	//запись в куку
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), writeTimeout)
 	defer cancel()
 
-	user, errRegister := h.userUseCase.Register(ctx, req.Login, req.Password)
-	if errRegister != nil {
-		http.Error(w, errRegister.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Генерируем идентификатор сессии
-	sessionID, err := h.userUseCase.GenerateSessionID()
+	user, err := h.userUseCase.Register(ctx, req.Login, req.Password)
 	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	session, errGenerations := h.userUseCase.GenerateAccessToken(user.ID, sessionID)
-	if errGenerations != nil {
-		http.Error(w, "error generate session token", http.StatusInternalServerError)
+	if err := h.createAndSetSession(w, user.ID); err != nil {
+		h.renderError(w, r, "Failed to create session", http.StatusInternalServerError)
 		return
 	}
-	refresh, errGenerations := h.userUseCase.GenerateRefreshToken(user.ID, sessionID)
-	if errGenerations != nil {
-		http.Error(w, "error generate refresh", http.StatusInternalServerError)
-		return
-	}
-	h.setAuthCookies(w, session, refresh)
 
-	w.WriteHeader(http.StatusCreated)
-	render.JSON(w, r, map[string]string{"user": user.Login})
+	h.renderJSON(w, r, http.StatusCreated, map[string]string{"user": user.Login})
 }
 
-// loginHandler обрабатывает вход
+// loginHandler обрабатывает вход пользователя
 func (h *UserHandler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var req entity.User
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	if err := h.decodeJSONBody(w, r, &req); err != nil {
+		h.renderError(w, r, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Проверяем учетные данные
-	user, err := h.authenticateUser(req.Login, req.Password)
+	user, err := h.authenticateUser(r.Context(), req.Login, req.Password)
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
-	fmt.Println(err, user)
-
-	// Генерируем идентификатор сессии
-	sessionID, err := h.userUseCase.GenerateSessionID()
-	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		h.renderError(w, r, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Создаем токены
-	accessToken, err := h.userUseCase.GenerateAccessToken(user.ID, sessionID)
-	if err != nil {
-		http.Error(w, "Failed to create access token", http.StatusInternalServerError)
+	if err := h.createAndSetSession(w, user.ID); err != nil {
+		h.renderError(w, r, "Failed to create session", http.StatusInternalServerError)
 		return
 	}
 
-	refreshToken, err := h.userUseCase.GenerateRefreshToken(user.ID, sessionID)
-	if err != nil {
-		http.Error(w, "Failed to create refresh token", http.StatusInternalServerError)
-		return
-	}
-
-	// Сохраняем сессию
-	sessionStore.CreateSession(sessionID, user.ID)
-
-	// Устанавливаем куки
-	h.setAuthCookies(w, accessToken, refreshToken)
-
-	// Возвращаем ответ
-	response := map[string]interface{}{
+	h.renderJSON(w, r, http.StatusOK, map[string]interface{}{
 		"message": "Login successful",
 		"user": map[string]interface{}{
 			"id": user.ID,
 		},
-		"session_id": sessionID,
-		"expires_in": int(usecase.AccessDuration.Seconds()),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
-// RefreshHandler обновляет токены
-func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем refresh token из куки
+// ==================== Сессии и токены ====================
+
+// refreshHandler обновляет токены
+func (h *UserHandler) refreshHandler(w http.ResponseWriter, r *http.Request) {
 	refreshCookie, err := r.Cookie(usecase.RefreshCookieName)
 	if err != nil {
-		http.Error(w, "Refresh token required", http.StatusBadRequest)
+		h.renderError(w, r, "Refresh token required", http.StatusBadRequest)
 		return
 	}
 
-	// Валидируем refresh token
 	refreshClaims, err := h.userUseCase.ValidateRefreshToken(refreshCookie.Value)
 	if err != nil {
-		clearAuthCookies(w)
-		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+		h.clearAuthCookies(w)
+		h.renderError(w, r, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 
-	// Проверяем сессию в хранилище
-	session, exists := sessionStore.GetSession(refreshClaims.SessionID)
+	session, exists := h.sessionStore.GetSession(refreshClaims.SessionID)
 	if !exists {
-		clearAuthCookies(w)
-		http.Error(w, "Session not found", http.StatusUnauthorized)
+		h.clearAuthCookies(w)
+		h.renderError(w, r, "Session not found", http.StatusUnauthorized)
 		return
 	}
 
-	// Получаем информацию о пользователе
-	user, err := h.userUseCase.GetUserProfile(context.Background(), session.UserID)
+	user, err := h.userUseCase.GetUserProfile(r.Context(), session.UserID)
 	if err != nil {
-		clearAuthCookies(w)
-		http.Error(w, "User not found", http.StatusUnauthorized)
+		h.clearAuthCookies(w)
+		h.renderError(w, r, "User not found", http.StatusUnauthorized)
 		return
 	}
 
-	// Отзываем старую сессию
-	sessionStore.RevokeSession(refreshClaims.SessionID)
+	h.sessionStore.RevokeSession(refreshClaims.SessionID)
 
-	// Создаем новую сессию
-	newSessionID, err := h.userUseCase.GenerateSessionID()
-	if err != nil {
-		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+	if err := h.createAndSetSession(w, user.ID); err != nil {
+		h.renderError(w, r, "Failed to refresh session", http.StatusInternalServerError)
 		return
 	}
 
-	// Генерируем новые токены
-	newAccessToken, err := h.userUseCase.GenerateAccessToken(user.ID, newSessionID)
-	if err != nil {
-		http.Error(w, "Failed to create access token", http.StatusInternalServerError)
-		return
-	}
-
-	newRefreshToken, err := h.userUseCase.GenerateRefreshToken(user.ID, newSessionID)
-	if err != nil {
-		http.Error(w, "Failed to create refresh token", http.StatusInternalServerError)
-		return
-	}
-
-	// Сохраняем новую сессию
-	sessionStore.CreateSession(newSessionID, user.ID)
-
-	// Устанавливаем новые куки
-	h.setAuthCookies(w, newAccessToken, newRefreshToken)
-
-	response := map[string]interface{}{
-		"message":    "Tokens refreshed",
-		"session_id": newSessionID,
-		"expires_in": int(usecase.AccessDuration.Seconds()),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.renderJSON(w, r, http.StatusOK, map[string]string{"message": "Tokens refreshed"})
 }
 
-// LogoutHandler обрабатывает выход
-func (h *UserHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем access token из куки
-	accessCookie, err := r.Cookie(usecase.AccessCookieName)
-	if err == nil {
-		// Пытаемся получить claims из access token
+// logoutHandler обрабатывает выход
+func (h *UserHandler) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	h.revokeCurrentSession(r)
+	h.clearAuthCookies(w)
+	h.renderJSON(w, r, http.StatusOK, map[string]string{"message": "Logged out successfully"})
+}
+
+// logoutAllHandler выходит из всех устройств
+func (h *UserHandler) logoutAllHandler(w http.ResponseWriter, r *http.Request) {
+	if accessCookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
 		if claims, err := h.userUseCase.ValidateAccessToken(accessCookie.Value); err == nil {
-			// Отзываем сессию
-			sessionStore.RevokeSession(claims.SessionID)
+			h.sessionStore.RevokeAllUserSessions(claims.UserID)
 		}
 	}
 
-	// Очищаем куки
-	clearAuthCookies(w)
-
-	response := map[string]string{
-		"message": "Logged out successfully",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	h.clearAuthCookies(w)
+	h.renderJSON(w, r, http.StatusOK, map[string]string{"message": "Logged out from all devices"})
 }
 
-// LogoutAllHandler выходит из всех устройств
-func (h *UserHandler) LogoutAllHandler(w http.ResponseWriter, r *http.Request) {
-	// Получаем access token из куки
-	accessCookie, err := r.Cookie(usecase.AccessCookieName)
-	if err == nil {
-		// Пытаемся получить claims из access token
-		if claims, err := h.userUseCase.ValidateAccessToken(accessCookie.Value); err == nil {
-			// Отзываем все сессии пользователя
-			sessionStore.RevokeAllUserSessions(claims.UserID)
-		}
-	}
-
-	// Очищаем куки
-	clearAuthCookies(w)
-
-	response := map[string]string{
-		"message": "Logged out from all devices",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// SessionsHandler возвращает активные сессии пользователя
-func SessionsHandler(w http.ResponseWriter, r *http.Request) {
+// sessionsHandler возвращает активные сессии пользователя
+func (h *UserHandler) sessionsHandler(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value("session").(*usecase.AccessClaims)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		h.renderError(w, r, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// В реальном приложении получаем сессии из БД
-	response := map[string]interface{}{
+	h.renderJSON(w, r, http.StatusOK, map[string]interface{}{
 		"user_id": claims.UserID,
 		"sessions": []map[string]interface{}{
 			{
@@ -365,17 +232,158 @@ func SessionsHandler(w http.ResponseWriter, r *http.Request) {
 				"user_agent": r.Header.Get("User-Agent"),
 			},
 		},
+	})
+}
+
+// ==================== Заказы ====================
+
+// createOrder создает новый заказ
+func (h *UserHandler) createOrder(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromToken(r)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var orderNumber string
+	if err := h.decodeJSONBody(w, r, &orderNumber); err != nil {
+		h.renderError(w, r, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if !utils.IsValidLuhn(orderNumber) {
+		h.renderError(w, r, "Invalid order number", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
+	defer cancel()
+
+	order, err := h.orderUseCase.CreateOrder(ctx, userID, orderNumber)
+	if err != nil {
+		h.handleOrderError(w, r, err)
+		return
+	}
+
+	if order == nil {
+		h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusAccepted)
+}
+
+// listOrders возвращает список заказов пользователя
+func (h *UserHandler) listOrders(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromToken(r)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
+	defer cancel()
+
+	orders, err := h.orderUseCase.GetUserOrders(ctx, userID)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		orders = []entity.Order{}
+	}
+
+	h.renderJSON(w, r, http.StatusOK, orders)
+}
+
+// ==================== Баланс и списания ====================
+
+// getUserBalance возвращает баланс пользователя
+func (h *UserHandler) getUserBalance(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromToken(r)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
+	defer cancel()
+
+	balance, err := h.userUseCase.GetUserBalance(ctx, userID)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.renderJSON(w, r, http.StatusOK, balance)
+}
+
+// createWithdraw создает списание средств
+func (h *UserHandler) createWithdraw(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromToken(r)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var withdraw WithdrawRequest
+	if err := h.decodeJSONBody(w, r, &withdraw); err != nil {
+		h.renderError(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !utils.IsValidLuhn(withdraw.Order) {
+		h.renderError(w, r, "Invalid order number", http.StatusUnprocessableEntity)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
+	defer cancel()
+
+	err = h.userUseCase.WithdrawBalance(ctx, userID, withdraw.Order, withdraw.Sum)
+	if err != nil {
+		h.handleWithdrawError(w, r, err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	w.WriteHeader(http.StatusOK)
 }
 
-// Вспомогательные функции
-func (h *UserHandler) authenticateUser(login, password string) (*entity.User, error) {
+// getWithdrawals возвращает историю списаний
+func (h *UserHandler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromToken(r)
+	if err != nil {
+		h.renderError(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
+
+	withdrawals, err := h.userUseCase.GetWithdrawals(ctx, userID)
+	if err != nil {
+		if repository.IsForeignKeyError(err) {
+			h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
+			return
+		}
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(withdrawals) == 0 {
+		withdrawals = []entity.Withdrawal{}
+	}
+
+	h.renderJSON(w, r, http.StatusOK, withdrawals)
+}
+
+// ==================== Вспомогательные методы ====================
+
+// authenticateUser аутентифицирует пользователя
+func (h *UserHandler) authenticateUser(ctx context.Context, login, password string) (*entity.User, error) {
 	user, err := h.userUseCase.Authenticate(ctx, login, password)
 	if err != nil {
 		return nil, err
@@ -388,195 +396,157 @@ func (h *UserHandler) authenticateUser(login, password string) (*entity.User, er
 	return user, nil
 }
 
-func (h *UserHandler) createOrders(w http.ResponseWriter, r *http.Request) {
+// getUserIDFromToken извлекает ID пользователя из токена
+func (h *UserHandler) getUserIDFromToken(r *http.Request) (int, error) {
 	var sessionToken string
-	var orderNumber int
 	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
 		sessionToken = cookie.Value
 	}
 
-	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
+	claims, err := h.userUseCase.ValidateAccessToken(sessionToken)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return 0, err
 	}
 
-	if errDecode := json.NewDecoder(r.Body).Decode(&orderNumber); errDecode != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		fmt.Println(errDecode)
-		return
-	}
-	if !utils.IsValidLuhn(strconv.Itoa(orderNumber)) {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	order, errCreateOrder := h.orderUseCae.CreateOrder(ctx, resp.UserID, strconv.Itoa(orderNumber))
-
-	if errCreateOrder != nil {
-		if repository.IsDuplicateError(errCreateOrder) {
-			http.Error(w, "Invalid request", http.StatusConflict)
-			return
-		}
-		if repository.IsForeignKeyError(errCreateOrder) {
-			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-			return
-		}
-
-		http.Error(w, errCreateOrder.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if order == nil {
-		http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusAccepted)
+	return claims.UserID, nil
 }
 
-func (h *UserHandler) listOrders(w http.ResponseWriter, r *http.Request) {
-	var sessionToken string
-	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		sessionToken = cookie.Value
-	}
-
-	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
+// createAndSetSession создает и устанавливает сессию
+func (h *UserHandler) createAndSetSession(w http.ResponseWriter, userID int) error {
+	sessionID, err := h.userUseCase.GenerateSessionID()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	orders, errGetOrders := h.orderUseCae.GetUserOrders(ctx, resp.UserID)
-	if errGetOrders != nil {
-		http.Error(w, errGetOrders.Error(), http.StatusInternalServerError)
-	}
-	var response []entity.Order
-	if orders == nil {
-		http.Error(w, "No orders found", http.StatusNoContent)
-		response = []entity.Order{}
+	accessToken, err := h.userUseCase.GenerateAccessToken(userID, sessionID)
+	if err != nil {
+		return err
 	}
 
-	response = append(response, orders...)
+	refreshToken, err := h.userUseCase.GenerateRefreshToken(userID, sessionID)
+	if err != nil {
+		return err
+	}
 
+	h.sessionStore.CreateSession(sessionID, userID)
+	h.setAuthCookies(w, accessToken, refreshToken)
+	return nil
+}
+
+// revokeCurrentSession отзывает текущую сессию
+func (h *UserHandler) revokeCurrentSession(r *http.Request) {
+	if accessCookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
+		if claims, err := h.userUseCase.ValidateAccessToken(accessCookie.Value); err == nil {
+			h.sessionStore.RevokeSession(claims.SessionID)
+		}
+	}
+}
+
+// handleOrderError обрабатывает ошибки заказов
+func (h *UserHandler) handleOrderError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case repository.IsDuplicateError(err):
+		h.renderError(w, r, "Order already exists", http.StatusConflict)
+	case repository.IsForeignKeyError(err):
+		h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
+	default:
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// handleWithdrawError обрабатывает ошибки списаний
+func (h *UserHandler) handleWithdrawError(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case repository.IsDuplicateError(err):
+		h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
+	case repository.IsForeignKeyError(err):
+		h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
+	case errors.Is(err, errors.New("insufficient balance")):
+		h.renderError(w, r, "Insufficient balance", http.StatusPaymentRequired)
+	default:
+		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// ==================== Работа с куками ====================
+
+// setAuthCookies устанавливает куки аутентификации
+func (h *UserHandler) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     usecase.AccessCookieName,
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   usecase.SecureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(usecase.AccessDuration.Seconds()),
+		Expires:  time.Now().Add(usecase.AccessDuration),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     usecase.RefreshCookieName,
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   usecase.SecureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(usecase.RefreshDuration.Seconds()),
+		Expires:  time.Now().Add(usecase.RefreshDuration),
+	})
+}
+
+// clearAuthCookies очищает куки аутентификации
+func (h *UserHandler) clearAuthCookies(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     usecase.AccessCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   usecase.SecureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-24 * time.Hour),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     usecase.RefreshCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   usecase.SecureCookie,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-24 * time.Hour),
+	})
+}
+
+// ==================== Утилиты ====================
+
+// validateContentType проверяет Content-Type заголовок
+func (h *UserHandler) validateContentType(w http.ResponseWriter, r *http.Request, expected string) bool {
+	if r.Header.Get("Content-Type") != expected {
+		h.renderError(w, r, "Content-Type must be "+expected, http.StatusUnsupportedMediaType)
+		return false
+	}
+	return true
+}
+
+// decodeJSONBody декодирует JSON тело запроса
+func (h *UserHandler) decodeJSONBody(w http.ResponseWriter, r *http.Request, v interface{}) error {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	return nil
+}
+
+// renderJSON отправляет JSON ответ
+func (h *UserHandler) renderJSON(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	w.WriteHeader(status)
+	render.JSON(w, r, data)
 }
 
-func (h *UserHandler) getUserBalance(w http.ResponseWriter, r *http.Request) {
-	var sessionToken string
-	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		sessionToken = cookie.Value
-	}
-
-	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	getBalance, errGetBalance := h.userUseCase.GetUserBalance(ctx, resp.UserID)
-	if errGetBalance != nil {
-		http.Error(w, errGetBalance.Error(), http.StatusInternalServerError)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(getBalance)
-
-}
-
-type Withdraw struct {
-	Order string  `json:"order"`
-	Sum   float64 `json:"sum"`
-}
-
-func (h *UserHandler) createWithdraw(w http.ResponseWriter, r *http.Request) {
-	var sessionToken string
-	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		sessionToken = cookie.Value
-	}
-
-	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	var withdraw Withdraw
-	err = json.NewDecoder(r.Body).Decode(&withdraw)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if !utils.IsValidLuhn(withdraw.Order) {
-		http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	errGetBalance := h.userUseCase.WithdrawBalance(ctx, resp.UserID, withdraw.Order, withdraw.Sum)
-	if errGetBalance != nil {
-		if repository.IsDuplicateError(errGetBalance) {
-			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-			return
-		}
-		if repository.IsForeignKeyError(errGetBalance) {
-			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-			return
-		}
-		e := errors.New("insufficient balance")
-		if errors.As(errGetBalance, &e) {
-			http.Error(w, "Payment required", http.StatusPaymentRequired)
-			return
-		}
-
-		http.Error(w, errGetBalance.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-}
-
-func (h *UserHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
-	var sessionToken string
-	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		sessionToken = cookie.Value
-	}
-
-	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	withdrawals, errGetWithdrawals := h.userUseCase.GetWithdrawals(ctx, resp.UserID)
-	if errGetWithdrawals != nil {
-		if repository.IsForeignKeyError(errGetWithdrawals) {
-			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
-			return
-		}
-	}
-
-	if len(withdrawals) == 0 {
-		http.Error(w, "No Withdrawals found", http.StatusNoContent)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(withdrawals)
-
+// renderError отправляет ошибку в формате JSON
+func (h *UserHandler) renderError(w http.ResponseWriter, r *http.Request, message string, status int) {
+	h.renderJSON(w, r, status, map[string]string{"error": message})
 }

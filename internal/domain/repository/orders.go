@@ -4,128 +4,88 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
-	"time"
 )
 
-// CreateOrder создает новый заказ
-func (r *Repository) CreateOrder(ctx context.Context, userID int, number string, status entity.OrderStatus) (*entity.Order, error) {
+// ==================== Реализация OrderRepository ====================
+
+// Create создает новый заказ
+func (r *orderRepo) Create(ctx context.Context, userID int, number string, status entity.OrderStatus) (*entity.Order, error) {
 	query := `
 		INSERT INTO orders (number, user_id, status)
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at, updated_at, number, status, accrual, user_id
 	`
-	var createdAt, updatedAt time.Time
-	order := &entity.Order{}
-	err := r.db.QueryRow(ctx, query, number, userID, status).Scan(
-		&order.ID,
-		&createdAt,
-		&updatedAt,
-		&order.Number,
-		&order.Status,
-		&order.Accrual,
-		&order.UserID,
-	)
-	order.CreatedAt = createdAt.Format(time.RFC3339)
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
 
+	order := &entity.Order{}
+	err := r.scanOrder(
+		r.db.QueryRow(ctx, query, number, userID, status),
+		order,
+	)
 	if err != nil {
-		return nil, err
+		if IsDuplicateError(err) {
+			return nil, fmt.Errorf("%w: order with number '%s' already exists", ErrDuplicateKey, number)
+		}
+		if IsForeignKeyError(err) {
+			return nil, fmt.Errorf("%w: user with ID %d not found", ErrForeignKey, userID)
+		}
+		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
 
 	return order, nil
 }
 
-// UpdateOrderAccrual обновляет начисление заказа и статус
-func (r *Repository) UpdateOrderAccrual(ctx context.Context, orderID int, accrual float64, status entity.OrderStatus) error {
-	query := `
-        UPDATE orders
-        SET 
-            accrual = $1,
-            status = $2,
-            updated_at = NOW()
-        WHERE id = $3
-    `
-
-	result, err := r.db.Exec(ctx, query, accrual, status, orderID)
-	if err != nil {
-		return fmt.Errorf("failed to update order accrual: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("order not found")
-	}
-
-	return nil
-}
-
-// GetOrderByID получает заказ по ID
-func (r *Repository) GetOrderByID(ctx context.Context, id int) (*entity.Order, error) {
+// GetByID получает заказ по ID
+func (r *orderRepo) GetByID(ctx context.Context, id int) (*entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
 		WHERE id = $1
 	`
 
-	var createdAt, updatedAt time.Time
 	order := &entity.Order{}
-	err := r.db.QueryRow(ctx, query, id).Scan(
-		&order.ID,
-		&createdAt,
-		&updatedAt,
-		&order.Number,
-		&order.Status,
-		&order.Accrual,
-		&order.UserID,
+	err := r.scanOrder(
+		r.db.QueryRow(ctx, query, id),
+		order,
 	)
-	order.CreatedAt = createdAt.Format(time.RFC3339)
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("order not found: %w", err)
+			return nil, fmt.Errorf("%w: order with ID %d", ErrNotFound, id)
 		}
-		return nil, fmt.Errorf("failed to get order: %w", err)
+		return nil, fmt.Errorf("failed to get order by ID: %w", err)
 	}
 
 	return order, nil
 }
 
-// GetOrderByNumber получает заказ по номеру
-func (r *Repository) GetOrderByNumber(ctx context.Context, number string) (*entity.Order, error) {
+// GetByNumber получает заказ по номеру
+func (r *orderRepo) GetByNumber(ctx context.Context, number string) (*entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
 		WHERE number = $1
 	`
 
-	var createdAt, updatedAt time.Time
 	order := &entity.Order{}
-	err := r.db.QueryRow(ctx, query, number).Scan(
-		&order.ID,
-		&createdAt,
-		&updatedAt,
-		&order.Number,
-		&order.Status,
-		&order.Accrual,
-		&order.UserID,
+	err := r.scanOrder(
+		r.db.QueryRow(ctx, query, number),
+		order,
 	)
-	order.CreatedAt = createdAt.Format(time.RFC3339)
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("order not found: %w", err)
+			return nil, fmt.Errorf("%w: order with number '%s'", ErrNotFound, number)
 		}
-		return nil, fmt.Errorf("failed to get order: %w", err)
+		return nil, fmt.Errorf("failed to get order by number: %w", err)
 	}
 
 	return order, nil
 }
 
-// GetOrdersByUserID получает все заказы пользователя
-func (r *Repository) GetOrdersByUserID(ctx context.Context, userID int) ([]entity.Order, error) {
+// GetByUserID получает заказы пользователя
+func (r *orderRepo) GetByUserID(ctx context.Context, userID int) ([]entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
@@ -135,41 +95,15 @@ func (r *Repository) GetOrdersByUserID(ctx context.Context, userID int) ([]entit
 
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query orders: %w", err)
+		return nil, fmt.Errorf("failed to query user orders: %w", err)
 	}
 	defer rows.Close()
 
-	var orders []entity.Order
-	for rows.Next() {
-		var order entity.Order
-		var createdAt, updatedAt time.Time
-		err := rows.Scan(
-			&order.ID,
-			&createdAt,
-			&updatedAt,
-			&order.Number,
-			&order.Status,
-			&order.Accrual,
-			&order.UserID,
-		)
-		order.CreatedAt = createdAt.Format(time.RFC3339)
-		order.UpdatedAt = updatedAt.Format(time.RFC3339)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", err)
-		}
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
-	}
-
-	return orders, nil
+	return r.scanOrders(rows)
 }
 
-// GetAllOrders получает все заказы с информацией о пользователях
-func (r *Repository) GetAllOrders(ctx context.Context, limit, offset int) ([]entity.OrderWithUser, error) {
+// GetAll получает все заказы с пагинацией
+func (r *orderRepo) GetAll(ctx context.Context, limit, offset int) ([]entity.OrderWithUser, error) {
 	query := `
 		SELECT 
 			o.id, o.created_at, o.updated_at, o.number, o.status, o.accrual, o.user_id,
@@ -182,40 +116,17 @@ func (r *Repository) GetAllOrders(ctx context.Context, limit, offset int) ([]ent
 
 	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query orders: %w", err)
+		return nil, fmt.Errorf("failed to query all orders: %w", err)
 	}
 	defer rows.Close()
 
 	var orders []entity.OrderWithUser
 	for rows.Next() {
-		var orderWithUser entity.OrderWithUser
-		var orderCreatedAt, orderUpdatedAt, userCreatedAt, userUpdatedAt time.Time
-
-		err := rows.Scan(
-			&orderWithUser.ID,
-			&orderCreatedAt,
-			&orderUpdatedAt,
-			&orderWithUser.Number,
-			&orderWithUser.Status,
-			&orderWithUser.Accrual,
-			&orderWithUser.UserID,
-			&orderWithUser.User.ID,
-			&userCreatedAt,
-			&userUpdatedAt,
-			&orderWithUser.User.Login,
-			&orderWithUser.User.Password,
-			&orderWithUser.User.IsActive,
-		)
-
-		orderWithUser.CreatedAt = orderCreatedAt.Format(time.RFC3339)
-		orderWithUser.UpdatedAt = orderUpdatedAt.Format(time.RFC3339)
-		orderWithUser.User.CreatedAt = userCreatedAt.Format(time.RFC3339)
-		orderWithUser.User.UpdatedAt = userUpdatedAt.Format(time.RFC3339)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", err)
+		var order entity.OrderWithUser
+		if err := r.scanOrderWithUser(rows, &order); err != nil {
+			return nil, fmt.Errorf("failed to scan order with user: %w", err)
 		}
-		orders = append(orders, orderWithUser)
+		orders = append(orders, order)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -225,8 +136,124 @@ func (r *Repository) GetAllOrders(ctx context.Context, limit, offset int) ([]ent
 	return orders, nil
 }
 
-// GetPendingOrders получает заказы в обработке
-func (r *Repository) GetPendingOrders(ctx context.Context, limit int) ([]entity.Order, error) {
+// Update обновляет заказ
+func (r *orderRepo) Update(ctx context.Context, order *entity.Order) error {
+	query := `
+		UPDATE orders
+		SET 
+			number = $1,
+			status = $2,
+			accrual = $3,
+			user_id = $4,
+			updated_at = NOW()
+		WHERE id = $5
+		RETURNING updated_at
+	`
+
+	var updatedAt time.Time
+	err := r.db.QueryRow(ctx, query,
+		order.Number,
+		order.Status,
+		order.Accrual,
+		order.UserID,
+		order.ID,
+	).Scan(&updatedAt)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%w: order with ID %d", ErrNotFound, order.ID)
+		}
+		if IsForeignKeyError(err) {
+			return fmt.Errorf("%w: user with ID %d not found", ErrForeignKey, order.UserID)
+		}
+		return fmt.Errorf("failed to update order: %w", err)
+	}
+
+	order.UpdatedAt = updatedAt.Format(time.RFC3339)
+	return nil
+}
+
+// UpdateStatus обновляет статус заказа
+func (r *orderRepo) UpdateStatus(ctx context.Context, orderID int, status entity.OrderStatus) error {
+	query := `
+		UPDATE orders
+		SET 
+			status = $1,
+			updated_at = NOW()
+		WHERE id = $2
+		RETURNING updated_at
+	`
+
+	var updatedAt time.Time
+	err := r.db.QueryRow(ctx, query, status, orderID).Scan(&updatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%w: order with ID %d", ErrNotFound, orderID)
+		}
+		return fmt.Errorf("failed to update order status: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateAccrual обновляет начисление и статус заказа
+func (r *orderRepo) UpdateAccrual(ctx context.Context, orderID int, accrual float64, status entity.OrderStatus) error {
+	query := `
+		UPDATE orders
+		SET 
+			accrual = $1,
+			status = $2,
+			updated_at = NOW()
+		WHERE id = $3
+		RETURNING updated_at
+	`
+
+	var updatedAt time.Time
+	err := r.db.QueryRow(ctx, query, accrual, status, orderID).Scan(&updatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%w: order with ID %d", ErrNotFound, orderID)
+		}
+		return fmt.Errorf("failed to update order accrual: %w", err)
+	}
+
+	return nil
+}
+
+// Delete удаляет заказ по ID
+func (r *orderRepo) Delete(ctx context.Context, id int) error {
+	query := `DELETE FROM orders WHERE id = $1`
+
+	result, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete order: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("%w: order with ID %d", ErrNotFound, id)
+	}
+
+	return nil
+}
+
+// DeleteByNumber удаляет заказ по номеру
+func (r *orderRepo) DeleteByNumber(ctx context.Context, number string) error {
+	query := `DELETE FROM orders WHERE number = $1`
+
+	result, err := r.db.Exec(ctx, query, number)
+	if err != nil {
+		return fmt.Errorf("failed to delete order: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("%w: order with number '%s'", ErrNotFound, number)
+	}
+
+	return nil
+}
+
+// GetPending получает ожидающие обработки заказы
+func (r *orderRepo) GetPending(ctx context.Context, limit int) ([]entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
@@ -241,37 +268,11 @@ func (r *Repository) GetPendingOrders(ctx context.Context, limit int) ([]entity.
 	}
 	defer rows.Close()
 
-	var orders []entity.Order
-	for rows.Next() {
-		var order entity.Order
-		var createdAt, updatedAt time.Time
-		err := rows.Scan(
-			&order.ID,
-			&createdAt,
-			&updatedAt,
-			&order.Number,
-			&order.Status,
-			&order.Accrual,
-			&order.UserID,
-		)
-		order.CreatedAt = createdAt.Format(time.RFC3339)
-		order.UpdatedAt = updatedAt.Format(time.RFC3339)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", err)
-		}
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
-	}
-
-	return orders, nil
+	return r.scanOrders(rows)
 }
 
-// GetOrdersByStatus получает заказы по статусу
-func (r *Repository) GetOrdersByStatus(ctx context.Context, status entity.OrderStatus) ([]entity.Order, error) {
+// GetByStatus получает заказы по статусу
+func (r *orderRepo) GetByStatus(ctx context.Context, status entity.OrderStatus) ([]entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
@@ -285,143 +286,26 @@ func (r *Repository) GetOrdersByStatus(ctx context.Context, status entity.OrderS
 	}
 	defer rows.Close()
 
-	var orders []entity.Order
-	for rows.Next() {
-		var order entity.Order
-		var createdAt, updatedAt time.Time
-		err := rows.Scan(
-			&order.ID,
-			&createdAt,
-			&updatedAt,
-			&order.Number,
-			&order.Status,
-			&order.Accrual,
-			&order.UserID,
-		)
-		order.CreatedAt = createdAt.Format(time.RFC3339)
-		order.UpdatedAt = updatedAt.Format(time.RFC3339)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", err)
-		}
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
-	}
-
-	return orders, nil
+	return r.scanOrders(rows)
 }
 
-// UpdateOrderStatus обновляет статус заказа
-func (r *Repository) UpdateOrderStatus(ctx context.Context, orderID int, status entity.OrderStatus) error {
+// Exists проверяет существование заказа по номеру
+func (r *orderRepo) Exists(ctx context.Context, number string) (bool, error) {
 	query := `
-		UPDATE orders
-		SET 
-			status = $1,
-			updated_at = NOW()
-		WHERE id = $2
+		SELECT EXISTS(SELECT 1 FROM orders WHERE number = $1)
 	`
 
-	result, err := r.db.Exec(ctx, query, status, orderID)
+	var exists bool
+	err := r.db.QueryRow(ctx, query, number).Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("failed to update order status: %w", err)
+		return false, fmt.Errorf("failed to check order existence: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("order not found")
-	}
-
-	return nil
+	return exists, nil
 }
 
-// UpdateOrder обновляет заказ
-func (r *Repository) UpdateOrder(ctx context.Context, order *entity.Order) error {
-	query := `
-		UPDATE orders
-		SET 
-			number = $1,
-			status = $2,
-			accrual = $3,
-			user_id = $4,
-			updated_at = NOW()
-		WHERE id = $5
-	`
-
-	result, err := r.db.Exec(ctx, query,
-		order.Number,
-		order.Status,
-		order.Accrual,
-		order.UserID,
-		order.ID,
-	)
-
-	if err != nil {
-		if IsForeignKeyError(err) {
-			return fmt.Errorf("user not found")
-		}
-		return fmt.Errorf("failed to update order: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("order not found")
-	}
-
-	return nil
-}
-
-// GetActiveOrders возвращает активные заказы
-func (r *Repository) GetActiveOrders(ctx context.Context) ([]*entity.Order, error) {
-	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
-		FROM orders
-		WHERE status IN ($1, $2)
-		ORDER BY created_at ASC
-	`
-
-	rows, err := r.db.Query(ctx, query, entity.OrderStatusNew, entity.OrderStatusProcessing)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query active orders: %w", err)
-	}
-	defer rows.Close()
-
-	var orders []*entity.Order
-	for rows.Next() {
-		var order entity.Order
-		var createdAt, updatedAt time.Time
-
-		err := rows.Scan(
-			&order.ID,
-			&createdAt,
-			&updatedAt,
-			&order.Number,
-			&order.Status,
-			&order.Accrual,
-			&order.UserID,
-		)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", err)
-		}
-
-		order.CreatedAt = createdAt.Format(time.RFC3339)
-		if !updatedAt.IsZero() {
-			order.UpdatedAt = updatedAt.Format(time.RFC3339)
-		}
-
-		orders = append(orders, &order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
-	}
-
-	return orders, nil
-}
-
-// GetOrdersForProcessing возвращает заказы для обработки
-func (r *Repository) GetOrdersForProcessing(ctx context.Context, limit int) ([]*entity.Order, error) {
+// GetForProcessing получает заказы для обработки
+func (r *orderRepo) GetForProcessing(ctx context.Context, limit int) ([]entity.Order, error) {
 	query := `
 		SELECT id, created_at, updated_at, number, status, accrual, user_id
 		FROM orders
@@ -440,31 +324,153 @@ func (r *Repository) GetOrdersForProcessing(ctx context.Context, limit int) ([]*
 	}
 	defer rows.Close()
 
-	var orders []*entity.Order
+	return r.scanOrders(rows)
+}
+
+// GetActive получает активные заказы
+func (r *orderRepo) GetActive(ctx context.Context) ([]entity.Order, error) {
+	query := `
+		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		FROM orders
+		WHERE status IN ($1, $2)
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query,
+		entity.OrderStatusNew,
+		entity.OrderStatusProcessing,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active orders: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanOrders(rows)
+}
+
+// UpdateStatusByNumber обновляет статус заказа по номеру
+func (r *orderRepo) UpdateStatusByNumber(ctx context.Context, number string, status entity.OrderStatus, accrual *float64) error {
+	query := `
+		UPDATE orders
+		SET 
+			status = $1,
+			accrual = COALESCE($2, accrual),
+			updated_at = NOW()
+		WHERE number = $3
+		RETURNING updated_at
+	`
+
+	var updatedAt time.Time
+	err := r.db.QueryRow(ctx, query, status, accrual, number).Scan(&updatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%w: order with number '%s'", ErrNotFound, number)
+		}
+		return fmt.Errorf("failed to update order status by number: %w", err)
+	}
+
+	return nil
+}
+
+// GetOrderWithUser получает заказ с информацией о пользователе
+func (r *orderRepo) GetOrderWithUser(ctx context.Context, orderID int) (*entity.OrderWithUser, error) {
+	query := `
+		SELECT 
+			o.id, o.created_at, o.updated_at, o.number, o.status, o.accrual, o.user_id,
+			u.id, u.created_at, u.updated_at, u.login, u.password, u.is_active
+		FROM orders o
+		JOIN users u ON o.user_id = u.id
+		WHERE o.id = $1
+	`
+
+	var order entity.OrderWithUser
+	if err := r.scanOrderWithUser(r.db.QueryRow(ctx, query, orderID), &order); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%w: order with ID %d", ErrNotFound, orderID)
+		}
+		return nil, fmt.Errorf("failed to get order with user: %w", err)
+	}
+
+	return &order, nil
+}
+
+// GetOrdersCount получает общее количество заказов
+func (r *orderRepo) GetOrdersCount(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM orders`
+
+	var count int
+	err := r.db.QueryRow(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get orders count: %w", err)
+	}
+
+	return count, nil
+}
+
+// GetOrdersSummary получает сводку по заказам
+func (r *orderRepo) GetOrdersSummary(ctx context.Context) (*entity.OrdersSummary, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total,
+			COUNT(CASE WHEN status = 'NEW' THEN 1 END) as new_count,
+			COUNT(CASE WHEN status = 'PROCESSING' THEN 1 END) as processing_count,
+			COUNT(CASE WHEN status = 'PROCESSED' THEN 1 END) as processed_count,
+			COUNT(CASE WHEN status = 'INVALID' THEN 1 END) as invalid_count,
+			COALESCE(SUM(CASE WHEN status = 'PROCESSED' THEN accrual ELSE 0 END), 0) as total_accrual
+		FROM orders
+	`
+
+	summary := &entity.OrdersSummary{}
+	err := r.db.QueryRow(ctx, query).Scan(
+		&summary.Total,
+		&summary.NewCount,
+		&summary.ProcessingCount,
+		&summary.ProcessedCount,
+		&summary.InvalidCount,
+		&summary.TotalAccrual,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders summary: %w", err)
+	}
+
+	return summary, nil
+}
+
+// ==================== Вспомогательные методы для OrderRepository ====================
+
+// scanOrder сканирует заказ из Row или Rows
+func (r *orderRepo) scanOrder(scanner Scanner, order *entity.Order) error {
+	var createdAt, updatedAt time.Time
+
+	err := scanner.Scan(
+		&order.ID,
+		&createdAt,
+		&updatedAt,
+		&order.Number,
+		&order.Status,
+		&order.Accrual,
+		&order.UserID,
+	)
+	if err != nil {
+		return err
+	}
+
+	order.CreatedAt = createdAt.Format(time.RFC3339)
+	order.UpdatedAt = updatedAt.Format(time.RFC3339)
+
+	return nil
+}
+
+// scanOrders сканирует список заказов
+func (r *orderRepo) scanOrders(rows pgx.Rows) ([]entity.Order, error) {
+	var orders []entity.Order
+
 	for rows.Next() {
 		var order entity.Order
-		var createdAt, updatedAt time.Time
-
-		err := rows.Scan(
-			&order.ID,
-			&createdAt,
-			&updatedAt,
-			&order.Number,
-			&order.Status,
-			&order.Accrual,
-			&order.UserID,
-		)
-
-		if err != nil {
+		if err := r.scanOrder(rows, &order); err != nil {
 			return nil, fmt.Errorf("failed to scan order: %w", err)
 		}
-
-		order.CreatedAt = createdAt.Format(time.RFC3339)
-		if !updatedAt.IsZero() {
-			order.UpdatedAt = updatedAt.Format(time.RFC3339)
-		}
-
-		orders = append(orders, &order)
+		orders = append(orders, order)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -474,84 +480,33 @@ func (r *Repository) GetOrdersForProcessing(ctx context.Context, limit int) ([]*
 	return orders, nil
 }
 
-// ExistsByNumber проверяет существование заказа по номеру
-func (r *Repository) ExistsByNumber(ctx context.Context, number string) (bool, error) {
-	query := `
-		SELECT EXISTS(SELECT 1 FROM orders WHERE number = $1)
-	`
+// scanOrderWithUser сканирует заказ с информацией о пользователе
+func (r *orderRepo) scanOrderWithUser(scanner Scanner, orderWithUser *entity.OrderWithUser) error {
+	var orderCreatedAt, orderUpdatedAt, userCreatedAt, userUpdatedAt time.Time
 
-	var exists bool
-	err := r.db.QueryRow(ctx, query, number).Scan(&exists)
+	err := scanner.Scan(
+		&orderWithUser.ID,
+		&orderCreatedAt,
+		&orderUpdatedAt,
+		&orderWithUser.Number,
+		&orderWithUser.Status,
+		&orderWithUser.Accrual,
+		&orderWithUser.UserID,
+		&orderWithUser.User.ID,
+		&userCreatedAt,
+		&userUpdatedAt,
+		&orderWithUser.User.Login,
+		&orderWithUser.User.Password,
+		&orderWithUser.User.IsActive,
+	)
 	if err != nil {
-		return false, fmt.Errorf("failed to check order existence: %w", err)
+		return err
 	}
 
-	return exists, nil
-}
-
-// Delete удаляет заказ
-func (r *Repository) Delete(ctx context.Context, number string) error {
-	query := `DELETE FROM orders WHERE number = $1`
-
-	result, err := r.db.Exec(ctx, query, number)
-	if err != nil {
-		return fmt.Errorf("failed to delete order: %w", err)
-	}
-
-	rowsAffected := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("order not found: %s", number)
-	}
+	orderWithUser.CreatedAt = orderCreatedAt.Format(time.RFC3339)
+	orderWithUser.UpdatedAt = orderUpdatedAt.Format(time.RFC3339)
+	orderWithUser.User.CreatedAt = userCreatedAt.Format(time.RFC3339)
+	orderWithUser.User.UpdatedAt = userUpdatedAt.Format(time.RFC3339)
 
 	return nil
-}
-
-// UpdateStatus обновляет статус заказа
-func (r *Repository) UpdateStatus(ctx context.Context, number string, status entity.OrderStatus, accrual *float64) error {
-	query := `
-		UPDATE orders
-		SET status = $1, accrual = $2, updated_at = NOW()
-		WHERE number = $3
-	`
-
-	result, err := r.db.Exec(ctx, query, status, accrual, number)
-	if err != nil {
-		return fmt.Errorf("failed to update order status: %w", err)
-	}
-
-	rowsAffected := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("order not found: %s", number)
-	}
-
-	return nil
-}
-
-func (r *Repository) GetWithdrawals(ctx context.Context, userID string, status entity.OrderStatus) ([]entity.Withdraw, error) {
-
-	query := `
-		SELECT number, accrual, updated_at 
-		FROM orders 
-		WHERE user_id = $1 AND status = $2 AND accrual < 0 
-		ORDER BY  created_at ASC
-	`
-	rows, err := r.db.Query(ctx, query, userID, status)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query orders for withdrawals: %w", err)
-	}
-	defer rows.Close()
-	var withdraws []entity.Withdraw
-	for rows.Next() {
-		var withdraw entity.Withdraw
-		var updatedAt time.Time
-		errScanRows := rows.Scan(&withdraw.Order, &withdraw.Sum, &updatedAt)
-		if errScanRows != nil {
-			return nil, fmt.Errorf("failed to scan order: %w", errScanRows)
-		}
-		withdraw.ProcessedAt = updatedAt.Format(time.RFC3339)
-
-		withdraws = append(withdraws, withdraw)
-	}
-
-	return withdraws, nil
 }

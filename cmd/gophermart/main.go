@@ -56,15 +56,15 @@ func main() {
 	orderClient := orderclient.NewWithDefaults(
 		orderclient.WithBaseURL(cfg.AccrualSystemAddress),
 	)
-	orderUseCase := getOrderUseCase(orderClient, userRepo)
+	orderUseCase := getOrderUseCase(orderClient, userRepo, logger)
 	if errOrderUseCase := orderUseCase.StartOrderProcessing(context.Background()); errOrderUseCase != nil {
 		logger.Fatal("Failed to start order processing:", zap.Error(errOrderUseCase))
 	}
 
 	// Создание обработчика URL
 	handler := handlers.NewUserHandler(
-		useCaseUser,
-		orderUseCase,
+		*useCaseUser,
+		*orderUseCase,
 		cfg.RunAddress,
 		cfg.AccrualSystemAddress,
 		repository.NewSessionStore(),
@@ -144,10 +144,10 @@ func initDatabase(cfg *config.AppConfig) (*repository.Repository, error) {
 	return repo, nil
 }
 
-func getOrderUseCase(client *orderclient.Client, repo *repository.Repository) usecase.OrderUseCase {
+func getOrderUseCase(client *orderclient.Client, repo *repository.Repository, logger *zap.Logger) *usecase.OrderUseCase {
 
 	// Инициализация воркера
-	orderWorker := worker.NewOrderWorker(worker.DefaultConfig(*client, *repo))
+	orderWorker := worker.NewOrderWorker(worker.DefaultConfig(*client, *repo, logger))
 
 	// Инициализация usecase
 	orderUseCase := usecase.NewOrderUseCase(*repo, orderWorker)
