@@ -44,6 +44,7 @@ type App struct {
 	orderUC    *usecase.OrderUseCase
 	worker     worker.OrderWorker
 	cancelFunc context.CancelFunc
+	shutdownCh chan struct{}
 }
 
 // NewApp создает новое приложение
@@ -62,8 +63,9 @@ func NewApp() (*App, error) {
 	}
 
 	return &App{
-		config: cfg,
-		logger: logger,
+		config:     cfg,
+		logger:     logger,
+		shutdownCh: make(chan struct{}),
 	}, nil
 }
 
@@ -206,7 +208,7 @@ func (a *App) initUseCases() error {
 	)
 
 	// Инициализация воркера
-	workerConfig := worker.DefaultConfig(*orderClient, *a.repo, a.logger)
+	workerConfig := worker.DefaultConfig(orderClient, a.repo, a.logger)
 	a.worker = worker.NewOrderWorker(workerConfig)
 
 	a.logger.Info("Order worker initialized",
@@ -216,7 +218,7 @@ func (a *App) initUseCases() error {
 
 	// Инициализация use case для пользователей
 	a.userUC = usecase.NewUseCase(
-		*a.repo,
+		a.repo,
 		a.config.SecretKey,
 		defaultHashCost,
 		defaultSessionTokenExpiry,
@@ -224,7 +226,7 @@ func (a *App) initUseCases() error {
 	)
 
 	// Инициализация use case для заказов
-	a.orderUC = usecase.NewOrderUseCase(*a.repo, a.worker)
+	a.orderUC = usecase.NewOrderUseCase(a.repo, a.worker)
 
 	a.logger.Info("Use cases initialized successfully")
 	return nil
@@ -239,11 +241,11 @@ func (a *App) initServer() error {
 	// Создаем обработчик (нужно получить роутер от обработчика)
 	// В реальной реализации нужно получить Chi роутер
 	handler := handlers.NewUserHandler(
-		*a.userUC,
-		*a.orderUC,
+		a.userUC,
+		a.orderUC,
 		a.config.RunAddress,
 		a.config.AccrualSystemAddress,
-		repository.NewSessionStore(),
+		repository.NewSessionStore(a.logger),
 		a.logger,
 	)
 
@@ -296,26 +298,37 @@ func (a *App) handleSignals(ctx context.Context) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	select {
-	case <-ctx.Done():
-		return
-	case sig := <-sigChan:
-		a.logger.Info("Received shutdown signal",
-			zap.String("signal", sig.String()),
-		)
-		a.Shutdown()
+	// Ожидаем сигналы в цикле
+	for {
+		select {
+		case <-ctx.Done():
+			a.logger.Debug("Signal handler stopped (context canceled)")
+			return
+		case sig := <-sigChan:
+			a.logger.Info("Received shutdown signal",
+				zap.String("signal", sig.String()),
+			)
+
+			// Вызываем shutdown и выходим из цикла
+			a.Shutdown()
+			return
+		}
 	}
 }
 
 // handleServerErrors обрабатывает ошибки сервера
 func (a *App) handleServerErrors(ctx context.Context, errChan <-chan error) {
-	select {
-	case <-ctx.Done():
-		return
-	case err := <-errChan:
-		if err != nil {
-			a.logger.Error("Server error", zap.Error(err))
-			a.Shutdown()
+	for {
+		select {
+		case <-ctx.Done():
+			a.logger.Debug("Server error handler stopped (context canceled)")
+			return
+		case err := <-errChan:
+			if err != nil {
+				a.logger.Error("Server error", zap.Error(err))
+				a.Shutdown()
+				return
+			}
 		}
 	}
 }
@@ -329,11 +342,17 @@ func (a *App) Shutdown() {
 		a.cancelFunc()
 	}
 
+	// Создаем контекст с таймаутом для всего shutdown процесса
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
 	// Останавливаем обработку заказов
 	if a.orderUC != nil {
 		a.logger.Info("Stopping order processing...")
-		if err := a.orderUC.StopOrderProcessing(context.Background()); err != nil {
+		if err := a.orderUC.StopOrderProcessing(shutdownCtx); err != nil {
 			a.logger.Error("Failed to stop order processing", zap.Error(err))
+		} else {
+			a.logger.Info("Order processing stopped")
 		}
 	}
 
@@ -348,10 +367,18 @@ func (a *App) Shutdown() {
 		}
 	}
 
+	// Останавливаем воркер (если он имеет метод Stop)
+	if worker, ok := a.worker.(interface{ Stop() }); ok {
+		a.logger.Info("Stopping worker...")
+		worker.Stop()
+		a.logger.Info("Worker stopped")
+	}
+
 	// Закрываем соединение с базой данных
 	if a.repo != nil {
 		a.logger.Info("Closing database connections...")
 		a.repo.Close()
+		a.logger.Info("Database connections closed")
 	}
 
 	// Синхронизируем логгер
@@ -359,6 +386,14 @@ func (a *App) Shutdown() {
 	_ = a.logger.Sync()
 
 	a.logger.Info("Application shutdown completed")
+
+	// Сигнализируем о завершении shutdown
+	close(a.shutdownCh)
+}
+
+// WaitForShutdown ожидает завершения shutdown
+func (a *App) WaitForShutdown() {
+	<-a.shutdownCh
 }
 
 // ==================== Точка входа ====================
@@ -385,6 +420,8 @@ func main() {
 		app.logger.Fatal("Failed to start application", zap.Error(err))
 	}
 
-	// Ждем завершения
-	select {}
+	// Ждем завершения shutdown
+	app.WaitForShutdown()
+
+	app.logger.Info("Application terminated successfully")
 }

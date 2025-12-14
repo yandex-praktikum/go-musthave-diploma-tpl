@@ -27,11 +27,9 @@ const (
 )
 
 var (
-	// Время жизни токенов
 	AccessDuration  = 15 * time.Minute    // Короткоживущий access token
 	RefreshDuration = 30 * 24 * time.Hour // Долгоживущий refresh token
 
-	// Общие ошибки
 	ErrUserAlreadyExists   = errors.New("user already exists")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
 	ErrOrderAlreadyExists  = errors.New("order already exists")
@@ -60,7 +58,7 @@ type RefreshClaims struct {
 
 // UseCase реализация UseCase
 type UseCase struct {
-	repo               repository.Repository
+	repo               *repository.Repository
 	hashCost           int
 	jwtSecret          []byte
 	sessionTokenExpiry time.Duration
@@ -70,7 +68,7 @@ type UseCase struct {
 
 // OrderUseCase реализация OrderUseCase
 type OrderUseCase struct {
-	repo   repository.Repository
+	repo   *repository.Repository
 	worker worker.OrderWorker
 }
 
@@ -118,7 +116,7 @@ func validateOrderNumber(number string) bool {
 
 // NewUseCase создает новый экземпляр useCase
 func NewUseCase(
-	repo repository.Repository,
+	repo *repository.Repository,
 	jwtSecret string,
 	hashCost int,
 	sessionTokenExpiry,
@@ -135,7 +133,7 @@ func NewUseCase(
 
 // NewOrderUseCase создает новый экземпляр orderUseCase
 func NewOrderUseCase(
-	repo repository.Repository,
+	repo *repository.Repository,
 	worker worker.OrderWorker,
 ) *OrderUseCase {
 	return &OrderUseCase{
@@ -634,7 +632,7 @@ func (uc *OrderUseCase) StartOrderProcessing(ctx context.Context) error {
 }
 
 // StopOrderProcessing останавливает обработку заказов
-func (uc *OrderUseCase) StopOrderProcessing(ctx context.Context) error {
+func (uc *OrderUseCase) StopOrderProcessing(_ context.Context) error {
 	uc.worker.Stop()
 	return nil
 }

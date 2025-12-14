@@ -54,8 +54,8 @@ type orderTask struct {
 
 // orderWorker реализация OrderWorker
 type orderWorker struct {
-	client          orderclient.Client
-	repo            repository.Repository
+	client          *orderclient.Client
+	repo            *repository.Repository
 	logger          *zap.Logger
 	workers         int
 	interval        time.Duration
@@ -72,8 +72,8 @@ type orderWorker struct {
 
 // Config конфигурация воркера
 type Config struct {
-	Client          orderclient.Client
-	Repo            repository.Repository
+	Client          *orderclient.Client
+	Repo            *repository.Repository
 	Logger          *zap.Logger
 	Workers         int
 	Interval        time.Duration
@@ -85,7 +85,7 @@ type Config struct {
 // ==================== Фабричные функции ====================
 
 // DefaultConfig возвращает конфигурацию по умолчанию
-func DefaultConfig(client orderclient.Client, repo repository.Repository, logger *zap.Logger) Config {
+func DefaultConfig(client *orderclient.Client, repo *repository.Repository, logger *zap.Logger) Config {
 	return Config{
 		Client:          client,
 		Repo:            repo,

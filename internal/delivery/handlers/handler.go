@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -42,16 +43,16 @@ type (
 type UserHandler struct {
 	serverAddr   string
 	secretKey    string
-	userUseCase  usecase.UseCase
-	orderUseCase usecase.OrderUseCase
+	userUseCase  *usecase.UseCase
+	orderUseCase *usecase.OrderUseCase
 	sessionStore *repository.SessionStore
 	logger       *zap.Logger
 }
 
 // NewUserHandler создает новый экземпляр UserHandler
 func NewUserHandler(
-	userUseCase usecase.UseCase,
-	orderUseCase usecase.OrderUseCase,
+	userUseCase *usecase.UseCase,
+	orderUseCase *usecase.OrderUseCase,
 	serverAddr, secretKey string,
 	sessionStore *repository.SessionStore,
 	logger *zap.Logger,
@@ -245,13 +246,15 @@ func (h *UserHandler) createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var orderNumber string
-	if err := h.decodeJSONBody(w, r, &orderNumber); err != nil {
+	var orderNumber int
+	if errDecode := h.decodeJSONBody(w, r, &orderNumber); errDecode != nil {
+		fmt.Println("user", errDecode)
 		h.renderError(w, r, "Invalid request", http.StatusBadRequest)
 		return
 	}
-
-	if !utils.IsValidLuhn(orderNumber) {
+	srtNum := strconv.Itoa(orderNumber)
+	if !utils.IsValidLuhn(srtNum) {
+		h.logger.Debug("invalid order number", zap.String("order_number", srtNum))
 		h.renderError(w, r, "Invalid order number", http.StatusBadRequest)
 		return
 	}
@@ -259,7 +262,7 @@ func (h *UserHandler) createOrder(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	order, err := h.orderUseCase.CreateOrder(ctx, userID, orderNumber)
+	order, err := h.orderUseCase.CreateOrder(ctx, userID, srtNum)
 	if err != nil {
 		h.handleOrderError(w, r, err)
 		return
