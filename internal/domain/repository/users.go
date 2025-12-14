@@ -371,10 +371,10 @@ func (r *userRepo) GetUserWithOrders(ctx context.Context, userID int) (*entity.U
 
 	// Получаем заказы пользователя
 	orders, err := r.db.Query(ctx, `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE user_id = $1
-		ORDER BY created_at DESC
+		ORDER BY uploaded_at DESC
 	`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user orders: %w", err)
@@ -441,8 +441,8 @@ func (r *userRepo) scanOrder(scanner Scanner, order *entity.Order) error {
 		return err
 	}
 
-	order.CreatedAt = createdAt.Format(time.RFC3339)
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
+	order.UploadedAt = createdAt.Format(time.RFC3339)
+	order.ProcessedAt = updatedAt.Format(time.RFC3339)
 
 	return nil
 }

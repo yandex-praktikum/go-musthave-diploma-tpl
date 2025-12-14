@@ -23,7 +23,7 @@ func (r *withdrawalRepo) Create(ctx context.Context, withdrawal *entity.Withdraw
 	query := `
 		INSERT INTO orders (number, user_id, status, accrual)
 		VALUES ($1, $2, 'PROCESSED', $3)
-		RETURNING created_at, updated_at
+		RETURNING uploaded_at, processed_at
 	`
 
 	var createdAt, updatedAt time.Time
@@ -50,12 +50,12 @@ func (r *withdrawalRepo) Create(ctx context.Context, withdrawal *entity.Withdraw
 // GetByUserID получает списания пользователя
 func (r *withdrawalRepo) GetByUserID(ctx context.Context, userID int, status entity.OrderStatus) ([]entity.Withdrawal, error) {
 	query := `
-		SELECT number, accrual, updated_at, user_id
+		SELECT number, accrual, processed_at, user_id
 		FROM orders 
 		WHERE user_id = $1 
 			AND status = $2 
 			AND accrual < 0
-		ORDER BY created_at DESC
+		ORDER BY uploaded_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, userID, status)
@@ -70,10 +70,10 @@ func (r *withdrawalRepo) GetByUserID(ctx context.Context, userID int, status ent
 // GetAll получает все списания с пагинацией
 func (r *withdrawalRepo) GetAll(ctx context.Context, limit, offset int) ([]entity.Withdrawal, error) {
 	query := `
-		SELECT number, accrual, updated_at, user_id
+		SELECT number, accrual, processed_at, user_id
 		FROM orders 
 		WHERE accrual < 0 AND status = 'PROCESSED'
-		ORDER BY created_at DESC
+		ORDER BY uploaded_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -108,7 +108,7 @@ func (r *withdrawalRepo) GetTotalWithdrawn(ctx context.Context, userID int) (flo
 // GetWithdrawalByOrder получает списание по номеру заказа
 func (r *withdrawalRepo) GetWithdrawalByOrder(ctx context.Context, orderNumber string) (*entity.Withdrawal, error) {
 	query := `
-		SELECT number, accrual, updated_at, user_id
+		SELECT number, accrual, processed_at, user_id
 		FROM orders 
 		WHERE number = $1 
 			AND accrual < 0 
@@ -160,8 +160,8 @@ func (r *withdrawalRepo) GetUserWithdrawalsSummary(ctx context.Context, userID i
 		SELECT 
 			COUNT(*) as withdrawal_count,
 			COALESCE(ABS(SUM(accrual)), 0) as total_amount,
-			MIN(updated_at) as first_withdrawal,
-			MAX(updated_at) as last_withdrawal
+			MIN(processed_at) as first_withdrawal,
+			MAX(processed_at) as last_withdrawal
 		FROM orders
 		WHERE user_id = $1 
 			AND accrual < 0 
@@ -205,10 +205,10 @@ func (r *withdrawalRepo) GetUserWithdrawalsSummary(ctx context.Context, userID i
 // GetRecentWithdrawals получает последние списания
 func (r *withdrawalRepo) GetRecentWithdrawals(ctx context.Context, limit int) ([]entity.Withdrawal, error) {
 	query := `
-		SELECT number, accrual, updated_at, user_id
+		SELECT number, accrual, processed_at, user_id
 		FROM orders 
 		WHERE accrual < 0 AND status = 'PROCESSED'
-		ORDER BY updated_at DESC
+		ORDER BY processed_at DESC
 		LIMIT $1
 	`
 
@@ -224,12 +224,12 @@ func (r *withdrawalRepo) GetRecentWithdrawals(ctx context.Context, limit int) ([
 // GetWithdrawalsByPeriod получает списания за период
 func (r *withdrawalRepo) GetWithdrawalsByPeriod(ctx context.Context, start, end time.Time) ([]entity.Withdrawal, error) {
 	query := `
-		SELECT number, accrual, updated_at, user_id
+		SELECT number, accrual, processed_at, user_id
 		FROM orders 
 		WHERE accrual < 0 
 			AND status = 'PROCESSED'
-			AND updated_at BETWEEN $1 AND $2
-		ORDER BY updated_at DESC
+			AND processed_at BETWEEN $1 AND $2
+		ORDER BY processed_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, start, end)

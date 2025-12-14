@@ -13,13 +13,13 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TABLE IF NOT EXISTS orders
 (
-    id         SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    number     VARCHAR(255) NOT NULL,
-    status     order_status NOT NULL DEFAULT 'NEW',
-    accrual    DECIMAL(10, 2),
-    user_id    INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE
+    id           SERIAL PRIMARY KEY,
+    uploaded_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    number       VARCHAR(255) NOT NULL,
+    status       order_status NOT NULL DEFAULT 'NEW',
+    accrual      DECIMAL(10, 2),
+    user_id      INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
 -- Индексы для быстрого поиска

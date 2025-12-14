@@ -10,14 +10,11 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
 )
 
-// ==================== Реализация OrderRepository ====================
-
-// Create создает новый заказ
 func (r *orderRepo) Create(ctx context.Context, userID int, number string, status entity.OrderStatus) (*entity.Order, error) {
 	query := `
 		INSERT INTO orders (number, user_id, status)
 		VALUES ($1, $2, $3)
-		RETURNING id, created_at, updated_at, number, status, accrual, user_id
+		RETURNING id, uploaded_at, processed_at, number, status, accrual, user_id
 	`
 
 	order := &entity.Order{}
@@ -41,7 +38,7 @@ func (r *orderRepo) Create(ctx context.Context, userID int, number string, statu
 // GetByID получает заказ по ID
 func (r *orderRepo) GetByID(ctx context.Context, id int) (*entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE id = $1
 	`
@@ -64,7 +61,7 @@ func (r *orderRepo) GetByID(ctx context.Context, id int) (*entity.Order, error) 
 // GetByNumber получает заказ по номеру
 func (r *orderRepo) GetByNumber(ctx context.Context, number string) (*entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE number = $1
 	`
@@ -87,10 +84,10 @@ func (r *orderRepo) GetByNumber(ctx context.Context, number string) (*entity.Ord
 // GetByUserID получает заказы пользователя
 func (r *orderRepo) GetByUserID(ctx context.Context, userID int) ([]entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE user_id = $1
-		ORDER BY created_at DESC
+		ORDER BY uploaded_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -106,11 +103,11 @@ func (r *orderRepo) GetByUserID(ctx context.Context, userID int) ([]entity.Order
 func (r *orderRepo) GetAll(ctx context.Context, limit, offset int) ([]entity.OrderWithUser, error) {
 	query := `
 		SELECT 
-			o.id, o.created_at, o.updated_at, o.number, o.status, o.accrual, o.user_id,
+			o.id, o.uploaded_at, o.processed_at, o.number, o.status, o.accrual, o.user_id,
 			u.id, u.created_at, u.updated_at, u.login, u.password, u.is_active
 		FROM orders o
 		JOIN users u ON o.user_id = u.id
-		ORDER BY o.created_at DESC
+		ORDER BY o.uploaded_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -145,9 +142,9 @@ func (r *orderRepo) Update(ctx context.Context, order *entity.Order) error {
 			status = $2,
 			accrual = $3,
 			user_id = $4,
-			updated_at = NOW()
+			processed_at = NOW()
 		WHERE id = $5
-		RETURNING updated_at
+		RETURNING processed_at
 	`
 
 	var updatedAt time.Time
@@ -169,7 +166,7 @@ func (r *orderRepo) Update(ctx context.Context, order *entity.Order) error {
 		return fmt.Errorf("failed to update order: %w", err)
 	}
 
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
+	order.ProcessedAt = updatedAt.Format(time.RFC3339)
 	return nil
 }
 
@@ -179,9 +176,9 @@ func (r *orderRepo) UpdateStatus(ctx context.Context, orderID int, status entity
 		UPDATE orders
 		SET 
 			status = $1,
-			updated_at = NOW()
+			processed_at = NOW()
 		WHERE id = $2
-		RETURNING updated_at
+		RETURNING processed_at
 	`
 
 	var updatedAt time.Time
@@ -203,9 +200,9 @@ func (r *orderRepo) UpdateAccrual(ctx context.Context, orderID int, accrual floa
 		SET 
 			accrual = $1,
 			status = $2,
-			updated_at = NOW()
+			processed_at = NOW()
 		WHERE id = $3
-		RETURNING updated_at
+		RETURNING processed_at
 	`
 
 	var updatedAt time.Time
@@ -255,10 +252,10 @@ func (r *orderRepo) DeleteByNumber(ctx context.Context, number string) error {
 // GetPending получает ожидающие обработки заказы
 func (r *orderRepo) GetPending(ctx context.Context, limit int) ([]entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE status IN ('NEW', 'PROCESSING')
-		ORDER BY created_at ASC
+		ORDER BY uploaded_at ASC
 		LIMIT $1
 	`
 
@@ -274,10 +271,10 @@ func (r *orderRepo) GetPending(ctx context.Context, limit int) ([]entity.Order, 
 // GetByStatus получает заказы по статусу
 func (r *orderRepo) GetByStatus(ctx context.Context, status entity.OrderStatus) ([]entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE status = $1
-		ORDER BY created_at DESC
+		ORDER BY uploaded_at DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, status)
@@ -307,10 +304,10 @@ func (r *orderRepo) Exists(ctx context.Context, number string) (bool, error) {
 // GetForProcessing получает заказы для обработки
 func (r *orderRepo) GetForProcessing(ctx context.Context, limit int) ([]entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE status IN ($1, $2)
-		ORDER BY created_at ASC
+		ORDER BY uploaded_at ASC
 		LIMIT $3
 	`
 
@@ -330,10 +327,10 @@ func (r *orderRepo) GetForProcessing(ctx context.Context, limit int) ([]entity.O
 // GetActive получает активные заказы
 func (r *orderRepo) GetActive(ctx context.Context) ([]entity.Order, error) {
 	query := `
-		SELECT id, created_at, updated_at, number, status, accrual, user_id
+		SELECT id, uploaded_at, processed_at, number, status, accrual, user_id
 		FROM orders
 		WHERE status IN ($1, $2)
-		ORDER BY created_at ASC
+		ORDER BY uploaded_at ASC
 	`
 
 	rows, err := r.db.Query(ctx, query,
@@ -355,9 +352,9 @@ func (r *orderRepo) UpdateStatusByNumber(ctx context.Context, number string, sta
 		SET 
 			status = $1,
 			accrual = COALESCE($2, accrual),
-			updated_at = NOW()
+			processed_at = NOW()
 		WHERE number = $3
-		RETURNING updated_at
+		RETURNING processed_at
 	`
 
 	var updatedAt time.Time
@@ -376,7 +373,7 @@ func (r *orderRepo) UpdateStatusByNumber(ctx context.Context, number string, sta
 func (r *orderRepo) GetOrderWithUser(ctx context.Context, orderID int) (*entity.OrderWithUser, error) {
 	query := `
 		SELECT 
-			o.id, o.created_at, o.updated_at, o.number, o.status, o.accrual, o.user_id,
+			o.id, o.uploaded_at, o.processed_at, o.number, o.status, o.accrual, o.user_id,
 			u.id, u.created_at, u.updated_at, u.login, u.password, u.is_active
 		FROM orders o
 		JOIN users u ON o.user_id = u.id
@@ -455,8 +452,8 @@ func (r *orderRepo) scanOrder(scanner Scanner, order *entity.Order) error {
 		return err
 	}
 
-	order.CreatedAt = createdAt.Format(time.RFC3339)
-	order.UpdatedAt = updatedAt.Format(time.RFC3339)
+	order.UploadedAt = createdAt.Format(time.RFC3339)
+	order.ProcessedAt = updatedAt.Format(time.RFC3339)
 
 	return nil
 }
@@ -503,8 +500,8 @@ func (r *orderRepo) scanOrderWithUser(scanner Scanner, orderWithUser *entity.Ord
 		return err
 	}
 
-	orderWithUser.CreatedAt = orderCreatedAt.Format(time.RFC3339)
-	orderWithUser.UpdatedAt = orderUpdatedAt.Format(time.RFC3339)
+	orderWithUser.UploadedAt = orderCreatedAt.Format(time.RFC3339)
+	orderWithUser.ProcessedAt = orderUpdatedAt.Format(time.RFC3339)
 	orderWithUser.User.CreatedAt = userCreatedAt.Format(time.RFC3339)
 	orderWithUser.User.UpdatedAt = userUpdatedAt.Format(time.RFC3339)
 

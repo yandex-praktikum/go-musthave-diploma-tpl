@@ -20,15 +20,14 @@ const (
 	OrderStatusProcessed  OrderStatus = "PROCESSED"
 )
 
-// Order модель заказа
 type Order struct {
-	ID        int         `json:"id"`
-	CreatedAt string      `json:"created_at"`
-	UpdatedAt string      `json:"updated_at,omitempty"`
-	Number    string      `json:"number"`
-	Status    OrderStatus `json:"status"`
-	Accrual   *float64    `json:"accrual,omitempty"`
-	UserID    int         `json:"user_id"`
+	ID          int         `json:"id"`
+	UploadedAt  string      `json:"uploaded_at"`
+	ProcessedAt string      `json:"processed_at,omitempty"`
+	Number      string      `json:"number"`
+	Status      OrderStatus `json:"status"`
+	Accrual     *float64    `json:"accrual,omitempty"`
+	UserID      int         `json:"user_id"`
 }
 
 // OrderWithUser заказ с информацией о пользователе

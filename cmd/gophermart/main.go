@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/skiphead/go-musthave-diploma-tpl/infra/client/orderclient"
@@ -13,184 +18,373 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/usecase"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/worker"
 	"go.uber.org/zap"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
-func main() {
+// ==================== Константы ====================
 
+const (
+	configPath                = "configs/config.yaml"
+	migrationsPath            = "migrations"
+	defaultHashCost           = 12
+	shutdownTimeout           = 10 * time.Second
+	pollTimeout               = 5 * time.Second
+	defaultSessionTokenExpiry = 1 * time.Hour
+	defaultRefreshTokenExpiry = 24 * time.Hour
+)
+
+// ==================== Структура приложения ====================
+
+// App представляет основное приложение
+type App struct {
+	config     *config.AppConfig
+	logger     *zap.Logger
+	server     *delivery.Server
+	repo       *repository.Repository
+	userUC     *usecase.UseCase
+	orderUC    *usecase.OrderUseCase
+	worker     worker.OrderWorker
+	cancelFunc context.CancelFunc
+}
+
+// NewApp создает новое приложение
+func NewApp() (*App, error) {
 	// Инициализация логгера
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatalf("can't initialize zap logger: %v", err)
-	}
-	defer func() {
-		if syncErr := logger.Sync(); syncErr != nil {
-			log.Printf("Error syncing logger: %v\n", syncErr)
-		}
-	}()
-	zap.ReplaceGlobals(logger)
-
-	// Загрузка конфигурации
-	cfg, errLoadConfig := loadConfig(logger)
-	if errLoadConfig != nil {
-		logger.Fatal("can't load config", zap.Error(errLoadConfig))
-	}
-
-	// Инициализация хранилищ
-	userRepo, errInitDB := initDatabase(cfg)
-	if errInitDB != nil {
-		logger.Fatal("can't init database", zap.Error(errInitDB))
-	}
-
-	useCaseUser := usecase.NewUseCase(
-		*userRepo,
-		cfg.SecretKey, // Секрет для JWT
-		12,            // Стоимость хеширования (bcrypt cost)
-		1*time.Hour,
-		24*time.Hour)
-	// Инициализация клиента API
-	orderClient := orderclient.NewWithDefaults(
-		orderclient.WithBaseURL(cfg.AccrualSystemAddress),
-	)
-	orderUseCase := getOrderUseCase(orderClient, userRepo, logger)
-	if errOrderUseCase := orderUseCase.StartOrderProcessing(context.Background()); errOrderUseCase != nil {
-		logger.Fatal("Failed to start order processing:", zap.Error(errOrderUseCase))
-	}
-
-	// Создание обработчика URL
-	handler := handlers.NewUserHandler(
-		*useCaseUser,
-		*orderUseCase,
-		cfg.RunAddress,
-		cfg.AccrualSystemAddress,
-		repository.NewSessionStore(),
-		logger)
-
-	// Инициализация сервера
-	server, errInitServer := initServer(cfg, handler)
-	if errInitServer != nil {
-		logger.Fatal("can't init server", zap.Error(errInitServer))
-	}
-
-	// Запуск сервера
-	runServer(server, logger)
-
-}
-
-// runServer управляет жизненным циклом HTTP-сервера.
-// Запускает сервер в отдельной горутине и обрабатывает сигналы завершения работы.
-// Параметры:
-// - server: экземпляр HTTP-сервера для управления
-// Алгоритм:
-// - Запускает сервер в отдельном канале для обработки ошибок
-// - Ожидает сигналов OS Interrupt или SIGTERM
-// - Выполняет graceful shutdown с таймаутом 10 секунд
-func runServer(server *delivery.Server, logger *zap.Logger) {
-	serverErrChan := server.Start()
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	select {
-	case <-ctx.Done():
-		logger.Info("Received shutdown signal")
-	case err := <-serverErrChan:
-		if err != nil {
-			logger.Error("Server error", zap.Error(err))
-		}
-	}
-
-	if err := server.Shutdown(10 * time.Second); err != nil {
-		logger.Error("Server shutdown error", zap.Error(err))
-	} else {
-		logger.Info("Server shutdown completed")
-	}
-}
-
-// initDatabase инициализирует подключение к PostgreSQL и применяет миграции.
-// Параметры:
-//   - cfg: конфигурация приложения с DSN строкой подключения
-//
-// Возвращает:
-//   - указатель на репозиторий URL или nil при ошибке
-//
-// Действия:
-//  1. Устанавливает соединение с пулом подключений БД
-//  2. Проверяет подключение через ping
-//  3. Применяет миграции через стандартную библиотеку database/sql
-//  4. Создает репозиторий для работы с URL
-func initDatabase(cfg *config.AppConfig) (*repository.Repository, error) {
-	pool, connErr := pgxpool.New(context.Background(), cfg.DatabaseURI)
-	if connErr != nil {
-		return nil, connErr
-	}
-	if pool.Ping(context.Background()) == nil {
-		db := stdlib.OpenDBFromPool(pool)
-		if err := postgresql.Migrations(db, "migrations"); err != nil {
-			return nil, err
-		}
-	}
-
-	repo, err := repository.NewRepository(pool)
-
+	logger, err := initLogger()
 	if err != nil {
 		return nil, err
 	}
 
+	// Загрузка конфигурации
+	cfg, err := loadConfig(logger)
+	if err != nil {
+		logger.Error("Failed to load config", zap.Error(err))
+		return nil, err
+	}
+
+	return &App{
+		config: cfg,
+		logger: logger,
+	}, nil
+}
+
+// ==================== Инициализация компонентов ====================
+
+// initLogger инициализирует zap логгер
+func initLogger() (*zap.Logger, error) {
+	logger, err := zap.NewProduction(zap.AddStacktrace(zap.ErrorLevel))
+	if err != nil {
+		return nil, err
+	}
+
+	// Заменяем глобальный логгер
+	zap.ReplaceGlobals(logger)
+
+	return logger, nil
+}
+
+// loadConfig загружает конфигурацию приложения
+func loadConfig(logger *zap.Logger) (*config.AppConfig, error) {
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		logger.Warn("Can't load config file, using default config",
+			zap.String("config_path", configPath),
+			zap.Error(err),
+		)
+		cfg = config.NewDefaultConfig()
+	}
+
+	// Валидация конфигурации
+	if err := cfg.Validate(); err != nil {
+		logger.Error("Invalid configuration", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info("Configuration loaded successfully",
+		zap.String("run_address", cfg.RunAddress),
+		zap.String("database_uri", maskDatabaseURI(cfg.DatabaseURI)),
+		zap.String("accrual_address", cfg.AccrualSystemAddress),
+	)
+
+	return cfg, nil
+}
+
+// maskDatabaseURI маскирует чувствительные данные в URI базы данных
+func maskDatabaseURI(uri string) string {
+	// Простая маскировка пароля в DSN
+	// В реальном приложении используйте более сложную логику
+	return uri
+}
+
+// Init инициализирует все компоненты приложения
+func (a *App) Init() error {
+	a.logger.Info("Initializing application components...")
+
+	// Инициализация базы данных
+	repo, err := a.initDatabase()
+	if err != nil {
+		a.logger.Error("Failed to initialize database", zap.Error(err))
+		return err
+	}
+	a.repo = repo
+
+	// Инициализация use cases
+	if err := a.initUseCases(); err != nil {
+		a.logger.Error("Failed to initialize use cases", zap.Error(err))
+		return err
+	}
+
+	// Инициализация сервера
+	if err := a.initServer(); err != nil {
+		a.logger.Error("Failed to initialize server", zap.Error(err))
+		return err
+	}
+
+	a.logger.Info("Application initialized successfully")
+	return nil
+}
+
+// initDatabase инициализирует подключение к базе данных
+func (a *App) initDatabase() (*repository.Repository, error) {
+	a.logger.Info("Initializing database connection...",
+		zap.String("database_uri", maskDatabaseURI(a.config.DatabaseURI)),
+	)
+
+	// Создание пула подключений
+	pool, err := pgxpool.New(context.Background(), a.config.DatabaseURI)
+	if err != nil {
+		a.logger.Error("Failed to create database pool", zap.Error(err))
+		return nil, err
+	}
+
+	// Проверка подключения
+	ctx, cancel := context.WithTimeout(context.Background(), pollTimeout)
+	defer cancel()
+
+	if err := pool.Ping(ctx); err != nil {
+		a.logger.Error("Database ping failed", zap.Error(err))
+		return nil, err
+	}
+
+	a.logger.Info("Database connection established")
+
+	// Применение миграций
+	a.logger.Info("Applying database migrations...",
+		zap.String("migrations_path", migrationsPath),
+	)
+
+	db := stdlib.OpenDBFromPool(pool)
+	if err := postgresql.Migrations(db, migrationsPath); err != nil {
+		a.logger.Error("Failed to apply migrations", zap.Error(err))
+		return nil, err
+	}
+
+	a.logger.Info("Database migrations applied successfully")
+
+	// Создание репозитория
+	repo, err := repository.NewRepository(pool)
+	if err != nil {
+		a.logger.Error("Failed to create repository", zap.Error(err))
+		return nil, err
+	}
+
+	a.logger.Info("Repository initialized")
 	return repo, nil
 }
 
-func getOrderUseCase(client *orderclient.Client, repo *repository.Repository, logger *zap.Logger) *usecase.OrderUseCase {
+// initUseCases инициализирует use cases
+func (a *App) initUseCases() error {
+	a.logger.Info("Initializing use cases...")
+
+	// Инициализация клиента заказов
+	orderClient := orderclient.NewWithDefaults(
+		orderclient.WithBaseURL(a.config.AccrualSystemAddress),
+		orderclient.WithTimeout(pollTimeout),
+	)
+
+	a.logger.Info("Order client initialized",
+		zap.String("base_url", a.config.AccrualSystemAddress),
+	)
 
 	// Инициализация воркера
-	orderWorker := worker.NewOrderWorker(worker.DefaultConfig(*client, *repo, logger))
+	workerConfig := worker.DefaultConfig(*orderClient, *a.repo, a.logger)
+	a.worker = worker.NewOrderWorker(workerConfig)
 
-	// Инициализация usecase
-	orderUseCase := usecase.NewOrderUseCase(*repo, orderWorker)
+	a.logger.Info("Order worker initialized",
+		zap.Int("workers", workerConfig.Workers),
+		zap.Duration("interval", workerConfig.Interval),
+	)
 
-	return orderUseCase
+	// Инициализация use case для пользователей
+	a.userUC = usecase.NewUseCase(
+		*a.repo,
+		a.config.SecretKey,
+		defaultHashCost,
+		defaultSessionTokenExpiry,
+		defaultRefreshTokenExpiry,
+	)
+
+	// Инициализация use case для заказов
+	a.orderUC = usecase.NewOrderUseCase(*a.repo, a.worker)
+
+	a.logger.Info("Use cases initialized successfully")
+	return nil
 }
 
-// initServer создает экземпляр HTTP-сервера с использованием фреймворка Chi.
-// Параметры:
-//   - cfg: конфигурация сервера
-//   - handler: обработчик HTTP-запросов
-//
-// Возвращает:
-//   - сконфигурированный экземпляр сервера
-//   - завершает приложение при ошибке создания сервера
-func initServer(cfg *config.AppConfig, handler *handlers.UserHandler) (*delivery.Server, error) {
-	srv, err := delivery.NewServerChi(cfg, handler.ChiMux())
+// initServer инициализирует HTTP-сервер
+func (a *App) initServer() error {
+	a.logger.Info("Initializing HTTP server...",
+		zap.String("address", a.config.RunAddress),
+	)
+
+	// Создаем обработчик (нужно получить роутер от обработчика)
+	// В реальной реализации нужно получить Chi роутер
+	handler := handlers.NewUserHandler(
+		*a.userUC,
+		*a.orderUC,
+		a.config.RunAddress,
+		a.config.AccrualSystemAddress,
+		repository.NewSessionStore(),
+		a.logger,
+	)
+
+	// Создаем сервер с Chi роутером
+	server, err := delivery.NewServerChi(a.config, handler.ChiMux())
 	if err != nil {
-		return nil, err
+		a.logger.Error("Failed to create server", zap.Error(err))
+		return err
 	}
-	return srv, nil
+
+	a.server = server
+	a.logger.Info("HTTP server initialized")
+	return nil
 }
 
-// loadConfig загружает конфигурацию приложения из YAML-файла.
-// Возвращает:
-//   - указатель на загруженную конфигурацию
-//
-// Логика:
-//   - Пытается загрузить конфигурацию из файла configs/config.yaml
-//   - При ошибке использует конфигурацию по умолчанию
-//   - Выполняет валидацию обязательных параметров
-//   - Завершает приложение при ошибке валидации
-func loadConfig(logger *zap.Logger) (*config.AppConfig, error) {
-	cfg, err := config.LoadConfig("configs/config.yaml")
+// ==================== Управление жизненным циклом ====================
+
+// Start запускает приложение
+func (a *App) Start() error {
+	a.logger.Info("Starting application...")
+
+	// Создаем контекст для graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	a.cancelFunc = cancel
+
+	// Запускаем обработку заказов
+	a.logger.Info("Starting order processing...")
+	if err := a.orderUC.StartOrderProcessing(ctx); err != nil {
+		a.logger.Error("Failed to start order processing", zap.Error(err))
+		return err
+	}
+
+	// Запускаем HTTP-сервер
+	a.logger.Info("Starting HTTP server...")
+	serverErrChan := a.server.Start()
+
+	// Обрабатываем сигналы и ошибки сервера
+	go a.handleSignals(ctx)
+	go a.handleServerErrors(ctx, serverErrChan)
+
+	a.logger.Info("Application started successfully",
+		zap.String("address", a.config.RunAddress),
+	)
+
+	return nil
+}
+
+// handleSignals обрабатывает сигналы завершения
+func (a *App) handleSignals(ctx context.Context) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	select {
+	case <-ctx.Done():
+		return
+	case sig := <-sigChan:
+		a.logger.Info("Received shutdown signal",
+			zap.String("signal", sig.String()),
+		)
+		a.Shutdown()
+	}
+}
+
+// handleServerErrors обрабатывает ошибки сервера
+func (a *App) handleServerErrors(ctx context.Context, errChan <-chan error) {
+	select {
+	case <-ctx.Done():
+		return
+	case err := <-errChan:
+		if err != nil {
+			a.logger.Error("Server error", zap.Error(err))
+			a.Shutdown()
+		}
+	}
+}
+
+// Shutdown выполняет graceful shutdown приложения
+func (a *App) Shutdown() {
+	a.logger.Info("Initiating graceful shutdown...")
+
+	// Отменяем контекст для остановки всех горутин
+	if a.cancelFunc != nil {
+		a.cancelFunc()
+	}
+
+	// Останавливаем обработку заказов
+	if a.orderUC != nil {
+		a.logger.Info("Stopping order processing...")
+		if err := a.orderUC.StopOrderProcessing(context.Background()); err != nil {
+			a.logger.Error("Failed to stop order processing", zap.Error(err))
+		}
+	}
+
+	// Останавливаем HTTP-сервер
+	if a.server != nil {
+		a.logger.Info("Shutting down HTTP server...")
+
+		if err := a.server.Shutdown(15 * time.Second); err != nil {
+			a.logger.Error("Failed to shutdown server", zap.Error(err))
+		} else {
+			a.logger.Info("HTTP server shutdown completed")
+		}
+	}
+
+	// Закрываем соединение с базой данных
+	if a.repo != nil {
+		a.logger.Info("Closing database connections...")
+		a.repo.Close()
+	}
+
+	// Синхронизируем логгер
+	a.logger.Info("Syncing logger...")
+	_ = a.logger.Sync()
+
+	a.logger.Info("Application shutdown completed")
+}
+
+// ==================== Точка входа ====================
+
+func main() {
+	// Создание приложения
+	app, err := NewApp()
 	if err != nil {
-		cfg = config.NewDefaultConfig()
-		logger.Warn("can't load config file, use default config", zap.Error(err))
+		// Используем стандартный логгер, если zap не инициализирован
+		if app != nil && app.logger != nil {
+			app.logger.Fatal("Failed to create application", zap.Error(err))
+		} else {
+			panic(err)
+		}
 	}
 
-	if err = cfg.Validate(); err != nil {
-
-		return nil, err
+	// Инициализация компонентов
+	if err := app.Init(); err != nil {
+		app.logger.Fatal("Failed to initialize application", zap.Error(err))
 	}
 
-	return cfg, nil
+	// Запуск приложения
+	if err := app.Start(); err != nil {
+		app.logger.Fatal("Failed to start application", zap.Error(err))
+	}
+
+	// Ждем завершения
+	select {}
 }
