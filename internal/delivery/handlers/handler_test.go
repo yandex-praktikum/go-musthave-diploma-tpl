@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/skiphead/go-musthave-diploma-tpl/pkg/storage"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +16,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
-	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/repository"
-
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/usecase"
 	"github.com/skiphead/go-musthave-diploma-tpl/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -155,26 +154,26 @@ func (m *MockOrderUseCase) GetUserOrders(ctx context.Context, userID int) ([]ent
 
 // TestSessionStore теперь реализует методы repository.SessionStore
 type TestSessionStore struct {
-	sessions map[string]*repository.SessionInfo
+	sessions map[string]*storage.SessionInfo
 	mu       sync.RWMutex
 }
 
 func NewTestSessionStore() *TestSessionStore {
 	return &TestSessionStore{
-		sessions: make(map[string]*repository.SessionInfo),
+		sessions: make(map[string]*storage.SessionInfo),
 	}
 }
 
 func (s *TestSessionStore) CreateSession(sessionID string, userID int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sessions[sessionID] = &repository.SessionInfo{
+	s.sessions[sessionID] = &storage.SessionInfo{
 		UserID:    userID,
 		CreatedAt: time.Now(),
 	}
 }
 
-func (s *TestSessionStore) GetSession(sessionID string) (*repository.SessionInfo, bool) {
+func (s *TestSessionStore) GetSession(sessionID string) (*storage.SessionInfo, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	session, exists := s.sessions[sessionID]
@@ -206,7 +205,7 @@ func (s *TestSessionStore) GetSessionCount() int {
 func (s *TestSessionStore) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sessions = make(map[string]*repository.SessionInfo)
+	s.sessions = make(map[string]*storage.SessionInfo)
 }
 
 // ==================== Вспомогательные структуры для тестов ====================

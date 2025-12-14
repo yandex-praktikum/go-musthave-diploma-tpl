@@ -16,8 +16,8 @@ import (
 
 const (
 	defaultWorkers         = 3
-	defaultInterval        = 15 * time.Second
-	defaultDBCheckInterval = 30 * time.Second
+	defaultInterval        = 3 * time.Second
+	defaultDBCheckInterval = 5 * time.Second
 	defaultOrderChanSize   = 100
 	defaultResultChanSize  = 100
 	pollTimeout            = 10 * time.Second

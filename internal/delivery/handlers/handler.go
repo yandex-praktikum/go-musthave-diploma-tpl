@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/skiphead/go-musthave-diploma-tpl/pkg/storage"
 	"net/http"
 	"strconv"
 	"time"
@@ -45,7 +46,7 @@ type UserHandler struct {
 	secretKey    string
 	userUseCase  *usecase.UseCase
 	orderUseCase *usecase.OrderUseCase
-	sessionStore *repository.SessionStore
+	sessionStore *storage.SessionStore
 	logger       *zap.Logger
 }
 
@@ -54,7 +55,7 @@ func NewUserHandler(
 	userUseCase *usecase.UseCase,
 	orderUseCase *usecase.OrderUseCase,
 	serverAddr, secretKey string,
-	sessionStore *repository.SessionStore,
+	sessionStore *storage.SessionStore,
 	logger *zap.Logger,
 ) *UserHandler {
 	return &UserHandler{

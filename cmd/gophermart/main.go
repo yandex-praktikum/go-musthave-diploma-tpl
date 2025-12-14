@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/skiphead/go-musthave-diploma-tpl/pkg/storage"
 	"os"
 	"os/signal"
 	"syscall"
@@ -245,7 +246,7 @@ func (a *App) initServer() error {
 		a.orderUC,
 		a.config.RunAddress,
 		a.config.AccrualSystemAddress,
-		repository.NewSessionStore(a.logger),
+		storage.NewSessionStore(a.logger),
 		a.logger,
 	)
 
