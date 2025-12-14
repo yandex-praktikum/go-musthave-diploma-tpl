@@ -526,3 +526,32 @@ func (r *Repository) UpdateStatus(ctx context.Context, number string, status ent
 
 	return nil
 }
+
+func (r *Repository) GetWithdrawals(ctx context.Context, userID string, status entity.OrderStatus) ([]entity.Withdraw, error) {
+
+	query := `
+		SELECT number, accrual, updated_at 
+		FROM orders 
+		WHERE user_id = $1 AND status = $2 AND accrual < 0 
+		ORDER BY  created_at ASC
+	`
+	rows, err := r.db.Query(ctx, query, userID, status)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query orders for withdrawals: %w", err)
+	}
+	defer rows.Close()
+	var withdraws []entity.Withdraw
+	for rows.Next() {
+		var withdraw entity.Withdraw
+		var updatedAt time.Time
+		errScanRows := rows.Scan(&withdraw.Order, &withdraw.Sum, &updatedAt)
+		if errScanRows != nil {
+			return nil, fmt.Errorf("failed to scan order: %w", errScanRows)
+		}
+		withdraw.ProcessedAt = updatedAt.Format(time.RFC3339)
+
+		withdraws = append(withdraws, withdraw)
+	}
+
+	return withdraws, nil
+}

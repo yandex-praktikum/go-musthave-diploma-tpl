@@ -6,9 +6,8 @@ import (
 	"github.com/skiphead/go-musthave-diploma-tpl/infra/client/orderclient"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/entity"
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/domain/repository"
-	"github.com/skiphead/go-musthave-diploma-tpl/pkg/utils"
-
 	"github.com/skiphead/go-musthave-diploma-tpl/internal/worker"
+	"github.com/skiphead/go-musthave-diploma-tpl/pkg/utils"
 )
 
 // OrderUseCase определяет бизнес-логику для работы с заказами
@@ -218,4 +217,17 @@ func (uc *orderUseCase) GetProcessingStats(ctx context.Context) (map[entity.Orde
 	}
 
 	return stats, nil
+}
+
+func (uc *orderUseCase) GetWithdrawals(ctx context.Context, userID string) ([]entity.Withdraw, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("user_id is not be empty")
+	}
+
+	withdraws, err := uc.repo.GetWithdrawals(ctx, userID, entity.OrderStatusProcessed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get withdraws: %w", err)
+	}
+
+	return withdraws, nil
 }

@@ -111,6 +111,7 @@ func (h *UserHandler) ChiMux() *chi.Mux {
 	r.Get("/api/user/orders", h.listOrders)
 	r.Get("/api/user/balance", h.getUserBalance)
 	r.Post("/api/user/balance/withdraw", h.createWithdraw)
+	r.Get("/api/user/withdrawals", h.GetWithdrawals)
 
 	return r
 }
@@ -545,5 +546,37 @@ func (h *UserHandler) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+
+}
+
+func (h *UserHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) {
+	var sessionToken string
+	if cookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
+		sessionToken = cookie.Value
+	}
+
+	resp, err := h.userUseCase.ValidateAccessToken(sessionToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	withdrawals, errGetWithdrawals := h.userUseCase.GetWithdrawals(ctx, resp.UserID)
+	if errGetWithdrawals != nil {
+		if repository.IsForeignKeyError(errGetWithdrawals) {
+			http.Error(w, "Invalid request", http.StatusUnprocessableEntity)
+			return
+		}
+	}
+
+	if len(withdrawals) == 0 {
+		http.Error(w, "No Withdrawals found", http.StatusNoContent)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(withdrawals)
 
 }
