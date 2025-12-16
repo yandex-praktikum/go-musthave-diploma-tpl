@@ -41,8 +41,7 @@ type App struct {
 	logger     *zap.Logger
 	server     *delivery.Server
 	repo       *repository.Repository
-	userUC     *usecase.UseCase
-	orderUC    *usecase.OrderUseCase
+	uc         *usecase.UseCase
 	worker     worker.OrderWorker
 	cancelFunc context.CancelFunc
 	shutdownCh chan struct{}
@@ -199,10 +198,13 @@ func (a *App) initUseCases() error {
 	a.logger.Info("Initializing use cases...")
 
 	// Инициализация клиента заказов
-	orderClient := orderclient.NewWithDefaults(
+	orderClient, err := orderclient.NewWithDefaults(
 		orderclient.WithBaseURL(a.config.AccrualSystemAddress),
 		orderclient.WithTimeout(pollTimeout),
 	)
+	if err != nil {
+		return err
+	}
 
 	a.logger.Info("Order client initialized",
 		zap.String("base_url", a.config.AccrualSystemAddress),
@@ -218,16 +220,14 @@ func (a *App) initUseCases() error {
 	)
 
 	// Инициализация use case для пользователей
-	a.userUC = usecase.NewUseCase(
+	a.uc = usecase.NewUseCase(
 		a.repo,
 		a.config.SecretKey,
 		defaultHashCost,
 		defaultSessionTokenExpiry,
 		defaultRefreshTokenExpiry,
+		a.worker,
 	)
-
-	// Инициализация use case для заказов
-	a.orderUC = usecase.NewOrderUseCase(a.repo, a.worker)
 
 	a.logger.Info("Use cases initialized successfully")
 	return nil
@@ -242,8 +242,7 @@ func (a *App) initServer() error {
 	// Создаем обработчик (нужно получить роутер от обработчика)
 	// В реальной реализации нужно получить Chi роутер
 	handler := handlers.NewUserHandler(
-		a.userUC,
-		a.orderUC,
+		a.uc,
 		a.config.RunAddress,
 		a.config.AccrualSystemAddress,
 		storage.NewSessionStore(a.logger),
@@ -274,7 +273,7 @@ func (a *App) Start() error {
 
 	// Запускаем обработку заказов
 	a.logger.Info("Starting order processing...")
-	if err := a.orderUC.StartOrderProcessing(ctx); err != nil {
+	if err := a.uc.StartOrderProcessing(ctx); err != nil {
 		a.logger.Error("Failed to start order processing", zap.Error(err))
 		return err
 	}
@@ -348,9 +347,9 @@ func (a *App) Shutdown() {
 	defer shutdownCancel()
 
 	// Останавливаем обработку заказов
-	if a.orderUC != nil {
+	if a.uc != nil {
 		a.logger.Info("Stopping order processing...")
-		if err := a.orderUC.StopOrderProcessing(shutdownCtx); err != nil {
+		if err := a.uc.StopOrderProcessing(shutdownCtx); err != nil {
 			a.logger.Error("Failed to stop order processing", zap.Error(err))
 		} else {
 			a.logger.Info("Order processing stopped")

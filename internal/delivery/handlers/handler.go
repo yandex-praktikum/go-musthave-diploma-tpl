@@ -44,23 +44,20 @@ type (
 type UserHandler struct {
 	serverAddr   string
 	secretKey    string
-	userUseCase  *usecase.UseCase
-	orderUseCase *usecase.OrderUseCase
+	useCase      *usecase.UseCase
 	sessionStore *storage.SessionStore
 	logger       *zap.Logger
 }
 
 // NewUserHandler создает новый экземпляр UserHandler
 func NewUserHandler(
-	userUseCase *usecase.UseCase,
-	orderUseCase *usecase.OrderUseCase,
+	useCase *usecase.UseCase,
 	serverAddr, secretKey string,
 	sessionStore *storage.SessionStore,
 	logger *zap.Logger,
 ) *UserHandler {
 	return &UserHandler{
-		userUseCase:  userUseCase,
-		orderUseCase: orderUseCase,
+		useCase:      useCase,
 		serverAddr:   serverAddr,
 		secretKey:    secretKey,
 		sessionStore: sessionStore,
@@ -114,7 +111,7 @@ func (h *UserHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), writeTimeout)
 	defer cancel()
 
-	user, err := h.userUseCase.Register(ctx, req.Login, req.Password)
+	user, err := h.useCase.Register(ctx, req.Login, req.Password)
 	if err != nil {
 		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -165,7 +162,7 @@ func (h *UserHandler) refreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshClaims, err := h.userUseCase.ValidateRefreshToken(refreshCookie.Value)
+	refreshClaims, err := h.useCase.ValidateRefreshToken(refreshCookie.Value)
 	if err != nil {
 		h.clearAuthCookies(w)
 		h.renderError(w, r, "Invalid refresh token", http.StatusUnauthorized)
@@ -179,7 +176,7 @@ func (h *UserHandler) refreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userUseCase.GetUserProfile(r.Context(), session.UserID)
+	user, err := h.useCase.GetUserProfile(r.Context(), session.UserID)
 	if err != nil {
 		h.clearAuthCookies(w)
 		h.renderError(w, r, "User not found", http.StatusUnauthorized)
@@ -206,7 +203,7 @@ func (h *UserHandler) logoutHandler(w http.ResponseWriter, r *http.Request) {
 // logoutAllHandler выходит из всех устройств
 func (h *UserHandler) logoutAllHandler(w http.ResponseWriter, r *http.Request) {
 	if accessCookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		if claims, err := h.userUseCase.ValidateAccessToken(accessCookie.Value); err == nil {
+		if claims, err := h.useCase.ValidateAccessToken(accessCookie.Value); err == nil {
 			h.sessionStore.RevokeAllUserSessions(claims.UserID)
 		}
 	}
@@ -263,7 +260,7 @@ func (h *UserHandler) createOrder(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	order, err := h.orderUseCase.CreateOrder(ctx, userID, srtNum)
+	order, err := h.useCase.CreateOrder(ctx, userID, srtNum)
 	if err != nil {
 		h.handleOrderError(w, r, err)
 		return
@@ -289,7 +286,7 @@ func (h *UserHandler) listOrders(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	orders, err := h.orderUseCase.GetUserOrders(ctx, userID)
+	orders, err := h.useCase.GetUserOrders(ctx, userID)
 	if err != nil {
 		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -315,7 +312,7 @@ func (h *UserHandler) getUserBalance(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	balance, err := h.userUseCase.GetUserBalance(ctx, userID)
+	balance, err := h.useCase.GetUserBalance(ctx, userID)
 	if err != nil {
 		h.renderError(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -346,7 +343,7 @@ func (h *UserHandler) createWithdraw(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	err = h.userUseCase.WithdrawBalance(ctx, userID, withdraw.Order, withdraw.Sum)
+	err = h.useCase.WithdrawBalance(ctx, userID, withdraw.Order, withdraw.Sum)
 	if err != nil {
 		h.handleWithdrawError(w, r, err)
 		return
@@ -367,7 +364,7 @@ func (h *UserHandler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readTimeout)
 	defer cancel()
 
-	withdrawals, err := h.userUseCase.GetWithdrawals(ctx, userID)
+	withdrawals, err := h.useCase.GetWithdrawals(ctx, userID)
 	if err != nil {
 		if repository.IsForeignKeyError(err) {
 			h.renderError(w, r, "Invalid request", http.StatusUnprocessableEntity)
@@ -388,7 +385,7 @@ func (h *UserHandler) getWithdrawals(w http.ResponseWriter, r *http.Request) {
 
 // authenticateUser аутентифицирует пользователя
 func (h *UserHandler) authenticateUser(ctx context.Context, login, password string) (*entity.User, error) {
-	user, err := h.userUseCase.Authenticate(ctx, login, password)
+	user, err := h.useCase.Authenticate(ctx, login, password)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +404,7 @@ func (h *UserHandler) getUserIDFromToken(r *http.Request) (int, error) {
 		sessionToken = cookie.Value
 	}
 
-	claims, err := h.userUseCase.ValidateAccessToken(sessionToken)
+	claims, err := h.useCase.ValidateAccessToken(sessionToken)
 	if err != nil {
 		return 0, err
 	}
@@ -417,17 +414,17 @@ func (h *UserHandler) getUserIDFromToken(r *http.Request) (int, error) {
 
 // createAndSetSession создает и устанавливает сессию
 func (h *UserHandler) createAndSetSession(w http.ResponseWriter, userID int) error {
-	sessionID, err := h.userUseCase.GenerateSessionID()
+	sessionID, err := h.useCase.GenerateSessionID()
 	if err != nil {
 		return err
 	}
 
-	accessToken, err := h.userUseCase.GenerateAccessToken(userID, sessionID)
+	accessToken, err := h.useCase.GenerateAccessToken(userID, sessionID)
 	if err != nil {
 		return err
 	}
 
-	refreshToken, err := h.userUseCase.GenerateRefreshToken(userID, sessionID)
+	refreshToken, err := h.useCase.GenerateRefreshToken(userID, sessionID)
 	if err != nil {
 		return err
 	}
@@ -440,7 +437,7 @@ func (h *UserHandler) createAndSetSession(w http.ResponseWriter, userID int) err
 // revokeCurrentSession отзывает текущую сессию
 func (h *UserHandler) revokeCurrentSession(r *http.Request) {
 	if accessCookie, err := r.Cookie(usecase.AccessCookieName); err == nil {
-		if claims, err := h.userUseCase.ValidateAccessToken(accessCookie.Value); err == nil {
+		if claims, err := h.useCase.ValidateAccessToken(accessCookie.Value); err == nil {
 			h.sessionStore.RevokeSession(claims.SessionID)
 		}
 	}
