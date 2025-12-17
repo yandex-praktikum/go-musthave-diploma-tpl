@@ -1,0 +1,6 @@
+# Конфигурация сервиса
+run_address: localhost:8080                                                          # адрес и порт запуска сервиса
+database_uri: postgres://pgx_md5:secret@localhost:5432/pgx_test?sslmode=disable      # адрес подключения к базе данных
+accrual_system_address: http://localhost:8081                                               # адрес системы расчёта начислений
+secret_key: super_key                                                                # секретный ключ для подписи сессионного токена
+
