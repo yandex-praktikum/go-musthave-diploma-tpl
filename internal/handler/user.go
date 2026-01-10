@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"musthave/internal/model"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

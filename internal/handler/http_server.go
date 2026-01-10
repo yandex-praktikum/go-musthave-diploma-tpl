@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"musthave/internal/service"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/service"
 )
 
 type Handlers struct {

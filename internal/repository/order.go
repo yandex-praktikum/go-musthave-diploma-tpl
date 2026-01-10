@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"fmt"
+	"musthave/internal/model"
 
 	"github.com/shopspring/decimal"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
 )
 
 func (r *Repo) WithdrawnBalance(ctx context.Context, login, order string, amount decimal.Decimal) error {

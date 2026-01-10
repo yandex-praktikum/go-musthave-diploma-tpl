@@ -1,11 +1,11 @@
 package service
 
 import (
+	"musthave/internal/model"
 	"sort"
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
 )
 
 func (s *Short) GetOrderList(log string) []*model.UserOrderRes {

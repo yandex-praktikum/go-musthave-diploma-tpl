@@ -3,15 +3,13 @@ package service
 import (
 	"context"
 	"database/sql"
+	cfg "musthave/internal/config/app"
+	"musthave/internal/config/db"
+	"musthave/internal/model"
+	"musthave/internal/repository"
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	cfg "github.com/tartushkin/go-musthave-diploma-tpl.git/internal/config/app"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/config/db"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
-
-	//"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/repository"
 )
 
 const defaultParamDelete = 20 // дефолтный параметр на запуска процесса уадаления

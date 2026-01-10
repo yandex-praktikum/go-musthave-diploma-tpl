@@ -2,9 +2,9 @@ package service
 
 import (
 	"fmt"
+	"musthave/internal/model"
 
 	"github.com/shopspring/decimal"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

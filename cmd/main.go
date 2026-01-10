@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	cfg "musthave/internal/config/app"
+	"musthave/internal/handler"
+	srv "musthave/internal/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sirupsen/logrus"
-	cfg "github.com/tartushkin/go-musthave-diploma-tpl.git/internal/config/app"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/handler"
-	srv "github.com/tartushkin/go-musthave-diploma-tpl.git/internal/service"
 )
 
 func main() {

@@ -2,10 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"musthave/internal/model"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/tartushkin/go-musthave-diploma-tpl.git/internal/model"
 )
 
 func (h *Handlers) withdrawPoints(ctx echo.Context) error {
