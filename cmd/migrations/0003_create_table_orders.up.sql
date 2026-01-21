@@ -1,6 +1,6 @@
 -- Создание таблицы
 CREATE table IF NOT EXISTS t_gophermart.t_orders (
-    n_order int PRIMARY KEY,
+    n_order bigint PRIMARY KEY,
     s_user VARCHAR(100) NOT NULL,
     s_status VARCHAR(50) NOT NULL,
     s_sber_thx VARCHAR(50) NOT NULL,

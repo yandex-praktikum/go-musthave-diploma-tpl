@@ -64,9 +64,9 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	})) //в билиотеке уже есть middleware для логирования запрсов
 	h.httpServer.Use(middleware.Recover())
 	h.httpServer.Use(GzipMiddleware)
-	h.httpServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return h.authMiddleware(next)
-	})
+	//h.httpServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+	//	return h.authMiddleware(next)
+	//})
 	h.httpServer.HTTPErrorHandler = func(err error, c echo.Context) {
 		// Логируем ошибку
 		c.Logger().Error(err)
@@ -89,11 +89,11 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	}
 	h.httpServer.POST("/api/user/login", h.logIn)
 	h.httpServer.POST("/api/user/register", h.regitsterUser)
-	h.httpServer.GET("/api/user/balance", h.getBalance)
-	h.httpServer.GET("/api/user/orders", h.getOrderList)
-	h.httpServer.POST("/api/user/orders", h.setOrder)
-	h.httpServer.POST("/api/user/balance/withdraw", h.withdrawPoints)
-	h.httpServer.GET("/api/user/withdrawals", h.infoWithdrawals)
+	h.httpServer.GET("/api/user/balance", h.withAuth(h.getBalance))
+	h.httpServer.GET("/api/user/orders", h.withAuth(h.getOrderList))
+	h.httpServer.POST("/api/user/orders", h.withAuth(h.setOrder))
+	h.httpServer.POST("/api/user/balance/withdraw", h.withAuth(h.withdrawPoints))
+	h.httpServer.GET("/api/user/withdrawals", h.withAuth(h.infoWithdrawals))
 
 	go func() {
 		if err := h.httpServer.Start(httpPort); err != nil && err != http.ErrServerClosed {

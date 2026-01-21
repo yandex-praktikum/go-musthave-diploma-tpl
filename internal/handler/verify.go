@@ -31,9 +31,8 @@ func (h *Handlers) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		claims := &jwt.RegisteredClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (any, error) {
-			return h.secret, nil
+			return []byte(h.secret), nil
 		})
-
 		if err != nil || !token.Valid {
 			return echo.NewHTTPError(http.StatusUnauthorized, "неверный токен")
 		}
@@ -48,9 +47,8 @@ func (h *Handlers) auth(c echo.Context, log string) error {
 	// Генерируем JWT
 	token, err := h.generateJWT(log)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "ошибка генерации токена")
+		return echo.NewHTTPError(http.StatusInternalServerError, "ошибка генерации токена - "+err.Error())
 	}
-
 	// Вариант A: выдаём в куке (для веба)
 	c.SetCookie(&http.Cookie{
 		Name:     "auth",
@@ -69,7 +67,7 @@ func (h *Handlers) generateJWT(log string) (string, error) {
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(h.secret)
+	return token.SignedString([]byte(h.secret))
 }
 func isValidLuhn(number string) bool {
 	sum := 0
@@ -94,4 +92,8 @@ func isValidLuhn(number string) bool {
 	}
 
 	return sum%10 == 0
+}
+
+func (h *Handlers) withAuth(handler echo.HandlerFunc) echo.HandlerFunc {
+	return h.authMiddleware(handler)
 }

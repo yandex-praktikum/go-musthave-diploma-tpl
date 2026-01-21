@@ -17,7 +17,7 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 
 	// Проверяем, что Content-Type равен "text/plain"
 	if contentType != "text/plain" {
-		return ctx.JSON(http.StatusBadRequest, "Content-Type не соответсвует ожидаемому: text/plain")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Content-Type не соответсвует ожидаемому: text/plain"})
 	}
 	login := ctx.Get("user_login").(string)
 	if login == "" {
@@ -40,28 +40,28 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 	order := string(body) // луна и невереный формат
 	if !isValidLuhn(order) {
 		h.Market.Lg.Error("setOrder.err - невереный формат номера заказа: " + order)
-		return ctx.JSON(http.StatusUnprocessableEntity, "ошибка - невереный формат номера заказа")
+		return ctx.JSON(http.StatusUnprocessableEntity, map[string]string{"message": "ошибка - невереный формат номера заказа"})
 	}
 
 	id, _ := strconv.Atoi(order)
 	_, ok = user.OrderList[id]
 	if ok {
-		return ctx.JSON(http.StatusOK, "номер заказа уже был загружен этим пользователем")
+		return ctx.JSON(http.StatusOK, map[string]string{"message": "номер заказа уже был загружен этим пользователем"})
 	}
 
 	// проверка на существование заказа у других
-	ok, err = h.Market.Repo.OrderExists(h.Market.Ctx, order)
+	ok, err = h.Market.Repo.OrderExists(h.Market.Ctx, id)
 	if err != nil {
 		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - ошибка при поиске заказа на наличие в БД %v", order))
-		return ctx.JSON(http.StatusInternalServerError, "ошибка - "+err.Error())
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
 	}
 	if ok {
 		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - номер заказа %v - уже был загружен другим пользователем ", order))
-		return ctx.JSON(http.StatusConflict, "номер заказа уже был загружен другим пользователем")
+		return ctx.JSON(http.StatusConflict, map[string]string{"message": "номер заказа уже был загружен другим пользователем"})
 	}
 	err = h.Market.SetOrder(login, id)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, "ошибка - "+err.Error())
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
 	}
 
 	return nil
@@ -81,6 +81,8 @@ func (h *Handlers) getOrderList(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusConflict, " пользователь с логином %s не существует", login)
 	}
 	list := h.Market.GetOrderList(login)
-
+	if len(list) == 0 {
+		return ctx.JSON(http.StatusNoContent, "")
+	}
 	return ctx.JSON(http.StatusOK, list)
 }

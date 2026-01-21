@@ -16,7 +16,7 @@ func (h *Handlers) regitsterUser(ctx echo.Context) error {
 	// Проверяем, что Content-Type равен "application/json"
 	if contentType != "application/json" {
 		h.Market.Lg.Error("Content-Type не соответсвует ожидаемому: application/json")
-		return ctx.JSON(http.StatusBadRequest, "Content-Type не соответсвует ожидаемому: application/json")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Content-Type не соответсвует ожидаемому: text/plain"})
 	}
 
 	var req model.UserReq
@@ -36,15 +36,15 @@ func (h *Handlers) regitsterUser(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusConflict, " пользователь с логином %s уже существует", req.Login)
 	}
 
-	err := h.Market.RegisterUser(req.Login, req.Password)
+	err := h.auth(ctx, req.Login)
 	if err != nil {
 		h.Market.Lg.Error("Ошибка при работе с телом запроса: " + err.Error())
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
-	err = h.auth(ctx, req.Login)
+	err = h.Market.RegisterUser(req.Login, req.Password)
 	if err != nil {
 		h.Market.Lg.Error("Ошибка при работе с телом запроса: " + err.Error())
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
 	return ctx.NoContent(http.StatusOK)
@@ -58,15 +58,15 @@ func (h *Handlers) logIn(ctx echo.Context) error {
 	// Проверяем, что Content-Type равен "application/json"
 	if contentType != "application/json" {
 		h.Market.Lg.Error("Content-Type не соответсвует ожидаемому: application/json")
-		return ctx.JSON(http.StatusBadRequest, "Content-Type не соответсвует ожидаемому: application/json")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "Content-Type не соответсвует ожидаемому: application/json"})
 	}
 	var req model.UserReq
 	if err := ctx.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "неверные данные")
+		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{"message": "неверные данные"})
 	}
 
 	if req.Login == "" || req.Password == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "логин и пароль обязательны")
+		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{"message": "логин и пароль обязательны"})
 	}
 	h.Market.Mu.RLock()
 	user, ok := h.Market.UserCH[req.Login]
@@ -84,7 +84,7 @@ func (h *Handlers) logIn(ctx echo.Context) error {
 	err = h.auth(ctx, req.Login)
 	if err != nil {
 		h.Market.Lg.Error("Ошибка при работе с телом запроса: " + err.Error())
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
 	return nil

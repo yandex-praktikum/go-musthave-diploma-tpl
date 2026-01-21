@@ -27,7 +27,7 @@ func (r *Repo) GetInfoWithdrawnBalance(ctx context.Context, login string) ([]*mo
 		WHERE s_user = $1
 		AND s_type = 'minus'
 		ORDER BY dt_created_at DESC
-		`)
+		`, login)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (r *Repo) CreateOrder(ctx context.Context, order int, login string) (time.T
 	err := r.conn.QueryRowContext(ctx,
 		`INSERT INTO t_gophermart.t_orders (n_order, s_user, s_status, s_sber_thx)
 		 VALUES ($1, $2, $3, $4)
-		 RETURNING t_created`,
+		 RETURNING dt_created_at`,
 		order, login, model.NEW, model.CALCULATION,
 	).Scan(&createdTime)
 	if err != nil {
@@ -86,7 +86,7 @@ func (r *Repo) SetBonus(ctx context.Context, orderID int, status, accrual string
 	return err
 }
 
-func (r *Repo) OrderExists(ctx context.Context, orderID string) (bool, error) {
+func (r *Repo) OrderExists(ctx context.Context, orderID int) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM t_gophermart.t_orders WHERE n_order = $1)`
 	err := r.conn.QueryRowContext(ctx, query, orderID).Scan(&exists)

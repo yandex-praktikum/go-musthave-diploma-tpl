@@ -33,7 +33,7 @@ func (m *Market) LoadStorageUser(ctx context.Context) error {
 }
 
 func (m *Market) RegisterUser(log string, pass string) error {
-	m.Lg.Info("RegisterUser.start - начало регестрации нового пользователя")
+	m.Lg.Info("RegisterUser.start - начало регестрации нового пользователя: " + log)
 
 	err := m.create(log, pass) // упаковка пользователя
 	if err != nil {

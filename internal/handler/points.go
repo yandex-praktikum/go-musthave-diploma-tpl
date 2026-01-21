@@ -65,7 +65,7 @@ func (h *Handlers) infoWithdrawals(ctx echo.Context) error {
 	}
 	if len(list) == 0 {
 		h.Market.Lg.Info("нет ни одного списания")
-		return ctx.JSON(http.StatusNoContent, "нет ни одного списания")
+		return ctx.JSON(http.StatusNoContent, map[string]string{"message": "нет ни одного списания"})
 	}
 
 	return ctx.JSON(http.StatusOK, list)

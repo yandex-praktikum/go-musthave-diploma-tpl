@@ -1,7 +1,7 @@
 -- Создание таблицы
 CREATE table IF NOT EXISTS t_gophermart.t_transactions  (
     n_id SERIAL PRIMARY KEY,
-    n_order INT,
+    n_order bigint,
     s_user VARCHAR(100) NOT NULL,
     s_type VARCHAR(10) NOT NULL CHECK (s_type IN ('plus', 'minus')),
     n_value DECIMAL(10, 2) NOT NULL,

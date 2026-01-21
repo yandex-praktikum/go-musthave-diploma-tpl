@@ -43,6 +43,7 @@ func Create(ctx context.Context, lg *slog.Logger, cfg *cfg.Config, cl *accrual.C
 		client:   cl,
 	}
 
+	m.paramGetStatus = time.Second * time.Duration(cfg.ParamGetStatus)
 	if cfg.DNS != "" {
 		conn, err := db.NewConnection(cfg.DNS)
 		if err != nil {
@@ -87,6 +88,7 @@ func (m *Market) checkUnfinishedOrder(ctx context.Context) {
 			}
 		}
 	}
+	m.Lg.Info("checkUnfinishedOrder.finish - список незавершенных поокупок пуст")
 }
 
 // processGetStatus - процес получения статуса и баллов по заказу
@@ -110,9 +112,9 @@ func (m *Market) processGetStatus(ctx context.Context, login string, orderID int
 				err := m.Repo.SetStatus(ctx, orderID, model.PROCESSING)
 				if err != nil {
 					m.Lg.Error(fmt.Sprintf("processGetStatus.error - не удалось установить статус %v, для заказа %v, из за ошибки: %v", model.PROCESSING, orderID, err.Error()))
-					cancel()
+					continue
 				}
-				cancel()
+				continue
 			}
 
 			finish, err := m.checkStatus(processContext, res, orderID, login)
