@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -69,4 +70,28 @@ func (h *Handlers) generateJWT(log string) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(h.secret)
+}
+func isValidLuhn(number string) bool {
+	sum := 0
+	alternate := false
+
+	// Проходим по строке справа налево
+	for i := len(number) - 1; i >= 0; i-- {
+		digit, err := strconv.Atoi(string(number[i]))
+		if err != nil {
+			return false // Если символ не цифра, номер некорректен
+		}
+
+		if alternate {
+			digit *= 2
+			if digit > 9 {
+				digit = (digit / 10) + (digit % 10)
+			}
+		}
+
+		sum += digit
+		alternate = !alternate
+	}
+
+	return sum%10 == 0
 }

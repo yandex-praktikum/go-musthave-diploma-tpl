@@ -5,10 +5,10 @@ CREATE table IF NOT EXISTS t_gophermart.t_transactions  (
     s_user VARCHAR(100) NOT NULL,
     s_type VARCHAR(10) NOT NULL CHECK (s_type IN ('plus', 'minus')),
     n_value DECIMAL(10, 2) NOT NULL,
-    dt_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    dt_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    FOREIGN KEY (n_order) REFERENCES t_orders(n_order) ON DELETE SET NULL,
-    FOREIGN KEY (s_user) REFERENCES t_users(s_login) ON DELETE CASCADE
+    FOREIGN KEY (n_order) REFERENCES t_gophermart.t_orders(n_order) ON DELETE SET NULL,
+    FOREIGN KEY (s_user) REFERENCES t_gophermart.t_users(s_login) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE  t_gophermart.t_transactions IS 'Таблица ссылок';

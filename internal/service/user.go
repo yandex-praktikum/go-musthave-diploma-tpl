@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"musthave/internal/model"
 
@@ -8,10 +9,33 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Short) RegisterUser(log string, pass string) error {
-	s.Lg.Info("RegisterUser.start - начало регестрации нового пользователя")
+func (m *Market) LoadStorageUser(ctx context.Context) error {
+	list, err := m.Repo.GetUserList(ctx)
+	if err != nil {
+		return err
+	}
 
-	err := s.create(log, pass) // упаковка пользователя
+	for _, user := range list {
+		orderList, err := m.Repo.GetOrderList(ctx, user.Login)
+		if err != nil {
+			return err
+		}
+
+		user.OrderList = make(map[int]*model.Order)
+		for _, order := range orderList {
+			user.OrderList[order.OrderID] = order
+		}
+		m.Mu.Lock()
+		m.UserCH[user.Login] = user
+		m.Mu.Unlock()
+	}
+	return nil
+}
+
+func (m *Market) RegisterUser(log string, pass string) error {
+	m.Lg.Info("RegisterUser.start - начало регестрации нового пользователя")
+
+	err := m.create(log, pass) // упаковка пользователя
 	if err != nil {
 		return err
 	}
@@ -20,8 +44,10 @@ func (s *Short) RegisterUser(log string, pass string) error {
 }
 
 // create - проверка и регистрация нового пользователя
-func (s *Short) create(log string, pass string) error {
-	_, ok := s.UserCH[log]
+func (m *Market) create(log string, pass string) error {
+	m.Mu.RLock()
+	_, ok := m.UserCH[log]
+	m.Mu.RUnlock()
 	if ok {
 		return fmt.Errorf(" пользователь с логином %s уже существует", log) // логин есть, нужна кастомная ошибка и проверка на каастом извне
 	}
@@ -31,27 +57,27 @@ func (s *Short) create(log string, pass string) error {
 		Login:    log,
 		PassHash: string(hash),
 	}
-	err := s.Repo.RegisterUser(s.Ctx, log, pass)
+	err := m.Repo.RegisterUser(m.Ctx, log, string(hash))
 	if err != nil {
 		return err
 	}
-	s.Lg.Info("RegisterUser.progress - успешно добавли нового пользователя в БД")
+	m.Lg.Info("RegisterUser.progress - успешно добавли нового пользователя в БД")
 
-	s.mu.RLock()
-	s.UserCH[user.Login] = user
-	s.mu.RUnlock()
-	s.Lg.Info("RegisterUser.progress - добавли нового пользователя в кеш ")
+	m.Mu.RLock()
+	m.UserCH[user.Login] = user
+	m.Mu.RUnlock()
+	m.Lg.Info("RegisterUser.progress - добавли нового пользователя в кеш ")
 
 	return nil
 }
 
-func (s *Short) GetMyBalance(login string) (decimal.Decimal, decimal.Decimal, error) {
-	s.Lg.Info("GetMyBanance.start - подсчет баланса для пользователя: " + login)
-	cb, tw, err := s.Repo.GetInfoMyBalance(s.Ctx, login)
+func (m *Market) GetMyBalance(login string) (decimal.Decimal, decimal.Decimal, error) {
+	m.Lg.Info("GetMyBanance.start - подсчет баланса для пользователя: " + login)
+	cb, tw, err := m.Repo.GetInfoMyBalance(m.Ctx, login)
 	if err != nil {
 		return decimal.Zero, decimal.Zero, err
 	}
-	s.Lg.Info(fmt.Sprintf("GetMyBanance.start - подсчет баланса для пользователя: %s - завершен. Баланс: %v, Выведено: %v", login, cb, tw))
+	m.Lg.Info(fmt.Sprintf("GetMyBanance.start - подсчет баланса для пользователя: %s - завершен. Баланс: %v, Выведено: %v", login, cb, tw))
 
 	return cb, tw, nil
 }

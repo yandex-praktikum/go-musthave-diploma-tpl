@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"musthave/internal/model"
 
 	"github.com/shopspring/decimal"
 )
@@ -28,5 +29,26 @@ func (r *Repo) GetInfoMyBalance(ctx context.Context, login string) (decimal.Deci
 	}
 
 	return cb, tw, nil
+
+}
+func (r *Repo) GetUserList(ctx context.Context) ([]*model.User, error) {
+	rows, err := r.conn.QueryContext(ctx, `SELECT s_login, s_pass_hash FROM t_gophermart.t_users`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := []*model.User{}
+	for rows.Next() {
+		user := &model.User{}
+		if err := rows.Scan(&user.Login, &user.PassHash); err != nil {
+			return nil, err
+		}
+		list = append(list, user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
 
 }

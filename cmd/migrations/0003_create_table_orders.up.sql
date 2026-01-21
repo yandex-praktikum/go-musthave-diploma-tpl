@@ -1,12 +1,12 @@
 -- Создание таблицы
 CREATE table IF NOT EXISTS t_gophermart.t_orders (
-    n_order PRIMARY KEY,
+    n_order int PRIMARY KEY,
     s_user VARCHAR(100) NOT NULL,
     s_status VARCHAR(50) NOT NULL,
     s_sber_thx VARCHAR(50) NOT NULL,
     dt_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    FOREIGN KEY (s_user) REFERENCES t_users(s_login) ON DELETE CASCADE
+    FOREIGN KEY (s_user) REFERENCES t_gophermart.t_users(s_login) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE  t_gophermart.t_orders IS 'Таблица ссылок';

@@ -14,7 +14,7 @@ import (
 )
 
 type Handlers struct {
-	Short      *service.Short // внутриняя логика приложения
+	Market     *service.Market // внутриняя логика приложения
 	httpServer *echo.Echo
 	secret     string
 }
@@ -28,8 +28,8 @@ type compressReader struct {
 	zr *gzip.Reader
 }
 
-func NewHandlers(short *service.Short) *Handlers {
-	return &Handlers{Short: short}
+func NewHandlers(market *service.Market) *Handlers {
+	return &Handlers{Market: market}
 }
 
 // StartHTTP - инициализация и запуск сервера
@@ -70,11 +70,15 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	h.httpServer.POST("/api/user/balance/withdraw", h.withdrawPoints)
 	h.httpServer.GET("/api/user/withdrawals", h.infoWithdrawals)
 
-	if err := h.httpServer.Start(httpPort); err != nil && err != http.ErrServerClosed {
-		h.httpServer.Logger.Info("Сервер остановлен: %v", err)
-	}
-
+	go func() {
+		if err := h.httpServer.Start(httpPort); err != nil && err != http.ErrServerClosed {
+			h.httpServer.Logger.Error("HTTP сервер завершился с ошибкой", "error", err)
+		}
+	}()
+	<-ctx.Done()
+	h.StopHTTP(ctx)
 	return nil
+
 }
 
 // остнавка http сервера
@@ -168,7 +172,7 @@ func (c *compressReader) Close() error {
 func (h *Handlers) getBody(ctx echo.Context) ([]byte, error) {
 	body, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
-		h.Short.Lg.Error("ошибка при работе с телом запроса: " + err.Error())
+		h.Market.Lg.Error("ошибка при работе с телом запроса: " + err.Error())
 		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return body, nil

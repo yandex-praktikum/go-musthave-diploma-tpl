@@ -1,15 +1,20 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"musthave/internal/model"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
 )
 
-func (s *Short) GetOrderList(log string) []*model.UserOrderRes {
-	user, _ := s.UserCH[log]
+func (m *Market) GetOrderList(log string) []*model.UserOrderRes {
+	m.Mu.RLock()
+	user, _ := m.UserCH[log]
+	m.Mu.RUnlock()
 	orders := []*model.UserOrderRes{}
 
 	if len(user.OrderList) < 1 {
@@ -21,8 +26,9 @@ func (s *Short) GetOrderList(log string) []*model.UserOrderRes {
 	})
 
 	for _, order := range user.OrderList {
+		o := strconv.Itoa(order.OrderID)
 		orders = append(orders, &model.UserOrderRes{
-			Order:   order.OrderID,
+			Order:   o,
 			Status:  order.Status,
 			Accrual: order.Accural,
 			Created: order.Created.Format(time.RFC3339),
@@ -33,18 +39,74 @@ func (s *Short) GetOrderList(log string) []*model.UserOrderRes {
 	return orders
 }
 
-func (s *Short) WithdrawnBalance(log, order string, amount decimal.Decimal) error {
-	err := s.Repo.WithdrawnBalance(s.Ctx, log, order, amount)
+func (m *Market) WithdrawnBalance(log, order string, amount decimal.Decimal) error {
+	err := m.Repo.SetTransaction(m.Ctx, log, order, "minus", amount)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Short) GetInfoWithdrawnBalance(log string) ([]*model.WithdrawReq, error) {
-	list, err := s.Repo.GetInfoWithdrawnBalance(s.Ctx, log)
+func (m *Market) GetInfoWithdrawnBalance(log string) ([]*model.WithdrawReq, error) {
+	list, err := m.Repo.GetInfoWithdrawnBalance(m.Ctx, log)
 	if err != nil {
 		return nil, err
 	}
 	return list, err
+}
+
+// SetOrder - формирование нового заказа
+func (m *Market) SetOrder(login string, order int) error {
+	m.Lg.Info(fmt.Sprintf("SetOrder.start - формирование нового заказа: %v", order))
+
+	create, err := m.Repo.CreateOrder(m.Ctx, order, login)
+	if err != nil {
+		m.Lg.Error(fmt.Sprintf("SetOrder.error - ошибка при добавлении заказа в БД %v", order))
+		return err
+	}
+
+	m.Mu.RLock()
+	user, _ := m.UserCH[login]
+	m.Mu.RUnlock()
+	user.OrderList[order] = &model.Order{
+		OrderID: order,
+		Status:  model.NEW,
+		Created: create,
+	}
+	m.Lg.Info(fmt.Sprintf("SetOrder.progress - заказ: %v, успешно добавлен в БД и Кеш", order))
+
+	go m.processGetStatus(m.Ctx, login, order, m.paramGetStatus)
+	return nil
+}
+
+// checkStatus - мапинг статусов
+func (m *Market) checkStatus(ctx context.Context, res *model.AccrualRes, order int, user string) (bool, error) {
+	switch res.Status {
+	case model.PROCESSED:
+		err := m.Repo.SetBonus(ctx, order, model.PROCESSED, fmt.Sprintf("%v", res.Accrual))
+		if err != nil {
+			return false, err
+		}
+
+		dec := decimal.NewFromInt(int64(res.Accrual))
+		err = m.Repo.SetTransaction(ctx, user, fmt.Sprintf("%v", order), "plus", dec)
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+	case model.PROCESSING:
+		err := m.Repo.SetStatus(ctx, order, model.PROCESSING)
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	case model.INVALID:
+		err := m.Repo.SetStatus(ctx, order, model.INVALID)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
 }
