@@ -13,8 +13,13 @@ import (
 
 func (m *Market) GetOrderList(log string) []*model.UserOrderRes {
 	m.Mu.RLock()
-	user, _ := m.UserCH[log]
+	user, ok := m.UserCH[log]
 	m.Mu.RUnlock()
+	if !ok {
+		m.Lg.Error("GetOrderList.err - пользователь: " + log + " не найдден")
+		return nil
+	}
+
 	orders := []*model.UserOrderRes{}
 
 	if len(user.OrderList) < 1 {
@@ -66,8 +71,12 @@ func (m *Market) SetOrder(login string, order int) error {
 	}
 
 	m.Mu.RLock()
-	user, _ := m.UserCH[login]
+	user, ok := m.UserCH[login]
 	m.Mu.RUnlock()
+	if !ok {
+		m.Lg.Error("GetOrderList.err - пользователь: " + login + " не найдден")
+		return nil
+	}
 	user.OrderList[order] = &model.Order{
 		OrderID: order,
 		Status:  model.NEW,

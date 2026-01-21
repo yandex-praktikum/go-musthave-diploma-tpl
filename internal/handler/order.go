@@ -52,10 +52,13 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 	// проверка на существование заказа у других
 	ok, err = h.Market.Repo.OrderExists(h.Market.Ctx, order)
 	if err != nil {
-		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - ошибка при заказа на наличие в БД %v", order))
+		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - ошибка при поиске заказа на наличие в БД %v", order))
 		return ctx.JSON(http.StatusInternalServerError, "ошибка - "+err.Error())
 	}
-
+	if ok {
+		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - номер заказа %v - уже был загружен другим пользователем ", order))
+		return ctx.JSON(http.StatusConflict, "номер заказа уже был загружен другим пользователем")
+	}
 	err = h.Market.SetOrder(login, id)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, "ошибка - "+err.Error())

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"musthave/internal/service"
 	"net/http"
 	"strings"
@@ -36,7 +37,31 @@ func NewHandlers(market *service.Market) *Handlers {
 func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	h.secret = sk
 	h.httpServer = echo.New()
-	h.httpServer.Use(middleware.Logger()) //в билиотеке уже есть middleware для логирования запрсов
+	h.httpServer.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogURI:      true,
+		LogError:    true,
+		HandleError: true,
+		LogLatency:  true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+			fields := []any{
+				"method", c.Request().Method,
+				"uri", c.Path(),
+				"status", v.Status,
+				"latency_ms", v.Latency.Milliseconds(),
+				"request_id", requestID,
+			}
+
+			if v.Error != nil {
+				fields = append(fields, "error", v.Error.Error())
+				slog.Error("request failed", fields...)
+			} else {
+				slog.Info("request completed", fields...)
+			}
+			return nil
+		},
+	})) //в билиотеке уже есть middleware для логирования запрсов
 	h.httpServer.Use(middleware.Recover())
 	h.httpServer.Use(GzipMiddleware)
 	h.httpServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
