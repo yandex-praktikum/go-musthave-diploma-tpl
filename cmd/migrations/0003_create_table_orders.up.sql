@@ -1,3 +1,4 @@
+-- +goose Up
 -- Создание таблицы
 CREATE table IF NOT EXISTS t_gophermart.t_orders (
     n_order bigint PRIMARY KEY,
@@ -15,3 +16,5 @@ COMMENT ON COLUMN t_gophermart.t_orders.s_user IS 'пользователь';
 COMMENT ON COLUMN t_gophermart.t_orders.s_status IS 'статус заказа';
 COMMENT ON COLUMN t_gophermart.t_orders.s_sber_thx IS 'количество кешбека за заказ';
 COMMENT ON COLUMN t_gophermart.t_orders.dt_created_at IS 'дата регистрации заказа в сервисе';
+-- +goose Down
+DROP TABLE IF EXISTS t_gophermart.t_orders CASCADE;

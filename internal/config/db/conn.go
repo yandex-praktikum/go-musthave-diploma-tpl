@@ -20,7 +20,7 @@ func NewConnection(ps string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ошибка при открытии базы данных %w", err)
 	}
 
-	err = migrations(ps)
+	err = runMigrations(db)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func runMigrations(db *sql.DB) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
 	}
-	return goose.Up(db, getMigrationsDir()) // путь работает нормально
+	return goose.Up(db, filepath.Join("..", "migrations"))
 }
 func getMigrationsDir() string {
 	// Получаем путь к текущему файлу (main.go)
