@@ -17,6 +17,7 @@ func NewConnection(ps string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при открытии базы данных %w", err)
 	}
+
 	err = migration(ps)
 	if err != nil {
 		return nil, err
