@@ -20,7 +20,7 @@ func NewConfig() *Config {
 	cfg := Config{}
 	var paramTimeOut int
 	// обязателльные параметры
-	flag.StringVar(&cfg.Port, "a", getDef("RUN_ADDRESS", "localhost:8080"), "порт сервиса")
+	flag.StringVar(&cfg.Port, "a", getDef("RUN_ADDRESS", "8080"), "порт сервиса")
 	flag.StringVar(&cfg.DNS, "d", getDef("DATABASE_URI", "postgres://postgres:12345678@localhost:5432/market?sslmode=disable"), "cтрока с адресом подключения к БД")
 	flag.StringVar(&cfg.AccrualPath, "r", getDef("ACCRUAL_SYSTEM_ADDRESS", ""), "путь к blackBox")
 
