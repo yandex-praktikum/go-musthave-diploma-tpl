@@ -95,11 +95,13 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	h.httpServer.POST("/api/user/balance/withdraw", h.withAuth(h.withdrawPoints))
 	h.httpServer.GET("/api/user/withdrawals", h.withAuth(h.infoWithdrawals))
 
-	if err := h.httpServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
-		h.httpServer.Logger.Error("HTTP сервер завершился с ошибкой", "error", err)
-		return err
-	}
+	go func() {
+		if err := h.httpServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
+			h.Market.Lg.Error("HTTP сервер завершился с ошибкой", "error", err)
+		}
+	}()
 	<-ctx.Done()
+	h.Market.Lg.Info("Контекст завершен")
 	h.StopHTTP(ctx)
 	return nil
 
@@ -107,6 +109,7 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 
 // остнавка http сервера
 func (h *Handlers) StopHTTP(ctx context.Context) {
+	h.Market.Lg.Info("Остановка сервера")
 	h.httpServer.Shutdown(ctx)
 }
 func GzipMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

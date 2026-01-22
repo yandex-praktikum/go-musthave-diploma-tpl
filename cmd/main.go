@@ -15,12 +15,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// todo:
-// - узнать как корректно обращаться к блэкбокс
-// - дописать процесс получения статуса
-// - безопасность мап
-// - мапить стаутсы с блэкбокса на наши
-// - тесты ?
 func main() {
 	lg := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	//ctx := context.Background()
@@ -35,7 +29,7 @@ func main() {
 	}
 
 	h := handler.NewHandlers(sh)
-
+	lg.Info("Запуск сервера ")
 	go func() {
 		if err := h.StartHTTP(ctx, cfg.Port, cfg.SecretKey); err != nil && err != http.ErrServerClosed {
 			lg.Error("ошибка HTTP-сервера", "error", err)
