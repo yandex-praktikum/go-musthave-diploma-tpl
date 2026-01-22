@@ -20,9 +20,9 @@ func NewConfig() *Config {
 	cfg := Config{}
 	var paramTimeOut int
 	// обязателльные параметры
-	flag.StringVar(&cfg.Port, "a", ":8080", "порт сервиса")
+	flag.StringVar(&cfg.Port, "a", "localhost:8080", "порт сервиса")
 	flag.StringVar(&cfg.DNS, "d", "postgres://postgres:12345678@localhost:5432/market?sslmode=disable", "cтрока с адресом подключения к БД")
-	flag.StringVar(&cfg.AccrualPath, "r", "/api/orders/", "путь к blackBox")
+	flag.StringVar(&cfg.AccrualPath, "r", "", "путь к blackBox")
 
 	// кастомные
 	flag.StringVar(&cfg.SecretKey, "k", "tort-secret-key", "ключ")
@@ -32,14 +32,14 @@ func NewConfig() *Config {
 
 	cfg.ParamTimeOut = time.Duration(paramTimeOut) * time.Second
 
-	if runAddr, exists := os.LookupEnv("SERVER_ADDRESS"); exists && runAddr != "" {
+	if runAddr, exists := os.LookupEnv("RUN_ADDRESS"); exists && runAddr != "" {
 		cfg.Port = runAddr
 	}
 
 	if accrualPath, exists := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); exists && accrualPath != "" {
 		cfg.AccrualPath = accrualPath
 	}
-	if db, exists := os.LookupEnv("DATABASE_DSN"); exists && db != "" {
+	if db, exists := os.LookupEnv("DATABASE_URI"); exists && db != "" {
 		cfg.DNS = db
 	}
 

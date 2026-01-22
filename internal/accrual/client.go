@@ -30,7 +30,7 @@ func NewClient(path string, timeOut time.Duration) *Client {
 }
 
 func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (*model.AccrualRes, error) {
-	path := c.baseURL + order + fmt.Sprintf("%v", orderID) //?
+	path := c.baseURL + order + fmt.Sprintf("%v", orderID)
 	var count int
 	for {
 		if count >= c.attemptCount {
