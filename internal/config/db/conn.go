@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -16,7 +15,7 @@ func NewConnection(ps string) (*sql.DB, error) {
 
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка при открытии базы данных", err)
+		return nil, fmt.Errorf("ошибка при открытии базы данных %w", err)
 	}
 	err = migration(ps)
 	if err != nil {
@@ -32,8 +31,8 @@ func migration(ps string) error {
 		ps)
 	if err != nil {
 		//log.Fatalf("Ошибка создания объекта миграции: %v", err)
-		log.Println("Ошибка создания объекта миграции:  " + err.Error() + ". Строка подключения - " + ps)
-		return err
+		//log.Println("Ошибка создания объекта миграции:  " + err.Error() + ". Строка подключения - " + ps)
+		return fmt.Errorf("Ошибка создания объекта миграции: %w. Строка подключения - %s", err, ps)
 	}
 
 	// Применение миграций
