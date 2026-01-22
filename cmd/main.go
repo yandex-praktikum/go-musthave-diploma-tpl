@@ -22,13 +22,17 @@ func main() {
 	defer stop()
 
 	cfg := cfg.NewConfig() // инициализация конфига
+	lg.Info("Конфиг загружен", "port", cfg.Port, "accrual", cfg.AccrualPath)
 	cl := accrual.NewClient(cfg.AccrualPath, cfg.ParamTimeOut)
+	lg.Info("Клиент к accrual создан")
 	sh, err := srv.Create(ctx, lg, cfg, cl) // инициализация сервиса
 	if err != nil {
+		lg.Error("Ошибка инициализации сервиса", "error", err)
 		panic(err)
 	}
-
+	lg.Info("Сервис создан")
 	h := handler.NewHandlers(sh)
+	lg.Info("Хендлеры созданы")
 	lg.Info("Запуск сервера ")
 	go func() {
 		if err := h.StartHTTP(ctx, cfg.Port, cfg.SecretKey); err != nil && err != http.ErrServerClosed {
