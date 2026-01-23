@@ -46,15 +46,11 @@ func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 //}
 
 func migrations(ps string) error {
-	fmt.Println("миграте")
-	// Запуск миграций при старте приложения
 	m, err := migrate.New(
 		"file://./migrations",
 		ps)
 	if err != nil {
-		//log.Fatalf("Ошибка создания объекта миграции: %v", err)
-		//log.Println("Ошибка создания объекта миграции:  " + err.Error() + ". Строка подключения - " + ps)
-		return fmt.Errorf("Ошибка создания объекта миграции: %w. Строка подключения - %s", err, ps)
+		return fmt.Errorf("ошибка создания объекта миграции: %w  Строка подключения - %s", err, ps)
 	}
 
 	// Применение миграций
