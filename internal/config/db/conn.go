@@ -49,7 +49,7 @@ func migrations(ps string) error {
 	fmt.Println("миграте")
 	// Запуск миграций при старте приложения
 	m, err := migrate.New(
-		"file:migrations",
+		"file://./migrations",
 		ps)
 	if err != nil {
 		//log.Fatalf("Ошибка создания объекта миграции: %v", err)

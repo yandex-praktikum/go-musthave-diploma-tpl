@@ -1,4 +1,4 @@
--- +goose Up
+
 CREATE OR REPLACE FUNCTION t_gophermart.get_user_stats(s_user_login VARCHAR)
 RETURNS TABLE(
     current_balance DECIMAL(10, 2),
@@ -14,5 +14,3 @@ BEGIN
     WHERE s_user = s_user_login;
 END;
 $$ LANGUAGE plpgsql;
--- +goose Down
-DROP FUNCTION IF EXISTS t_gophermart.get_user_stats(VARCHAR);
