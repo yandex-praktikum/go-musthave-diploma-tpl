@@ -47,7 +47,7 @@ func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 
 func migrations(ps string) error {
 	m, err := migrate.New(
-		"file://./migrations",
+		"file://../../migrations", //C:\Users\tartu\Work\repo\musthave\migrations
 		ps)
 	if err != nil {
 		return fmt.Errorf("ошибка создания объекта миграции: %w  Строка подключения - %s", err, ps)
