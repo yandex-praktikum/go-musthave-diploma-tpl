@@ -45,7 +45,7 @@ func Create(ctx context.Context, lg *slog.Logger, cfg *cfg.Config, cl *accrual.C
 
 	m.paramGetStatus = time.Second * time.Duration(cfg.ParamGetStatus)
 	if cfg.DNS != "" {
-		conn, err := db.NewConnection(cfg.DNS)
+		conn, err := db.NewConnection(ctx, cfg.DNS)
 		if err != nil {
 			lg.Error("db: не удалось подключиться к DB")
 			return nil, err

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -13,35 +14,31 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func NewConnection(ps string) (*sql.DB, error) {
+func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при открытии базы данных %w", err)
 	}
 
-	err = runMigrations(db)
+	err = runMigrations(ctx, db)
 	if err != nil {
 		return nil, err
 	}
 
 	return db, nil
 }
-func runMigrations(db *sql.DB) error {
+func runMigrations(ctx context.Context, db *sql.DB) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
 	} //filepath.Join("..", "migrations")
-	return goose.Up(db, "migrations")
-}
-func getMigrationsDir() string {
-	// Получаем путь к текущему файлу (main.go)
-	////_, filename, _, _ := runtime.Caller(0)
-	// Берём директорию: .../cmd/gophermart
-	//gophermartDir := filepath.Dir(filename)
-	// Поднимаемся на уровень: .../cmd
-	//cmdDir := filepath.Dir(gophermartDir)
-	// Спускаемся в migrations
-	return filepath.Join("..", "/migrations")
+	//var embedMigrations embed.FS
+	//goose.SetBaseFS(embedMigrations)
+
+	if err := goose.UpContext(ctx, db, "migrations"); err != nil {
+		return fmt.Errorf("goose up: %w", err)
+	}
+	return nil
 }
 
 func migrations(ps string) error {
