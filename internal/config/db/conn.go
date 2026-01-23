@@ -30,8 +30,8 @@ func NewConnection(ps string) (*sql.DB, error) {
 func runMigrations(db *sql.DB) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
-	}
-	return goose.Up(db, filepath.Join("..", "migrations"))
+	} //filepath.Join("..", "migrations")
+	return goose.Up(db, "migrations")
 }
 func getMigrationsDir() string {
 	// Получаем путь к текущему файлу (main.go)
@@ -41,7 +41,7 @@ func getMigrationsDir() string {
 	// Поднимаемся на уровень: .../cmd
 	//cmdDir := filepath.Dir(gophermartDir)
 	// Спускаемся в migrations
-	return filepath.Join("..", "migrations")
+	return filepath.Join("..", "/migrations")
 }
 
 func migrations(ps string) error {
