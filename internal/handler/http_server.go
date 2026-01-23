@@ -96,7 +96,7 @@ func (h *Handlers) StartHTTP(ctx context.Context, httpPort, sk string) error {
 	h.httpServer.GET("/api/user/withdrawals", h.withAuth(h.infoWithdrawals))
 
 	go func() {
-		if err := h.httpServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
+		if err := h.httpServer.Start(httpPort); err != nil && err != http.ErrServerClosed {
 			h.Market.Lg.Error("HTTP сервер завершился с ошибкой", "error", err)
 		}
 	}()
