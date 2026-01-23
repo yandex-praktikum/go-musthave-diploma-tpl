@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -13,6 +15,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+var embedMigrations embed.FS
 
 func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 
@@ -31,11 +35,14 @@ func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 func runMigrations(ctx context.Context, db *sql.DB) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
-	} //filepath.Join("..", "migrations")
-	//var embedMigrations embed.FS
-	//goose.SetBaseFS(embedMigrations)
+	}
+	goose.SetLogger(goose.NopLogger())
+	goose.SetBaseFS(embedMigrations)
 
-	if err := goose.UpContext(ctx, db, "migrations"); err != nil {
+	migrationsDir := "migrations"
+
+	log.Printf("applying goose migrations from %s", migrationsDir)
+	if err := goose.UpContext(ctx, db, migrationsDir); err != nil {
 		return fmt.Errorf("goose up: %w", err)
 	}
 	return nil
