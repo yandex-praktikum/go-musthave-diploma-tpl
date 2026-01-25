@@ -196,11 +196,11 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func (h *Handlers) getBody(ctx echo.Context) ([]byte, error) {
-	body, err := io.ReadAll(ctx.Request().Body)
-	if err != nil {
-		h.Market.Lg.Error("ошибка при работе с телом запроса: " + err.Error())
-		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	return body, nil
-}
+//unc (h *Handlers) getBody(ctx echo.Context) ([]byte, error) {
+//	body, err := io.ReadAll(ctx.Request().Body)
+//	if err != nil {
+//		h.Market.Lg.Error("ошибка при работе с телом запроса: " + err.Error())
+//		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+//	}
+//	return body, nil
+//

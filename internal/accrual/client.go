@@ -26,21 +26,24 @@ func NewClient(path string, timeOut time.Duration) *Client {
 		client: &http.Client{
 			Timeout: timeOut,
 		},
+		attemptCount: 4,
 	}
 }
 
 func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (*model.AccrualRes, error) {
 	path := c.baseURL + order + fmt.Sprintf("%v", orderID)
 	var count int
+	lg.Info("GetAccrual.start - старт процесса коммуникации с accrualService, заказ: " + fmt.Sprintf("%v", orderID))
+	var errG string
 	for {
 		if count >= c.attemptCount {
-			return nil, fmt.Errorf("превышено макс.количество попыток")
+			return nil, fmt.Errorf("превышено макс.количество попыток: %s", errG)
 		}
 		lg.Info("GetAccrual.start - старт новой иттерации на запрос статуса по заказу: " + fmt.Sprintf("%v", orderID))
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
 		if err != nil {
 			lg.Error("GetAccrual.err - ошибка создания запроса: " + err.Error() + ". Пробуем еще раз")
-			//return nil, fmt.Errorf("ошибка создания запроса: %w", err)
+			errG = err.Error()
 			count++
 			continue
 		}
@@ -48,8 +51,8 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 		if err != nil {
 			lg.Error("GetAccrual.err - ошибка HTTP-запроса:" + err.Error() + ". Пробуем еще раз")
 			count++
+			errG = err.Error()
 			continue
-			//return nil, fmt.Errorf("ошибка HTTP-запроса: %w", err)
 		}
 		defer resp.Body.Close()
 
@@ -59,6 +62,7 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 		case http.StatusOK:
 			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 				lg.Error("GetAccrual.err - ошибка парсинга JSON: " + err.Error() + ". Пробуем еще раз")
+				errG = err.Error()
 				count++
 				continue
 			}
@@ -66,10 +70,12 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 		case http.StatusNoContent:
 			lg.Error("GetAccrual.err - заказ не зарегистрирован в системе расчёта. Пробуем еще раз")
 			count++
+			errG = "GetAccrual.err -заказ не зарегистрирован в системе расчёта. Пробуем еще раз"
 			continue
 			//return nil, fmt.Errorf("заказ не зарегистрирован в системе расчёта")
 		case http.StatusInternalServerError:
 			lg.Error("GetAccrual.err - внутренняя ошибка сервера расчета. Пробуем еще раз")
+			errG = "GetAccrual.err - внутренняя ошибка сервера расчета. Пробуем еще раз"
 			count++
 			continue
 		case http.StatusTooManyRequests:

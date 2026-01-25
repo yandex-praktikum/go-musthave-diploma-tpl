@@ -17,8 +17,8 @@ type UserOrderRes struct {
 }
 
 type BalanceRes struct {
-	SberThx   decimal.Decimal `json:"current"`   // подумать над типом ы
-	Withdrawn decimal.Decimal `json:"withdrawn"` // подумать над типомы
+	SberThx   float64 `json:"current"`   // подумать над типом ы
+	Withdrawn float64 `json:"withdrawn"` // подумать над типомы
 }
 
 type WithdrawReq struct {

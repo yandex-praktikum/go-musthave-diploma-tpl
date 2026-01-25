@@ -21,20 +21,20 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 	}
 	login := ctx.Get("user_login").(string)
 	if login == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "не смогли вычитать логин из контекста запроса")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "не смогли вычитать логин из контекста запроса"})
 	}
 	h.Market.Mu.RLock()
 	user, ok := h.Market.UserCH[login]
 	h.Market.Mu.RUnlock()
 	if !ok {
 		h.Market.Lg.Info("не нашли пользоваетля с данным логином в кеше - " + login)
-		return echo.NewHTTPError(http.StatusUnauthorized, " пользователь с логином %s не существует", login)
+		return ctx.JSON(http.StatusUnauthorized, map[string]string{"message": " пользователь с логином не существует" + login})
 	}
 	// Прочитываем тело как plain text
 	body, err := io.ReadAll(ctx.Request().Body)
 	if err != nil {
 		h.Market.Lg.Error("setOrder.err - не удалось прочитать тело запроса")
-		return echo.NewHTTPError(http.StatusBadRequest, "не удалось прочитать тело")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "не удалось прочитать тело"})
 	}
 
 	order := string(body) // луна и невереный формат
@@ -72,14 +72,14 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 func (h *Handlers) getOrderList(ctx echo.Context) error {
 	login := ctx.Get("user_login").(string)
 	if login == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "не смогли вычитать логин из контекста запроса")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "не смогли вычитать логин из контекста запроса"})
 	}
 	h.Market.Mu.RLock()
 	_, ok := h.Market.UserCH[login]
 	h.Market.Mu.RUnlock()
 	if !ok {
 		h.Market.Lg.Info("не нашли пользоваетля с данным логином в кеше - " + login)
-		return echo.NewHTTPError(http.StatusConflict, " пользователь с логином %s не существует", login)
+		return ctx.JSON(http.StatusConflict, map[string]string{"message": "пользователь с логином не существует" + login})
 	}
 	list := h.Market.GetOrderList(login)
 	if len(list) == 0 {
