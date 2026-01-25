@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	CONFLICT    = "данный URL"
@@ -27,7 +30,7 @@ type Order struct {
 	Accrual string
 }
 type AccrualRes struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual"`
+	Order   string      `json:"order"`
+	Status  string      `json:"status"`
+	Accrual json.Number `json:"accrual"`
 }

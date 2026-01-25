@@ -105,7 +105,10 @@ func (m *Market) checkStatus(ctx context.Context, res *model.AccrualRes, order i
 			return false, err
 		}
 
-		dec := decimal.NewFromInt(int64(res.Accrual))
+		dec, err := decimal.NewFromString(res.Accrual.String())
+		if err != nil {
+			return false, fmt.Errorf("неверный формат accrual: %v", res.Accrual)
+		}
 		err = m.Repo.SetTransaction(ctx, user, fmt.Sprintf("%v", order), "plus", dec)
 		if err != nil {
 			return false, err

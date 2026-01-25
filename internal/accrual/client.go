@@ -56,7 +56,6 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 			continue
 		}
 		defer resp.Body.Close()
-		lg.Info(fmt.Sprintf("GetAccrual.Body - Тело ответа от серрвиса расчета - %v", resp.Body))
 		var result model.AccrualRes
 
 		switch resp.StatusCode {
