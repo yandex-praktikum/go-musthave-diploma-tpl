@@ -45,6 +45,7 @@ func (m *Market) GetOrderList(log string) []*model.UserOrderRes {
 }
 
 func (m *Market) WithdrawnBalance(log, order string, amount decimal.Decimal) error {
+	m.Lg.Info("checkStatus.set.plus - установка новой транзакции для пользователя: " + log + " сумма: " + fmt.Sprintf("%v", amount) + " в статусе: processed")
 	err := m.Repo.SetTransaction(m.Ctx, log, order, "minus", amount)
 	if err != nil {
 		return err
@@ -102,6 +103,7 @@ func (m *Market) checkStatus(ctx context.Context, res *model.AccrualRes, order i
 		if err != nil {
 			return false, err
 		}
+		m.Lg.Info("checkStatus.set.plus - установка новой транзакции для пользователя: " + user + " сумма: " + fmt.Sprintf("%v", dec) + " в статусе: processed")
 
 		return true, nil
 	case model.PROCESSING:

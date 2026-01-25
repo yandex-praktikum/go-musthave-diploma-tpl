@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"musthave/internal/model"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -16,7 +17,7 @@ func (h *Handlers) withdrawPoints(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "не смогли вычитать логин из контекста запроса"})
 	}
 	h.Market.Mu.RLock()
-	_, ok := h.Market.UserCH[login]
+	user, ok := h.Market.UserCH[login]
 	h.Market.Mu.RUnlock()
 	if !ok {
 		h.Market.Lg.Info("не нашли пользоваетля с данным логином в кеше - " + login)
@@ -36,6 +37,29 @@ func (h *Handlers) withdrawPoints(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("ошибка списания бонусов - баланс меньше суммы списания. Баланс: %v ", cb)})
 
 	}
+	//
+	id, _ := strconv.Atoi(req.Order)
+	_, ok = user.OrderList[id]
+	if ok {
+		h.Market.Lg.Info("setOrder.exsist - заказ: " + req.Order + "уже зарегестрирован у этого пользователя")
+		return ctx.JSON(http.StatusOK, map[string]string{"message": "номер заказа уже был загружен этим пользователем"})
+	}
+
+	// проверка на существование заказа у других
+	ok, err = h.Market.Repo.OrderExists(h.Market.Ctx, id)
+	if err != nil {
+		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - ошибка при поиске заказа на наличие в БД %v", req.Order))
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
+	}
+	if ok {
+		h.Market.Lg.Error(fmt.Sprintf("setOrder.error - номер заказа %v - уже был загружен другим пользователем ", req.Order))
+		return ctx.JSON(http.StatusConflict, map[string]string{"message": "номер заказа уже был загружен другим пользователем"})
+	}
+	err = h.Market.SetOrder(login, id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
+	}
+	//
 	err = h.Market.WithdrawnBalance(login, req.Order, req.Value)
 	if err != nil {
 		h.Market.Lg.Error("ошибка списания бонусов: " + err.Error())
