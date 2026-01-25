@@ -31,7 +31,7 @@ type Market struct {
 	paramGetStatus time.Duration
 }
 
-// NewShort - заполнение структуры приложения
+// Create - заполнение структуры приложения
 func Create(ctx context.Context, lg *slog.Logger, cfg *cfg.Config, cl *accrual.Client) (*Market, error) {
 	userCH := map[string]*model.User{}
 	m := &Market{
