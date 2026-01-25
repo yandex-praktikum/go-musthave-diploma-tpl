@@ -34,7 +34,6 @@ type Market struct {
 // NewShort - заполнение структуры приложения
 func Create(ctx context.Context, lg *slog.Logger, cfg *cfg.Config, cl *accrual.Client) (*Market, error) {
 	userCH := map[string]*model.User{}
-
 	m := &Market{
 		Lg:       lg,
 		Ctx:      ctx,

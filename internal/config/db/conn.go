@@ -29,25 +29,9 @@ func NewConnection(ctx context.Context, ps string) (*sql.DB, error) {
 	return db, nil
 }
 
-//func runMigrations(ctx context.Context, db *sql.DB) error {
-//	if err := goose.SetDialect("postgres"); err != nil {
-//		return err
-//	}
-//	goose.SetLogger(goose.NopLogger())
-//	goose.SetBaseFS(embedMigrations)
-//
-//	migrationsDir := "migrations"
-//
-//	log.Printf("applying goose migrations from %s", migrationsDir)
-//	if err := goose.UpContext(ctx, db, migrationsDir); err != nil {
-//		return fmt.Errorf("goose up: %w", err)
-//	}
-//	return nil
-//}
-
 func migrations(ps string) error {
 	m, err := migrate.New(
-		"file://migrations", //C:\Users\tartu\Work\repo\musthave\migrations
+		"file://migrations", //migrations
 		ps)
 	if err != nil {
 		return fmt.Errorf("ошибка создания объекта миграции: %w  Строка подключения - %s", err, ps)

@@ -1,4 +1,3 @@
-
 CREATE table IF NOT EXISTS t_gophermart.t_transactions  (
     n_id SERIAL PRIMARY KEY,
     n_order bigint,
@@ -18,5 +17,3 @@ COMMENT ON COLUMN t_gophermart.t_transactions.s_type IS 'тип - начисле
 COMMENT ON COLUMN t_gophermart.t_transactions.n_value IS 'количество начислений/списаний';
 COMMENT ON COLUMN t_gophermart.t_transactions.s_user IS 'ползователь';
 COMMENT ON COLUMN t_gophermart.t_transactions.dt_created_at IS 'дата списания бонусов';
-
-DROP TABLE IF EXISTS t_gophermart.t_transactions CASCADE;

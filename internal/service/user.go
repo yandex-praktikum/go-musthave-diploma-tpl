@@ -54,8 +54,9 @@ func (m *Market) create(log string, pass string) error {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	user := &model.User{
-		Login:    log,
-		PassHash: string(hash),
+		Login:     log,
+		PassHash:  string(hash),
+		OrderList: make(map[int]*model.Order),
 	}
 	err := m.Repo.RegisterUser(m.Ctx, log, string(hash))
 	if err != nil {

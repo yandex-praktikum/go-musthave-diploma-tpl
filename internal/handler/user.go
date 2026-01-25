@@ -73,7 +73,7 @@ func (h *Handlers) logIn(ctx echo.Context) error {
 	h.Market.Mu.RUnlock()
 	if !ok {
 		h.Market.Lg.Info("пользователя с логином не существует - " + req.Login)
-		return echo.NewHTTPError(http.StatusConflict, " пользователь с логином %s не существует", req.Login)
+		return echo.NewHTTPError(http.StatusConflict, " пользователь с логином не существует "+req.Login)
 	}
 	err := bcrypt.CompareHashAndPassword([]byte(user.PassHash), []byte(req.Password))
 	if err != nil {

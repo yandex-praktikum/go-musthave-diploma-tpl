@@ -46,6 +46,7 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 	id, _ := strconv.Atoi(order)
 	_, ok = user.OrderList[id]
 	if ok {
+		h.Market.Lg.Info("setOrder.exsist - заказ: " + order + "уже зарегестрирован у этого пользователя")
 		return ctx.JSON(http.StatusOK, map[string]string{"message": "номер заказа уже был загружен этим пользователем"})
 	}
 
@@ -64,7 +65,7 @@ func (h *Handlers) setOrder(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
 	}
 
-	return nil
+	return ctx.JSON(http.StatusAccepted, map[string]string{"message": " новый номер заказа принят в обработку"})
 }
 
 // getOrderList - получить список заказов
