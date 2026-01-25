@@ -35,7 +35,7 @@ func (m *Market) GetOrderList(log string) []*model.UserOrderRes {
 
 		accrual, err := decimal.NewFromString(order.Accrual)
 		if err != nil {
-			m.Lg.Error("GetOrderList.err - ошибка преобразования ")
+			m.Lg.Error("GetOrderList.err - ошибка преобразования: " + err.Error())
 		}
 		accrualFloat64, _ := accrual.Float64()
 

@@ -47,6 +47,7 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 			count++
 			continue
 		}
+
 		resp, err := c.client.Do(req)
 		if err != nil {
 			lg.Error("GetAccrual.err - ошибка HTTP-запроса:" + err.Error() + ". Пробуем еще раз")
@@ -55,7 +56,7 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 			continue
 		}
 		defer resp.Body.Close()
-
+		lg.Info(fmt.Sprintf("GetAccrual.Body - Тело ответа от серрвиса расчета - %v", resp.Body))
 		var result model.AccrualRes
 
 		switch resp.StatusCode {
@@ -66,6 +67,7 @@ func (c *Client) GetAccrual(ctx context.Context, lg *slog.Logger, orderID int) (
 				count++
 				continue
 			}
+			lg.Info(fmt.Sprintf("GetAccrual.res - результата после маршалинга - %v", resp.Body))
 			return &result, nil
 		case http.StatusNoContent:
 			lg.Error("GetAccrual.err - заказ не зарегистрирован в системе расчёта. Пробуем еще раз")
