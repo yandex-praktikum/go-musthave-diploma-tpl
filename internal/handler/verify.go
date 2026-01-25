@@ -26,7 +26,7 @@ func (h *Handlers) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		if tokenString == "" {
-			return echo.NewHTTPError(http.StatusUnauthorized, "нет токена")
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "нет токена"})
 		}
 
 		claims := &jwt.RegisteredClaims{}
@@ -34,7 +34,7 @@ func (h *Handlers) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return []byte(h.secret), nil
 		})
 		if err != nil || !token.Valid {
-			return echo.NewHTTPError(http.StatusUnauthorized, "неверный токен")
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "неверный токен "})
 		}
 
 		c.Set("user_login", claims.Subject)
@@ -47,7 +47,7 @@ func (h *Handlers) auth(c echo.Context, log string) error {
 	// Генерируем JWT
 	token, err := h.generateJWT(log)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "ошибка генерации токена - "+err.Error())
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "ошибка генерации токена - " + err.Error()})
 	}
 	// Вариант A: выдаём в куке (для веба)
 	c.SetCookie(&http.Cookie{

@@ -32,10 +32,17 @@ func (m *Market) GetOrderList(log string) []*model.UserOrderRes {
 
 	for _, order := range user.OrderList {
 		o := strconv.Itoa(order.OrderID)
+
+		accrual, err := decimal.NewFromString(order.Accrual)
+		if err != nil {
+			m.Lg.Error("GetOrderList.err - ошибка преобразования ")
+		}
+		accrualFloat64, _ := accrual.Float64()
+
 		orders = append(orders, &model.UserOrderRes{
 			Order:   o,
 			Status:  order.Status,
-			Accrual: order.Accural,
+			Accrual: float32(accrualFloat64),
 			Created: order.Created.Format(time.RFC3339),
 		})
 

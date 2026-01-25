@@ -127,7 +127,7 @@ func (m *Market) processGetStatus(ctx context.Context, login string, orderID int
 			if finish {
 				m.Lg.Info("processGetStatus.finish - заказ" + res.Order + " имеет финишный статус: " + res.Status + ", процес опроса будет завершен.")
 				order.Status = res.Status
-				order.Accural = fmt.Sprintf("%v", res.Accrual)
+				order.Accrual = fmt.Sprintf("%v", res.Accrual)
 				cancel()
 			}
 			order.Status = res.Status

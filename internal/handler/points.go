@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	"github.com/shopspring/decimal"
 )
 
 // withdrawPoints - списание бонусов
@@ -27,12 +28,17 @@ func (h *Handlers) withdrawPoints(ctx echo.Context) error {
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "неверные данные"})
 	}
+	valueStr := req.Value.String()
+	valueDec, err := decimal.NewFromString(valueStr)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "неверный формат суммы"})
+	}
 	cb, _, err := h.Market.GetMyBalance(login)
 	if err != nil {
 		h.Market.Lg.Error("ошибка подсчета баланса: " + err.Error())
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка подсчета баланса: " + err.Error()})
 	}
-	if cb.Cmp(req.Value) < 0 {
+	if cb.Cmp(valueDec) < 0 {
 		h.Market.Lg.Error("ошибка списания бонусов - баланс меньше суммы списания.", " Баланс: ", cb)
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("ошибка списания бонусов - баланс меньше суммы списания. Баланс: %v ", cb)})
 
@@ -60,7 +66,7 @@ func (h *Handlers) withdrawPoints(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "ошибка - " + err.Error()})
 	}
 	//
-	err = h.Market.WithdrawnBalance(login, req.Order, req.Value)
+	err = h.Market.WithdrawnBalance(login, req.Order, valueDec)
 	if err != nil {
 		h.Market.Lg.Error("ошибка списания бонусов: " + err.Error())
 		return ctx.JSON(http.StatusInternalServerError, map[string]string{"message": "неверные данные"})

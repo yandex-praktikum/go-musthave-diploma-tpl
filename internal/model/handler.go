@@ -1,8 +1,6 @@
 package model
 
-import (
-	"github.com/shopspring/decimal"
-)
+import "encoding/json"
 
 type UserReq struct {
 	Login    string `json:"login"`
@@ -10,10 +8,10 @@ type UserReq struct {
 }
 
 type UserOrderRes struct {
-	Order   string `json:"number"`
-	Status  string `json:"status"`
-	Accrual string `json:"accrual,omitempty"`
-	Created string `json:"uploaded_at"`
+	Order   string  `json:"number"`
+	Status  string  `json:"status"`
+	Accrual float32 `json:"accrual,omitempty"`
+	Created string  `json:"uploaded_at"`
 }
 
 type BalanceRes struct {
@@ -22,7 +20,7 @@ type BalanceRes struct {
 }
 
 type WithdrawReq struct {
-	Order   string          `json:"order"`
-	Value   decimal.Decimal `json:"sum"` // подумать над типом
-	Created string          `json:"processed_at"`
+	Order   string      `json:"order"`
+	Value   json.Number `json:"sum"` // подумать над типом
+	Created string      `json:"processed_at"`
 }

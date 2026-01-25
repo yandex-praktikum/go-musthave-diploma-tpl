@@ -126,7 +126,7 @@ func GzipMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if sendsGzip {
 			cr, err := newCompressReader(c.Request().Body)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
 			}
 			c.Request().Body = cr
 			defer cr.Close()
@@ -195,12 +195,3 @@ func (c *compressReader) Close() error {
 	}
 	return c.zr.Close()
 }
-
-//unc (h *Handlers) getBody(ctx echo.Context) ([]byte, error) {
-//	body, err := io.ReadAll(ctx.Request().Body)
-//	if err != nil {
-//		h.Market.Lg.Error("ошибка при работе с телом запроса: " + err.Error())
-//		return nil, echo.NewHTTPError(http.StatusBadRequest, err.Error())
-//	}
-//	return body, nil
-//

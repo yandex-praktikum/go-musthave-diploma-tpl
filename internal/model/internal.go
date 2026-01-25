@@ -24,7 +24,7 @@ type Order struct {
 	OrderID int
 	Status  string
 	Created time.Time
-	Accural string
+	Accrual string
 }
 type AccrualRes struct {
 	Order   string  `json:"order"`

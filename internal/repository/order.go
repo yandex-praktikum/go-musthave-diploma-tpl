@@ -110,7 +110,7 @@ func (r *Repo) GetOrderList(ctx context.Context, user string) ([]*model.Order, e
 	orderList := []*model.Order{}
 	for rows.Next() {
 		order := &model.Order{}
-		if err := rows.Scan(&order.OrderID, &order.Status, &order.Accural, &order.Created); err != nil {
+		if err := rows.Scan(&order.OrderID, &order.Status, &order.Accrual, &order.Created); err != nil {
 			return nil, err
 		}
 		orderList = append(orderList, order)

@@ -27,7 +27,7 @@ func NewConfig() *Config {
 	// кастомные
 	flag.StringVar(&cfg.SecretKey, "k", "tort-secret-key", "ключ")
 	flag.IntVar(&cfg.ParamGetStatus, "t", 20, "частота запуска очистки от помеченных на удаление URL")
-	flag.IntVar(&paramTimeOut, "s", 20, "таймаут подключения к внешнему сервису(в секундах)")
+	flag.IntVar(&paramTimeOut, "s", 60, "таймаут подключения к внешнему сервису(в секундах)")
 	flag.Parse()
 
 	cfg.ParamTimeOut = time.Duration(paramTimeOut) * time.Second
