@@ -1,0 +1,26 @@
+services:
+  gophermart:
+    build:
+      context: .
+      dockerfile: ./cmd/gophermart/Dockerfile
+    container_name: gophermart
+    depends_on:
+      - postgres
+    environment:
+      RUN_ADDRESS: ":8000"
+      DATABASE_URI: postgres://gopher:secret@postgres:5432/gophermart?sslmode=disable
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: gophermart-postgres
+    environment:
+      POSTGRES_DB: gophermart
+      POSTGRES_USER: gopher
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
