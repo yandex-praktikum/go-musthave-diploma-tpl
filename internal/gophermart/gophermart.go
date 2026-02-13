@@ -26,7 +26,7 @@ func NewGophermart(ctx context.Context, connPool *pgxpool.Pool) *Gophermart {
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, userInfo dto.UserCredential) error {
-	if _, err := g.repositories.UserRepo.GetUser(ctx, userInfo); err != nil {
+	if _, err := g.repositories.UserRepo.GetUser(ctx, userInfo); err == nil {
 		return ErrUserAlreadyExist
 	}
 
