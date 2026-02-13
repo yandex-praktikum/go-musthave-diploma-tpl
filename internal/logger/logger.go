@@ -18,13 +18,25 @@ func InitLogger() {
 }
 
 func Info(msg string, fields ...zap.Field) {
+	if logger == nil {
+		return
+	}
+
 	logger.Info(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
+	if logger == nil {
+		return
+	}
+
 	logger.Error(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
+	if logger == nil {
+		return
+	}
+
 	logger.Fatal(msg, fields...)
 }
