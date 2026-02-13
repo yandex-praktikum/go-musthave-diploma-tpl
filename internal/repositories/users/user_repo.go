@@ -8,6 +8,7 @@ import (
 	"github.com/Raime-34/gophermart.git/internal/dto"
 	"github.com/Raime-34/gophermart.git/internal/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type UserRepo struct {
@@ -19,7 +20,7 @@ type UserRepo struct {
 func NewUserRepo(ctx context.Context, pool *pgxpool.Pool) *UserRepo {
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		logger.Fatal("Error while acquiring connection from the database pool")
+		logger.Fatal("Error while acquiring connection from the database pool: %v", zap.Error(err))
 	}
 
 	return &UserRepo{
