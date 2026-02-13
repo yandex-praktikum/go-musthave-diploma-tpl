@@ -6,25 +6,18 @@ import (
 	"sync"
 
 	"github.com/Raime-34/gophermart.git/internal/dto"
-	"github.com/Raime-34/gophermart.git/internal/logger"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap"
+	dbinterface "github.com/Raime-34/gophermart.git/internal/repositories/db_interface"
 )
 
 type UserRepo struct {
-	db          *pgxpool.Conn
+	db          dbinterface.DbIface
 	cachedUsers map[string]*dto.UserData
 	mu          sync.RWMutex
 }
 
-func NewUserRepo(ctx context.Context, pool *pgxpool.Pool) *UserRepo {
-	conn, err := pool.Acquire(ctx)
-	if err != nil {
-		logger.Fatal("Error while acquiring connection from the database pool: %v", zap.Error(err))
-	}
-
+func NewUserRepo(ctx context.Context, pool dbinterface.DbIface) *UserRepo {
 	return &UserRepo{
-		db:          conn,
+		db:          pool,
 		cachedUsers: make(map[string]*dto.UserData),
 	}
 }
