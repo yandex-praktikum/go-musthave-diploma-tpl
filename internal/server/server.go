@@ -3,13 +3,11 @@ package server
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/Raime-34/gophermart.git/internal/cfg"
 	"github.com/Raime-34/gophermart.git/internal/cookie"
@@ -17,9 +15,11 @@ import (
 	"github.com/Raime-34/gophermart.git/internal/gophermart"
 	"github.com/Raime-34/gophermart.git/internal/logger"
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type Server struct {
@@ -68,24 +68,18 @@ func StartServer() {
 }
 
 func migration(dsn string) {
-	entries, err := os.ReadDir("./")
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("sql open", zap.Error(err))
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		logger.Fatal("db ping", zap.Error(err))
 	}
 
-	for _, e := range entries {
-		fmt.Println(e.Name())
-	}
-
-	m, err := migrate.New(
-		"file://./migrations",
-		dsn,
-	)
-	if err != nil {
-		logger.Fatal("Failed to init migration", zap.Error(err))
-	}
-	if err := m.Up(); err != nil {
-		log.Fatal("Failed to make migration", zap.Error(err))
+	if err := goose.Up(db, "/app//migrations"); err != nil {
+		logger.Fatal("goose up", zap.Error(err))
 	}
 }
 
