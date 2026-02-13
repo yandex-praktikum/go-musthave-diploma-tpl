@@ -4,15 +4,16 @@ services:
       context: .
       dockerfile: ./cmd/gophermart/Dockerfile
     container_name: gophermart
-    depends_on:
-      - postgres
     environment:
       RUN_ADDRESS: ":8000"
       DATABASE_URI: postgres://gopher:secret@postgres:5432/gophermart?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
-    container_name: gophermart-postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: gophermart
       POSTGRES_USER: gopher
@@ -21,6 +22,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gopher -d gophermart"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
 volumes:
   pgdata:
