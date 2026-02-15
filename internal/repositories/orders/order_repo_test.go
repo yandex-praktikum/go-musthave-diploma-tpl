@@ -50,7 +50,7 @@ func TestOrderRepo_RegisterOrder(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	repo := NewOrderRepo(mock)
-	ctx := context.WithValue(t.Context(), "userID", userUuid)
+	ctx := context.WithValue(t.Context(), consts.UserIdKey, userUuid)
 	err = repo.RegisterOrder(ctx, orderNumber)
 	assert.Nil(t, err)
 	assert.Nil(t, mock.ExpectationsWereMet())
