@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Raime-34/gophermart.git/internal/accrual"
+	"github.com/Raime-34/gophermart.git/internal/cfg"
 	"github.com/Raime-34/gophermart.git/internal/dto"
+	"github.com/Raime-34/gophermart.git/internal/logger"
 	"github.com/Raime-34/gophermart.git/internal/repositories"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 var (
@@ -16,12 +20,28 @@ var (
 )
 
 type Gophermart struct {
-	repositories *repositories.Repositories
+	repositories      *repositories.Repositories
+	accrualCalculator accrualCalculator
 }
 
 func NewGophermart(ctx context.Context, connPool *pgxpool.Pool) *Gophermart {
-	return &Gophermart{
-		repositories: repositories.NewRepositories(ctx, connPool),
+	calculator := accrual.NewAccrualCalculator(cfg.GetConfig().AccrualSystemUrl)
+	ch := calculator.StartMonitoring(ctx)
+
+	gophermart := &Gophermart{
+		repositories:      repositories.NewRepositories(ctx, connPool),
+		accrualCalculator: calculator,
+	}
+	go gophermart.handleOrderState(ch)
+
+	return gophermart
+}
+
+func (g *Gophermart) handleOrderState(ch <-chan *dto.AccrualCalculatorDTO) {
+	for newState := range ch {
+		if err := g.repositories.OrderRepo.UpdateOrder(context.Background(), *newState); err != nil {
+			logger.Error("Failed to update order", zap.Error(err))
+		}
 	}
 }
 
@@ -46,7 +66,9 @@ func (g *Gophermart) LoginUser(ctx context.Context, userInfo dto.UserCredential)
 	return userData, nil
 }
 
-// func (g *Gophermart) InsertOrder(int) error {}
+func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error {
+	return g.repositories.OrderRepo.RegisterOrder(ctx, orderNumber)
+}
 
 // func (g *Gophermart) GetUserOrders() []dto.OrderInfo {}
 

@@ -35,16 +35,17 @@ func TestUserRepo_RegisterUser(t *testing.T) {
 				AddRow(userData.Uuid),
 		)
 
-	repo := NewUserRepo(t.Context(), mock)
+	repo := NewUserRepo(mock)
 	err = repo.RegisterUser(
 		t.Context(),
 		userCreds,
 	)
 	assert.Nil(t, err)
-	gotedUserData, found := repo.getCachedUser(userCreds)
+	gotedUserData, found := repo.cachedUsers.Get(userCreds.Login)
 	assert.True(t, found)
 	assert.NotNil(t, gotedUserData)
 	assert.Equal(t, userData, *gotedUserData)
+	assert.Nil(t, mock.ExpectationsWereMet())
 }
 
 func TestUserRepo_GetUser(t *testing.T) {
@@ -70,7 +71,7 @@ func TestUserRepo_GetUser(t *testing.T) {
 			pgxmock.NewRows([]string{"uuid", "login", "password"}),
 		)
 
-	repo := NewUserRepo(t.Context(), mock)
+	repo := NewUserRepo(mock)
 	gotedUserData, err := repo.GetUser(t.Context(), userCreds)
 	assert.NotNil(t, err)
 	assert.Nil(t, gotedUserData)
@@ -91,4 +92,5 @@ func TestUserRepo_GetUser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, gotedUserData)
 	assert.Equal(t, userData, *gotedUserData)
+	assert.Nil(t, mock.ExpectationsWereMet())
 }

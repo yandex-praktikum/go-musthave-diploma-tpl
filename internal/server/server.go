@@ -2,16 +2,12 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/Raime-34/gophermart.git/internal/cfg"
+	"github.com/Raime-34/gophermart.git/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/cookie"
-	"github.com/Raime-34/gophermart.git/internal/dto"
 	"github.com/Raime-34/gophermart.git/internal/gophermart"
 	"github.com/Raime-34/gophermart.git/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -53,6 +49,27 @@ func (s *Server) mountHandlers() {
 	s.router.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", s.registerUser)
 		r.Post("/login", s.loginUser)
+
+		r.Group(func(r chi.Router) {
+			r.Use(s.authMiddleware)
+			r.Post("/orders", s.registerOrder)
+		})
+	})
+}
+
+func (s *Server) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("sid")
+		if err != nil || c.Value == "" {
+			logger.Error("Session id is not found")
+			logger.Info(r.Header.Get("Cookie"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		userData := s.cookieHandler.Get(c.Value)
+		ctx := context.WithValue(r.Context(), consts.UserIdKey, userData.Uuid)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -81,58 +98,4 @@ func migration(dsn string) {
 	if err := goose.Up(db, "/app//migrations"); err != nil {
 		logger.Fatal("goose up", zap.Error(err))
 	}
-}
-
-func (s *Server) registerUser(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var userCredential dto.UserCredential
-	err := decoder.Decode(&userCredential)
-	if err != nil {
-		logger.Error("Failed to decode UserCredential: %v", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err = s.gophermart.RegisterUser(r.Context(), userCredential)
-	if err != nil {
-		logger.Error("Failed to register user: %v", zap.Error(err))
-		w.WriteHeader(http.StatusConflict)
-		return
-	}
-}
-
-func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var userCredential dto.UserCredential
-	err := decoder.Decode(&userCredential)
-	if err != nil {
-		logger.Error("Failed to decode UserCredential", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	userData, err := s.gophermart.LoginUser(r.Context(), userCredential)
-	if err != nil {
-		if errors.Is(err, gophermart.ErrUserNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
-		}
-		if errors.Is(err, gophermart.ErrIncorrectPassword) {
-			w.WriteHeader(http.StatusUnauthorized)
-		}
-		return
-	}
-
-	s.setCookie(w, userData)
-}
-
-func (s *Server) setCookie(w http.ResponseWriter, userData *dto.UserData) {
-	b := make([]byte, 32)
-	_, _ = rand.Read(b)
-	sid := hex.EncodeToString(b)
-
-	s.cookieHandler.Set(sid, userData)
-	http.SetCookie(w, &http.Cookie{
-		Name:  "sid",
-		Value: sid,
-	})
 }

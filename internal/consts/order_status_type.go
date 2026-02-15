@@ -1,0 +1,8 @@
+package consts
+
+const (
+	REGISTERED = "REGISTERED"
+	INVALID    = "INVALID"
+	PROCESSING = "PROCESSING"
+	PROCESSED  = "PROCESSED"
+)

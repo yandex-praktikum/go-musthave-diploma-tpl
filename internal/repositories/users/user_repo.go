@@ -5,25 +5,26 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/Raime-34/gophermart.git/internal/cache"
 	"github.com/Raime-34/gophermart.git/internal/dto"
 	dbinterface "github.com/Raime-34/gophermart.git/internal/repositories/db_interface"
 )
 
 type UserRepo struct {
 	db          dbinterface.DbIface
-	cachedUsers map[string]*dto.UserData
+	cachedUsers *cache.Cache[*dto.UserData]
 	mu          sync.RWMutex
 }
 
-func NewUserRepo(ctx context.Context, pool dbinterface.DbIface) *UserRepo {
+func NewUserRepo(pool dbinterface.DbIface) *UserRepo {
 	return &UserRepo{
 		db:          pool,
-		cachedUsers: make(map[string]*dto.UserData),
+		cachedUsers: cache.NewCache[*dto.UserData](),
 	}
 }
 
 func (r *UserRepo) GetUser(ctx context.Context, userInfo dto.UserCredential) (*dto.UserData, error) {
-	if userUuid, ok := r.getCachedUser(userInfo); ok {
+	if userUuid, ok := r.cachedUsers.Get(userInfo.Login); ok {
 		return userUuid, nil
 	}
 
@@ -36,28 +37,9 @@ func (r *UserRepo) GetUser(ctx context.Context, userInfo dto.UserCredential) (*d
 	}
 
 	userData := userInfo.ToUserData(uuid)
-	r.setCachedUser(userData)
+	r.cachedUsers.Set(login, userData)
 
 	return userData, nil
-}
-
-func (r *UserRepo) getCachedUser(userInfo dto.UserCredential) (*dto.UserData, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	userData, ok := r.cachedUsers[userInfo.Login]
-	if userData == nil {
-		return nil, false
-	}
-
-	return userData, ok
-}
-
-func (r *UserRepo) setCachedUser(userInfo *dto.UserData) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.cachedUsers[userInfo.Login] = userInfo
 }
 
 func (r *UserRepo) RegisterUser(ctx context.Context, userInfo dto.UserCredential) error {
@@ -68,7 +50,7 @@ func (r *UserRepo) RegisterUser(ctx context.Context, userInfo dto.UserCredential
 	}
 
 	userData := userInfo.ToUserData(uuid)
-	r.setCachedUser(userData)
+	r.cachedUsers.Set(userData.Login, userData)
 
 	return nil
 }
