@@ -1,0 +1,44 @@
+-- +goose Up
+CREATE TABLE IF NOT EXISTS users (
+	id UUID PRIMARY KEY,
+	login VARCHAR(255) UNIQUE NOT NULL,
+	pass_hash VARCHAR(255) NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+	id SERIAL PRIMARY KEY,
+	number VARCHAR(255) UNIQUE NOT NULL,
+	user_id UUID NOT NULL REFERENCES users(id),
+	status VARCHAR(50) NOT NULL DEFAULT 'NEW',
+	accrual DECIMAL(10,2) DEFAULT 0,
+	uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS balances (
+	user_id UUID PRIMARY KEY REFERENCES users(id),
+	current_balance DECIMAL(10,2) DEFAULT 0,
+	withdrawn DECIMAL(10,2) DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS withdrawals (
+	id SERIAL PRIMARY KEY,
+	user_id UUID NOT NULL REFERENCES users(id),
+	order_number VARCHAR(255) NOT NULL,
+	sum DECIMAL(10,2) NOT NULL,
+	processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id ON withdrawals(user_id);
+
+-- +goose Down
+DROP TABLE IF EXISTS withdrawals;
+DROP TABLE IF EXISTS balances;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS users;
+
+DROP INDEX CONCURRENTLY idx_orders_user_id;
+DROP INDEX CONCURRENTLY idx_orders_status;
+DROP INDEX CONCURRENTLY idx_withdrawals_user_id;
