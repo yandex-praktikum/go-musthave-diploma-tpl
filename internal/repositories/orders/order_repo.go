@@ -36,7 +36,7 @@ func (r *OrderRepo) RegisterOrder(ctx context.Context, orderNumber string) error
 	}
 
 	userIdStr, _ := userId.(string)
-	orderInfo := dto.NewOrderInfo(orderNumber)
+	orderInfo := dto.NewOrderInfo(orderNumber, userIdStr)
 
 	_, err := r.db.Exec(ctx, insertOrderQuery(), orderInfo.Number, userId, orderInfo.Status, orderInfo.Accrual)
 	if err == nil {
@@ -46,8 +46,27 @@ func (r *OrderRepo) RegisterOrder(ctx context.Context, orderNumber string) error
 }
 
 func (r *OrderRepo) UpdateOrder(ctx context.Context, newOrderState dto.AccrualCalculatorDTO) error {
+	var userIdStr string
+
+	switch v := ctx.Value(consts.UserIdKey).(type) {
+	case string:
+		userIdStr = v
+	case uuid.UUID:
+		userIdStr = v.String()
+	default:
+		return fmt.Errorf("Invalid userId type: %T", v)
+	}
+
 	_, err := r.db.Exec(ctx, updateOrderQuery(), newOrderState.Status, newOrderState.Accrual, newOrderState.Order)
-	return err
+	if err != nil {
+		return err
+	}
+
+	r.cachedOrders.UpdValue(utils.GetOrderInfoKey(userIdStr, newOrderState.Order), func(i *dto.OrderInfo) {
+		i.Update(&newOrderState)
+	})
+
+	return nil
 }
 
 func (r *OrderRepo) GetOrders(ctx context.Context) ([]*dto.OrderInfo, error) {

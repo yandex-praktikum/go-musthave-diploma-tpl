@@ -25,8 +25,18 @@ type AccrualCalculatorDTO struct {
 	Order   string `json: "order"`
 	Status  string `json: "status"`
 	Accrual int    `json: "accrual"`
+
+	userId string
 }
 
 func (dto *AccrualCalculatorDTO) IsEqual(other AccrualCalculatorDTO) bool {
 	return dto.Order == other.Order && dto.Status == other.Status && dto.Accrual == other.Accrual
+}
+
+func (dto *AccrualCalculatorDTO) AddUserId(userId string) {
+	dto.userId = userId
+}
+
+func (dto *AccrualCalculatorDTO) GetUserId() string {
+	return dto.userId
 }

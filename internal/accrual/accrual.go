@@ -80,6 +80,7 @@ func (c *AccrualCalculator) StartMonitoring(ctx context.Context) <-chan *dto.Acc
 					}
 					if !state.IsEqual(currentStatus) {
 						state.Update(currentStatus)
+						currentStatus.AddUserId(state.GetUserId())
 						ch <- currentStatus
 					}
 				}
@@ -91,15 +92,11 @@ func (c *AccrualCalculator) StartMonitoring(ctx context.Context) <-chan *dto.Acc
 	return ch
 }
 
-func (c *AccrualCalculator) AddToMonitoring(orderNumber string) {
+func (c *AccrualCalculator) AddToMonitoring(orderNumber, userID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.orderStates[orderNumber] = &dto.OrderInfo{
-		Number:     orderNumber,
-		Status:     consts.REGISTERED,
-		Accrual:    0,
-		UploadedAt: time.Now(),
-	}
+
+	c.orderStates[orderNumber] = dto.NewOrderInfo(orderNumber, userID)
 }
 
 func getRandomAccrual() int {

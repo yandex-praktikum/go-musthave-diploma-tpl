@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -42,4 +43,16 @@ func (c *Cache[T]) Set(key string, value T) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.data[key] = value
+}
+
+func (c *Cache[T]) UpdValue(key string, action func(T)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value, ok := c.data[key]
+	fmt.Println(key)
+	if !ok {
+		fmt.Println("not found")
+		return
+	}
+	action(value)
 }

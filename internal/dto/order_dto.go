@@ -11,14 +11,18 @@ type OrderInfo struct {
 	Status     string    `json: "status"`
 	Accrual    int       `json: "accrual"`
 	UploadedAt time.Time `json: "uploaded_at"`
+
+	userID string
 }
 
-func NewOrderInfo(orderNumber string) *OrderInfo {
+func NewOrderInfo(orderNumber, userID string) *OrderInfo {
 	return &OrderInfo{
 		Number:     orderNumber,
 		Status:     consts.REGISTERED,
 		Accrual:    0,
 		UploadedAt: time.Now(),
+
+		userID: userID,
 	}
 }
 
@@ -37,6 +41,10 @@ func (i *OrderInfo) IsEqual(other *AccrualCalculatorDTO) bool {
 func (i *OrderInfo) Update(other *AccrualCalculatorDTO) {
 	i.Status = other.Status
 	i.Accrual = other.Accrual
+}
+
+func (i *OrderInfo) GetUserId() string {
+	return i.userID
 }
 
 type BalanceInfo struct {

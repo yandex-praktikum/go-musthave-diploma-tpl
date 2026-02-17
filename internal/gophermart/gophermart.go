@@ -6,9 +6,11 @@ import (
 
 	"github.com/Raime-34/gophermart.git/internal/accrual"
 	"github.com/Raime-34/gophermart.git/internal/cfg"
+	"github.com/Raime-34/gophermart.git/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/dto"
 	"github.com/Raime-34/gophermart.git/internal/logger"
 	"github.com/Raime-34/gophermart.git/internal/repositories"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -41,7 +43,9 @@ func NewGophermart(ctx context.Context, connPool *pgxpool.Pool) *Gophermart {
 
 func (g *Gophermart) handleOrderState(ch <-chan *dto.AccrualCalculatorDTO) {
 	for newState := range ch {
-		if err := g.repositories.OrderRepo.UpdateOrder(context.Background(), *newState); err != nil {
+		fmt.Printf("userID: %v\n", newState.GetUserId())
+		ctx := context.WithValue(context.Background(), consts.UserIdKey, newState.GetUserId())
+		if err := g.repositories.OrderRepo.UpdateOrder(ctx, *newState); err != nil {
 			logger.Error("Failed to update order", zap.Error(err))
 		}
 	}
@@ -69,7 +73,17 @@ func (g *Gophermart) LoginUser(ctx context.Context, userInfo dto.UserCredential)
 }
 
 func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error {
-	g.accrualCalculator.AddToMonitoring(orderNumber)
+	userId := ctx.Value(consts.UserIdKey)
+	switch t := userId.(type) {
+	case string:
+	case uuid.UUID:
+	default:
+		return fmt.Errorf("Invalid userId type: %T", t)
+	}
+
+	userIdStr, _ := userId.(string)
+
+	g.accrualCalculator.AddToMonitoring(orderNumber, userIdStr)
 	return g.repositories.OrderRepo.RegisterOrder(ctx, orderNumber)
 }
 

@@ -8,5 +8,5 @@ import (
 
 type accrualCalculator interface {
 	StartMonitoring(context.Context) <-chan *dto.AccrualCalculatorDTO
-	AddToMonitoring(string)
+	AddToMonitoring(string, string)
 }
