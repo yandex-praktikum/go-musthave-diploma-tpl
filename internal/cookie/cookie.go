@@ -23,7 +23,10 @@ func (c *CookieHandler) Set(sessionId string, userData *dto.UserData) {
 	c.cache.Set(sessionId, userData, 24*time.Hour)
 }
 
-func (c *CookieHandler) Get(sessionId string) *dto.UserData {
+func (c *CookieHandler) Get(sessionId string) (*dto.UserData, bool) {
 	cookie := c.cache.Get(sessionId)
-	return cookie.Value()
+	if cookie == nil {
+		return nil, false
+	}
+	return cookie.Value(), true
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 
@@ -29,6 +30,24 @@ func (s *Server) registerOrder(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
+	orders, err := s.gophermart.GetUserOrders(r.Context())
+	if err != nil {
+		logger.Error("Failed to get orders", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	b, _ := json.Marshal(orders)
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(b)
 }
 
 func validLuhn(number string) bool {

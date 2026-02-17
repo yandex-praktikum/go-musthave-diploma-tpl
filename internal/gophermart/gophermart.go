@@ -70,7 +70,9 @@ func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error 
 	return g.repositories.OrderRepo.RegisterOrder(ctx, orderNumber)
 }
 
-// func (g *Gophermart) GetUserOrders() []dto.OrderInfo {}
+func (g *Gophermart) GetUserOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, error) {
+	return g.repositories.OrderRepo.GetOrders(ctx)
+}
 
 // func (g *Gophermart) GetUserBalance() []dto.BalanceInfo {}
 

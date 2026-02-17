@@ -53,6 +53,7 @@ func (s *Server) mountHandlers() {
 		r.Group(func(r chi.Router) {
 			r.Use(s.authMiddleware)
 			r.Post("/orders", s.registerOrder)
+			r.Get("/orders", s.getOrders)
 		})
 	})
 }
@@ -61,13 +62,18 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("sid")
 		if err != nil || c.Value == "" {
-			logger.Error("Session id is not found")
+			logger.Error("Session id is not found in header")
 			logger.Info(r.Header.Get("Cookie"))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		userData := s.cookieHandler.Get(c.Value)
+		userData, ok := s.cookieHandler.Get(c.Value)
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), consts.UserIdKey, userData.Uuid)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -81,7 +87,7 @@ func StartServer() {
 
 	server.mountHandlers()
 
-	http.ListenAndServe(config.Address, server.router)
+	go http.ListenAndServe(config.Address, server.router)
 }
 
 func migration(dsn string) {

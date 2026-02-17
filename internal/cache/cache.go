@@ -1,6 +1,9 @@
 package cache
 
-import "sync"
+import (
+	"strings"
+	"sync"
+)
 
 type Cache[T any] struct {
 	mu   sync.RWMutex
@@ -19,6 +22,20 @@ func (c *Cache[T]) Get(key string) (T, bool) {
 
 	value, founded := c.data[key]
 	return value, founded
+}
+
+func (c *Cache[T]) GetByPrefix(prefix string) []T {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	data := []T{}
+	for key, order := range c.data {
+		if strings.HasPrefix(key, prefix) {
+			data = append(data, order)
+		}
+	}
+
+	return data
 }
 
 func (c *Cache[T]) Set(key string, value T) {

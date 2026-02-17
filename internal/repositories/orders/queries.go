@@ -16,3 +16,15 @@ func updateOrderQuery() string {
 	WHERE number = $3;
 	`
 }
+
+func getOrdersQuery() string {
+	return `
+	SELECT number,
+	       status,
+	       accrual,
+	       uploaded_at
+	FROM orders
+	WHERE user_uuid = $1
+	ORDER BY uploaded_at DESC
+	`
+}
