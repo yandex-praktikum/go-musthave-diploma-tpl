@@ -13,6 +13,14 @@ type WithdrawInfo struct {
 	ProcessedAt time.Time `json:"processed_at"`
 }
 
+func NewWithdrawInfo(req WithdrawRequest) *WithdrawInfo {
+	return &WithdrawInfo{
+		Order:       req.Order,
+		Sum:         req.Sum,
+		ProcessedAt: time.Now(),
+	}
+}
+
 type AccrualCalculatorDTO struct {
 	Order   string `json: "order"`
 	Status  string `json: "status"`

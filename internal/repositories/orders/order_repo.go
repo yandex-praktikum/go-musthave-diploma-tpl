@@ -9,6 +9,7 @@ import (
 	"github.com/Raime-34/gophermart.git/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/dto"
 	dbinterface "github.com/Raime-34/gophermart.git/internal/repositories/db_interface"
+	"github.com/Raime-34/gophermart.git/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -38,16 +39,10 @@ func (r *OrderRepo) RegisterOrder(ctx context.Context, orderNumber string) error
 	orderInfo := dto.NewOrderInfo(orderNumber)
 
 	_, err := r.db.Exec(ctx, insertOrderQuery(), orderInfo.Number, userId, orderInfo.Status, orderInfo.Accrual)
-	r.cachedOrders.Set(getOrderInfoKey(userIdStr, orderInfo.Number), orderInfo)
+	if err == nil {
+		r.cachedOrders.Set(utils.GetOrderInfoKey(userIdStr, orderInfo.Number), orderInfo)
+	}
 	return err
-}
-
-func getOrderInfoKey(userId, orderNumber string) string {
-	return fmt.Sprintf("%v%v", getOrderInfoKeyPrefix(userId), orderNumber)
-}
-
-func getOrderInfoKeyPrefix(userId string) string {
-	return fmt.Sprintf("%v_", userId)
 }
 
 func (r *OrderRepo) UpdateOrder(ctx context.Context, newOrderState dto.AccrualCalculatorDTO) error {
@@ -55,7 +50,7 @@ func (r *OrderRepo) UpdateOrder(ctx context.Context, newOrderState dto.AccrualCa
 	return err
 }
 
-func (r *OrderRepo) GetOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, error) {
+func (r *OrderRepo) GetOrders(ctx context.Context) ([]*dto.OrderInfo, error) {
 	userId := ctx.Value(consts.UserIdKey)
 	switch t := userId.(type) {
 	case string:
@@ -65,9 +60,9 @@ func (r *OrderRepo) GetOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, er
 	}
 
 	userIdStr, _ := userId.(string)
-	orders := r.cachedOrders.GetByPrefix(getOrderInfoKeyPrefix(userIdStr))
+	orders := r.cachedOrders.GetByPrefix(utils.GetOrderInfoKeyPrefix(userIdStr))
 	if len(orders) > 0 {
-		return orderInfoSliceToGetOrdersInfoResp(orders), nil
+		return orders, nil
 	}
 
 	row, err := r.db.Query(ctx, getOrdersQuery(), userIdStr)
@@ -93,18 +88,8 @@ func (r *OrderRepo) GetOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, er
 	}
 
 	for _, order := range orders {
-		r.cachedOrders.Set(getOrderInfoKey(userIdStr, order.Number), order)
+		r.cachedOrders.Set(utils.GetOrderInfoKey(userIdStr, order.Number), order)
 	}
 
-	return orderInfoSliceToGetOrdersInfoResp(orders), nil
-}
-
-func orderInfoSliceToGetOrdersInfoResp(original []*dto.OrderInfo) []*dto.GetOrdersInfoResp {
-	result := []*dto.GetOrdersInfoResp{}
-
-	for _, order := range original {
-		result = append(result, order.ToGetOrdersInfoResp())
-	}
-
-	return result
+	return orders, nil
 }

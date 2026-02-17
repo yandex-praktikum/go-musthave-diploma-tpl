@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Raime-34/gophermart.git/internal/logger"
+	"github.com/Raime-34/gophermart.git/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +19,7 @@ func (s *Server) registerOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orderNumber := string(b)
-	if !validLuhn(orderNumber) {
+	if !utils.ValidLuhn(orderNumber) {
 		logger.Error("Order number is not valid")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
@@ -48,30 +49,4 @@ func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 	b, _ := json.Marshal(orders)
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(b)
-}
-
-func validLuhn(number string) bool {
-	sum := 0
-	double := false
-
-	for i := len(number) - 1; i >= 0; i-- {
-		d := number[i] - '0'
-		if d > 9 {
-			return false
-		}
-
-		n := int(d)
-
-		if double {
-			n *= 2
-			if n > 9 {
-				n -= 9
-			}
-		}
-
-		sum += n
-		double = !double
-	}
-
-	return sum%10 == 0
 }

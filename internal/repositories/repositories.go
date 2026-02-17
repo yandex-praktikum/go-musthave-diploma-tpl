@@ -6,13 +6,15 @@ import (
 	"github.com/Raime-34/gophermart.git/internal/logger"
 	repositoriesorders "github.com/Raime-34/gophermart.git/internal/repositories/orders"
 	repositoriesusers "github.com/Raime-34/gophermart.git/internal/repositories/users"
+	repositorieswithdrawals "github.com/Raime-34/gophermart.git/internal/repositories/withdrawals"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
 type Repositories struct {
-	UserRepo  repositoriesusers.UserRepo
-	OrderRepo repositoriesorders.OrderRepo
+	UserRepo      repositoriesusers.UserRepo
+	OrderRepo     repositoriesorders.OrderRepo
+	WithdrawlRepo repositorieswithdrawals.WithdrawalsRepo
 }
 
 func NewRepositories(ctx context.Context, conn *pgxpool.Pool) *Repositories {
@@ -26,8 +28,14 @@ func NewRepositories(ctx context.Context, conn *pgxpool.Pool) *Repositories {
 		logger.Fatal("Error while acquiring connection from the database pool: %v", zap.Error(err))
 	}
 
+	withdrawalsConn, err := conn.Acquire(ctx)
+	if err != nil {
+		logger.Fatal("Error while acquiring connection from the database pool: %v", zap.Error(err))
+	}
+
 	return &Repositories{
-		UserRepo:  *repositoriesusers.NewUserRepo(userConn),
-		OrderRepo: *repositoriesorders.NewOrderRepo(orderConn),
+		UserRepo:      *repositoriesusers.NewUserRepo(userConn),
+		OrderRepo:     *repositoriesorders.NewOrderRepo(orderConn),
+		WithdrawlRepo: *repositorieswithdrawals.NewWithdrawalsRepo(withdrawalsConn),
 	}
 }

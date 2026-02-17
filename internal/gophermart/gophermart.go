@@ -17,6 +17,8 @@ var (
 	ErrUserAlreadyExist  = fmt.Errorf("User already exist")
 	ErrUserNotFound      = fmt.Errorf("Failed to find user with given login")
 	ErrIncorrectPassword = fmt.Errorf("Incorrect password")
+
+	ErrNotEnoughBonuses = fmt.Errorf("Not enough bonuses")
 )
 
 type Gophermart struct {
@@ -72,11 +74,69 @@ func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error 
 }
 
 func (g *Gophermart) GetUserOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, error) {
-	return g.repositories.OrderRepo.GetOrders(ctx)
+	orders, err := g.repositories.OrderRepo.GetOrders(ctx)
+	return orderInfoSliceToGetOrdersInfoResp(orders), err
 }
 
-// func (g *Gophermart) GetUserBalance() []dto.BalanceInfo {}
+func (g *Gophermart) GetUserBalance(ctx context.Context) (*dto.BalanceInfo, error) {
+	balance := dto.BalanceInfo{}
 
-// func (g *Gophermart) ProcessWithdraw(dto.WithdrawRequest) error {}
+	allBonuses, allWithdrawls, err := g.getBonusesNWithdrawls(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// func (g *Gophermart) GetWithdraws() []dto.WithdrawInfo {}
+	balance.Current = float64(allBonuses - allWithdrawls)
+	balance.Withdraw = allWithdrawls
+
+	return &balance, nil
+}
+
+func (g *Gophermart) ProcessWithdraw(ctx context.Context, req dto.WithdrawRequest) error {
+	allBonuses, allWithdralws, err := g.getBonusesNWithdrawls(ctx)
+	if err != nil {
+		return err
+	}
+
+	if allBonuses < allWithdralws {
+		return ErrNotEnoughBonuses
+	}
+
+	return g.repositories.WithdrawlRepo.RegisterWithdraw(ctx, req)
+}
+
+func (g *Gophermart) GetWithdraws(ctx context.Context) ([]*dto.WithdrawInfo, error) {
+	return g.repositories.WithdrawlRepo.GetWithdraws(ctx)
+}
+
+func (g *Gophermart) getBonusesNWithdrawls(ctx context.Context) (int, int, error) {
+	orders, err := g.repositories.OrderRepo.GetOrders(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	allBonuses := 0
+	for _, order := range orders {
+		allBonuses += order.Accrual
+	}
+
+	withdrals, err := g.GetWithdraws(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	allWithdralws := 0
+	for _, withdrawl := range withdrals {
+		allWithdralws += withdrawl.Sum
+	}
+
+	return allBonuses, allWithdralws, nil
+}
+
+func orderInfoSliceToGetOrdersInfoResp(original []*dto.OrderInfo) []*dto.GetOrdersInfoResp {
+	result := []*dto.GetOrdersInfoResp{}
+
+	for _, order := range original {
+		result = append(result, order.ToGetOrdersInfoResp())
+	}
+
+	return result
+}

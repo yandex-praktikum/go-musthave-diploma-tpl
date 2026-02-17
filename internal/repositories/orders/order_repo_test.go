@@ -8,6 +8,7 @@ import (
 
 	"github.com/Raime-34/gophermart.git/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/dto"
+	"github.com/Raime-34/gophermart.git/internal/utils"
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
@@ -59,13 +60,13 @@ func TestOrderRepo_RegisterOrder(t *testing.T) {
 
 func TestOrderRepo_GetOrderInfoKeyPrefix(t *testing.T) {
 	userID := "u1"
-	assert.Equal(t, "u1_", getOrderInfoKeyPrefix(userID))
+	assert.Equal(t, "u1_", utils.GetOrderInfoKeyPrefix(userID))
 }
 
 func TestOrderRepo_GetOrderInfoKey(t *testing.T) {
 	userID := "u1"
 	order := "123"
-	assert.Equal(t, "u1_123", getOrderInfoKey(userID, order))
+	assert.Equal(t, "u1_123", utils.GetOrderInfoKey(userID, order))
 }
 
 func TestOrderRepo_OrderInfoSliceToGetOrdersInfoResp(t *testing.T) {
@@ -100,7 +101,7 @@ func TestOrderRepo_GetOrders_FromCache(t *testing.T) {
 	userID := "u1"
 	ts := time.Now()
 
-	repo.cachedOrders.Set(getOrderInfoKey(userID, "123"), &dto.OrderInfo{
+	repo.cachedOrders.Set(utils.GetOrderInfoKey(userID, "123"), &dto.OrderInfo{
 		Number:     "123",
 		Status:     consts.REGISTERED,
 		Accrual:    0,

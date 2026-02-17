@@ -11,7 +11,7 @@ type gophermartInterface interface {
 	LoginUser(context.Context, dto.UserCredential) (*dto.UserData, error)
 	InsertOrder(ctx context.Context, orderNumber string) error
 	GetUserOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, error)
-	// GetUserBalance() []dto.BalanceInfo
-	// ProcessWithdraw(dto.WithdrawRequest) error
-	// GetWithdraws() []dto.WithdrawInfo
+	GetUserBalance(context.Context) (*dto.BalanceInfo, error)
+	ProcessWithdraw(context.Context, dto.WithdrawRequest) error
+	GetWithdraws(context.Context) ([]*dto.WithdrawInfo, error)
 }

@@ -52,8 +52,14 @@ func (s *Server) mountHandlers() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.authMiddleware)
+
 			r.Post("/orders", s.registerOrder)
 			r.Get("/orders", s.getOrders)
+
+			r.Post("/withdraw", s.registerWithdrawl)
+			r.Get("/withdrawals", s.getWithdrawls)
+
+			r.Get("/balance", s.getBalance)
 		})
 	})
 }
