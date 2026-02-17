@@ -67,6 +67,7 @@ func (g *Gophermart) LoginUser(ctx context.Context, userInfo dto.UserCredential)
 }
 
 func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error {
+	g.accrualCalculator.AddToMonitoring(orderNumber)
 	return g.repositories.OrderRepo.RegisterOrder(ctx, orderNumber)
 }
 
