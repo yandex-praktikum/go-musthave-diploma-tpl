@@ -11,6 +11,7 @@ import (
 	internalConst "github.com/Raime-34/gophermart.git/internal/accrual/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/consts"
 	"github.com/Raime-34/gophermart.git/internal/dto"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +49,8 @@ func TestAccrualCalculator_getOrderState(t *testing.T) {
 
 func TestAccrualCalculator_AddToMonitoring(t *testing.T) {
 	calculator := NewAccrualCalculator("")
-	calculator.AddToMonitoring("123")
+	userID := uuid.New().String()
+	calculator.AddToMonitoring("123", userID)
 
 	assert.Equal(t, 1, len(calculator.orderStates))
 }
@@ -153,7 +155,8 @@ func TestAccrualCalculator_StartMonitoring_SendsUpdateOnStatusChange(t *testing.
 	defer ts.Close()
 
 	c := NewAccrualCalculator(ts.URL)
-	c.AddToMonitoring("123")
+	userID := uuid.New().String()
+	c.AddToMonitoring("123", userID)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	ch := c.StartMonitoring(ctx)
@@ -200,7 +203,8 @@ func TestAccrualCalculator_StartMonitoring_ErrNotRegistered_DeletesOrder(t *test
 	defer ts.Close()
 
 	c := NewAccrualCalculator(ts.URL)
-	c.AddToMonitoring("123")
+	userID := uuid.New().String()
+	c.AddToMonitoring("123", userID)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	_ = c.StartMonitoring(ctx)

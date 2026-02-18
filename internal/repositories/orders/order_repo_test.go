@@ -61,9 +61,10 @@ func TestOrderRepo_RegisterOrder(t *testing.T) {
 
 	orderNumber := "123"
 	userUuid := uuid.New()
+	userIdStr := userUuid.String()
 
 	mock.ExpectExec(regexp.QuoteMeta(insertOrderQuery())).
-		WithArgs(orderNumber, userUuid, consts.REGISTERED, 0).
+		WithArgs(orderNumber, userIdStr, consts.REGISTERED, 0).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	repo := NewOrderRepo(mock)
@@ -83,21 +84,6 @@ func TestOrderRepo_GetOrderInfoKey(t *testing.T) {
 	order := "123"
 	assert.Equal(t, "u1_123", utils.GetOrderInfoKey(userID, order))
 }
-
-// func TestOrderRepo_OrderInfoSliceToGetOrdersInfoResp(t *testing.T) {
-// 	ts := time.Now()
-
-// 	orders := []*dto.OrderInfo{
-// 		{Number: "1", Status: consts.REGISTERED, Accrual: 0, UploadedAt: ts},
-// 	}
-
-// 	res := orderInfoSliceToGetOrdersInfoResp(orders)
-
-// 	assert.Len(t, res, 1)
-// 	assert.Equal(t, "1", res[0].Number)
-// 	assert.Equal(t, consts.REGISTERED, res[0].Status)
-// 	assert.True(t, res[0].UploadedAt.Equal(ts))
-// }
 
 func TestOrderRepo_GetOrders_InvalidUserIDType(t *testing.T) {
 	mock, _ := pgxmock.NewPool()

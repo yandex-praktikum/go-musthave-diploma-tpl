@@ -27,18 +27,20 @@ func NewOrderRepo(pool dbinterface.DbIface) *OrderRepo {
 }
 
 func (r *OrderRepo) RegisterOrder(ctx context.Context, orderNumber string) error {
-	userId := ctx.Value(consts.UserIdKey)
-	switch t := userId.(type) {
+	var userIdStr string
+
+	switch v := ctx.Value(consts.UserIdKey).(type) {
 	case string:
+		userIdStr = v
 	case uuid.UUID:
+		userIdStr = v.String()
 	default:
-		return fmt.Errorf("Invalid userId type: %T", t)
+		return fmt.Errorf("Invalid userId type: %T", v)
 	}
 
-	userIdStr, _ := userId.(string)
 	orderInfo := dto.NewOrderInfo(orderNumber, userIdStr)
 
-	_, err := r.db.Exec(ctx, insertOrderQuery(), orderInfo.Number, userId, orderInfo.Status, orderInfo.Accrual)
+	_, err := r.db.Exec(ctx, insertOrderQuery(), orderInfo.Number, userIdStr, orderInfo.Status, orderInfo.Accrual)
 	if err == nil {
 		r.cachedOrders.Set(utils.GetOrderInfoKey(userIdStr, orderInfo.Number), orderInfo)
 	}
