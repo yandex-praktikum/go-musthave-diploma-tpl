@@ -10,7 +10,7 @@ import (
 
 	"github.com/Raime-34/gophermart.git/internal/dto"
 	"github.com/Raime-34/gophermart.git/internal/gophermart"
-	mocksgophermart "github.com/Raime-34/gophermart.git/internal/server/mocks"
+	mock "github.com/Raime-34/gophermart.git/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -19,8 +19,8 @@ func TestServer_registerUser_BadJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/user/register", bytes.NewBufferString("{bad"))
@@ -35,8 +35,8 @@ func TestServer_registerUser_Conflict(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	cred := dto.UserCredential{Login: "u", Password: "p"}
@@ -57,8 +57,8 @@ func TestServer_registerUser_OK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	cred := dto.UserCredential{Login: "u", Password: "p"}
@@ -79,8 +79,8 @@ func TestServer_loginUser_BadJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/user/login", bytes.NewBufferString("{bad"))
@@ -95,8 +95,8 @@ func TestServer_loginUser_Unauthorized_UserNotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	cred := dto.UserCredential{Login: "u", Password: "p"}
@@ -118,8 +118,8 @@ func TestServer_loginUser_Unauthorized_IncorrectPassword(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	cred := dto.UserCredential{Login: "u", Password: "p"}
@@ -141,8 +141,8 @@ func TestServer_loginUser_OK_SetsCookie_AndStoresSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
-	ch := mocksgophermart.NewMockcookieHandlerInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
+	ch := mock.NewMockcookieHandlerInterface(ctrl)
 	s := &Server{gophermart: gm, cookieHandler: ch}
 
 	cred := dto.UserCredential{Login: "u", Password: "p"}
@@ -179,7 +179,7 @@ func TestServer_registerOrder_BadBody(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	// ReadAll вернет ошибку, если Body=nil
@@ -196,7 +196,7 @@ func TestServer_registerOrder_InvalidLuhn(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	// 123 не проходит луна
@@ -212,7 +212,7 @@ func TestServer_registerOrder_InsertError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	// валидный по Луну пример
@@ -234,7 +234,7 @@ func TestServer_registerOrder_OK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	order := "79927398713"
@@ -254,7 +254,7 @@ func TestServer_getOrders_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	gm.EXPECT().
@@ -273,7 +273,7 @@ func TestServer_getOrders_NoContent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	gm.EXPECT().
@@ -292,7 +292,7 @@ func TestServer_getOrders_OK_JSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	orders := []*dto.GetOrdersInfoResp{
@@ -319,7 +319,7 @@ func TestServer_registerWithdrawl_BadJSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/user/balance/withdraw", bytes.NewBufferString("{bad"))
@@ -334,7 +334,7 @@ func TestServer_registerWithdrawl_InvalidLuhn(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	body, _ := json.Marshal(dto.WithdrawRequest{Order: "123", Sum: 10})
@@ -350,7 +350,7 @@ func TestServer_registerWithdrawl_NotEnoughBonuses(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	wreq := dto.WithdrawRequest{Order: "79927398713", Sum: 10} // валидный по Луну
@@ -371,7 +371,7 @@ func TestServer_registerWithdrawl_OK(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	wreq := dto.WithdrawRequest{Order: "79927398713", Sum: 10}
@@ -392,7 +392,7 @@ func TestServer_getWithdrawls_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	gm.EXPECT().
@@ -411,7 +411,7 @@ func TestServer_getWithdrawls_NoContent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	gm.EXPECT().
@@ -430,7 +430,7 @@ func TestServer_getWithdrawls_OK_JSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	withs := []*dto.WithdrawInfo{
@@ -457,7 +457,7 @@ func TestServer_getBalance_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	gm.EXPECT().
@@ -476,7 +476,7 @@ func TestServer_getBalance_OK_JSON(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gm := mocksgophermart.NewMockgophermartInterface(ctrl)
+	gm := mock.NewMockgophermartInterface(ctrl)
 	s := &Server{gophermart: gm}
 
 	bal := &dto.BalanceInfo{Current: 100, Withdraw: 20} // подстрой под поля

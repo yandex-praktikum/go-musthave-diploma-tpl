@@ -24,7 +24,7 @@ var (
 )
 
 type Gophermart struct {
-	repositories      *repositories.Repositories
+	repositories      repositoriesInt
 	accrualCalculator accrualCalculator
 }
 
@@ -45,22 +45,22 @@ func (g *Gophermart) handleOrderState(ch <-chan *dto.AccrualCalculatorDTO) {
 	for newState := range ch {
 		fmt.Printf("userID: %v\n", newState.GetUserId())
 		ctx := context.WithValue(context.Background(), consts.UserIdKey, newState.GetUserId())
-		if err := g.repositories.OrderRepo.UpdateOrder(ctx, *newState); err != nil {
+		if err := g.repositories.UpdateOrder(ctx, *newState); err != nil {
 			logger.Error("Failed to update order", zap.Error(err))
 		}
 	}
 }
 
 func (g *Gophermart) RegisterUser(ctx context.Context, userInfo dto.UserCredential) error {
-	if _, err := g.repositories.UserRepo.GetUser(ctx, userInfo); err == nil {
+	if _, err := g.repositories.GetUser(ctx, userInfo); err == nil {
 		return ErrUserAlreadyExist
 	}
 
-	return g.repositories.UserRepo.RegisterUser(ctx, userInfo)
+	return g.repositories.RegisterUser(ctx, userInfo)
 }
 
 func (g *Gophermart) LoginUser(ctx context.Context, userInfo dto.UserCredential) (*dto.UserData, error) {
-	userData, err := g.repositories.UserRepo.GetUser(ctx, userInfo)
+	userData, err := g.repositories.GetUser(ctx, userInfo)
 	if err != nil {
 		return nil, ErrUserNotFound
 	}
@@ -84,11 +84,11 @@ func (g *Gophermart) InsertOrder(ctx context.Context, orderNumber string) error 
 	userIdStr, _ := userId.(string)
 
 	g.accrualCalculator.AddToMonitoring(orderNumber, userIdStr)
-	return g.repositories.OrderRepo.RegisterOrder(ctx, orderNumber)
+	return g.repositories.RegisterOrder(ctx, orderNumber)
 }
 
 func (g *Gophermart) GetUserOrders(ctx context.Context) ([]*dto.GetOrdersInfoResp, error) {
-	orders, err := g.repositories.OrderRepo.GetOrders(ctx)
+	orders, err := g.repositories.GetOrders(ctx)
 	return orderInfoSliceToGetOrdersInfoResp(orders), err
 }
 
@@ -116,15 +116,15 @@ func (g *Gophermart) ProcessWithdraw(ctx context.Context, req dto.WithdrawReques
 		return ErrNotEnoughBonuses
 	}
 
-	return g.repositories.WithdrawlRepo.RegisterWithdraw(ctx, req)
+	return g.repositories.RegisterWithdraw(ctx, req)
 }
 
 func (g *Gophermart) GetWithdraws(ctx context.Context) ([]*dto.WithdrawInfo, error) {
-	return g.repositories.WithdrawlRepo.GetWithdraws(ctx)
+	return g.repositories.GetWithdraws(ctx)
 }
 
 func (g *Gophermart) getBonusesNWithdrawls(ctx context.Context) (int, int, error) {
-	orders, err := g.repositories.OrderRepo.GetOrders(ctx)
+	orders, err := g.repositories.GetOrders(ctx)
 	if err != nil {
 		return 0, 0, err
 	}

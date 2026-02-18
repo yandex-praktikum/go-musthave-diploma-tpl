@@ -6,7 +6,7 @@ import (
 	"github.com/Raime-34/gophermart.git/internal/dto"
 )
 
-//go:generate mockgen -source=gophermart_interface.go -destination=mocks/gophermart.go -package=mocksgophermart
+//go:generate mockgen -source=gophermart_interface.go -destination=../../mocks/gophermart.go -package=mock
 
 type gophermartInterface interface {
 	RegisterUser(context.Context, dto.UserCredential) error
