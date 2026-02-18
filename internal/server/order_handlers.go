@@ -11,6 +11,11 @@ import (
 )
 
 func (s *Server) registerOrder(w http.ResponseWriter, r *http.Request) {
+	if r.Body == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Error("Failed to get order number", zap.Error(err))
