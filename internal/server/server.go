@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/Raime-34/gophermart.git/internal/cfg"
@@ -14,8 +16,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pressly/goose/v3"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 
+	_ "github.com/Raime-34/gophermart.git/docs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -61,6 +65,15 @@ func (s *Server) mountHandlers() {
 			r.Get("/balance", s.getBalance)
 		})
 	})
+
+	address := cfg.GetConfig().Address
+	localhostPrefix := "localhost"
+	if !strings.HasPrefix(address, localhostPrefix) {
+		address = fmt.Sprintf("%v%v", localhostPrefix, address)
+	}
+	s.router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL(fmt.Sprintf("http://%v/swagger/doc.json", address)),
+	))
 }
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {

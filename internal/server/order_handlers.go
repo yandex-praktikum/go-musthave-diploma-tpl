@@ -10,6 +10,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// registerOrder godoc
+// @Summary Загрузка номера заказа
+// @Description Сохраняет номер заказа пользователя
+// @Tags orders
+// @Security ApiKeyAuth
+// @Accept plain
+// @Produce json
+// @Param order body string true "Номер заказа"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Некорректный запрос"
+// @Failure 422 {string} string "Неверный номер заказа"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /api/user/orders [post]
 func (s *Server) registerOrder(w http.ResponseWriter, r *http.Request) {
 	if r.Body == nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -38,6 +51,16 @@ func (s *Server) registerOrder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getOrders godoc
+// @Summary Список заказов пользователя
+// @Description Возвращает заказы текущего пользователя
+// @Tags orders
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} dto.OrderInfo
+// @Failure 204 {string} string "Нет данных"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /api/user/orders [get]
 func (s *Server) getOrders(w http.ResponseWriter, r *http.Request) {
 	orders, err := s.gophermart.GetUserOrders(r.Context())
 	if err != nil {

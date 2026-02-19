@@ -1,0 +1,246 @@
+definitions:
+  dto.BalanceInfo:
+    properties:
+      current:
+        type: number
+      withdraw:
+        type: integer
+    type: object
+  dto.OrderInfo:
+    properties:
+      accrual:
+        type: integer
+      number:
+        type: string
+      status:
+        type: string
+      uploadedAt:
+        type: string
+    type: object
+  dto.UserCredential:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.WithdrawInfo:
+    properties:
+      order:
+        type: string
+      processed_at:
+        type: string
+      sum:
+        type: integer
+    type: object
+  dto.WithdrawRequest:
+    properties:
+      order:
+        type: string
+      sum:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /api/user/balance:
+    get:
+      description: Возвращает текущий баланс бонусов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BalanceInfo'
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Баланс пользователя
+      tags:
+      - balance
+  /api/user/login:
+    post:
+      consumes:
+      - application/json
+      description: Выполняет вход и устанавливает cookie
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCredential'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректный JSON
+          schema:
+            type: string
+        "401":
+          description: Неверный логин или пароль
+          schema:
+            type: string
+      summary: Авторизация пользователя
+      tags:
+      - auth
+  /api/user/orders:
+    get:
+      description: Возвращает заказы текущего пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.OrderInfo'
+            type: array
+        "204":
+          description: Нет данных
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Список заказов пользователя
+      tags:
+      - orders
+    post:
+      consumes:
+      - text/plain
+      description: Сохраняет номер заказа пользователя
+      parameters:
+      - description: Номер заказа
+        in: body
+        name: order
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректный запрос
+          schema:
+            type: string
+        "422":
+          description: Неверный номер заказа
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Загрузка номера заказа
+      tags:
+      - orders
+  /api/user/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCredential'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректный JSON
+          schema:
+            type: string
+        "409":
+          description: Пользователь уже существует
+          schema:
+            type: string
+      summary: Регистрация пользователя
+      tags:
+      - auth
+  /api/user/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует списание бонусов
+      parameters:
+      - description: Данные для списания
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WithdrawRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректный JSON
+          schema:
+            type: string
+        "402":
+          description: Недостаточно бонусов
+          schema:
+            type: string
+        "422":
+          description: Неверный номер заказа
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Списание бонусов
+      tags:
+      - balance
+  /api/user/withdrawals:
+    get:
+      description: Возвращает историю списаний пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.WithdrawInfo'
+            type: array
+        "204":
+          description: Нет данных
+          schema:
+            type: string
+        "500":
+          description: Внутренняя ошибка
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: История списаний
+      tags:
+      - balance
+swagger: "2.0"

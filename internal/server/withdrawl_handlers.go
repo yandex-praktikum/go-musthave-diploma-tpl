@@ -12,6 +12,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// registerWithdrawl godoc
+// @Summary Списание бонусов
+// @Description Регистрирует списание бонусов
+// @Tags balance
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param input body dto.WithdrawRequest true "Данные для списания"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Некорректный JSON"
+// @Failure 402 {string} string "Недостаточно бонусов"
+// @Failure 422 {string} string "Неверный номер заказа"
+// @Router /api/user/withdraw [post]
 func (s *Server) registerWithdrawl(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var req dto.WithdrawRequest
@@ -34,6 +47,16 @@ func (s *Server) registerWithdrawl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getWithdrawls godoc
+// @Summary История списаний
+// @Description Возвращает историю списаний пользователя
+// @Tags balance
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} dto.WithdrawInfo
+// @Failure 204 {string} string "Нет данных"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /api/user/withdrawals [get]
 func (s *Server) getWithdrawls(w http.ResponseWriter, r *http.Request) {
 	withdrawls, err := s.gophermart.GetWithdraws(r.Context())
 	if err != nil {
@@ -52,6 +75,15 @@ func (s *Server) getWithdrawls(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+// getBalance godoc
+// @Summary Баланс пользователя
+// @Description Возвращает текущий баланс бонусов
+// @Tags balance
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {object} dto.BalanceInfo
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /api/user/balance [get]
 func (s *Server) getBalance(w http.ResponseWriter, r *http.Request) {
 	balance, err := s.gophermart.GetUserBalance(r.Context())
 	if err != nil {

@@ -14,3 +14,6 @@ test_html:
 test_total_cover:
 	go test -coverprofile=cover ./internal/...
 	go tool cover -func=cover
+
+swag:
+	cd cmd\gophermart && swag init --parseDependency --parseInternal -g ".\main.go" -d ".,..\..\internal\server,..\..\internal\dto,..\..\internal\gophermart" -o "..\..\docs"

@@ -13,6 +13,17 @@ import (
 	"go.uber.org/zap"
 )
 
+// registerUser godoc
+// @Summary Регистрация пользователя
+// @Description Создаёт нового пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.UserCredential true "Данные пользователя"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Некорректный JSON"
+// @Failure 409 {string} string "Пользователь уже существует"
+// @Router /api/user/register [post]
 func (s *Server) registerUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var userCredential dto.UserCredential
@@ -31,6 +42,17 @@ func (s *Server) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// loginUser godoc
+// @Summary Авторизация пользователя
+// @Description Выполняет вход и устанавливает cookie
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body dto.UserCredential true "Данные пользователя"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Некорректный JSON"
+// @Failure 401 {string} string "Неверный логин или пароль"
+// @Router /api/user/login [post]
 func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var userCredential dto.UserCredential
