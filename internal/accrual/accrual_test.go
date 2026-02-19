@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -159,7 +160,8 @@ func TestAccrualCalculator_StartMonitoring_SendsUpdateOnStatusChange(t *testing.
 	c.AddToMonitoring("123", userID)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	ch := c.StartMonitoring(ctx)
+	var wg sync.WaitGroup
+	ch := c.StartMonitoring(ctx, &wg)
 
 	select {
 	case got := <-ch:
@@ -184,7 +186,8 @@ func TestAccrualCalculator_StartMonitoring_CtxCancel_ClosesChannel(t *testing.T)
 	c := NewAccrualCalculator(ts.URL)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	ch := c.StartMonitoring(ctx)
+	var wg sync.WaitGroup
+	ch := c.StartMonitoring(ctx, &wg)
 
 	cancel()
 
@@ -207,7 +210,8 @@ func TestAccrualCalculator_StartMonitoring_ErrNotRegistered_DeletesOrder(t *test
 	c.AddToMonitoring("123", userID)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	_ = c.StartMonitoring(ctx)
+	var wg sync.WaitGroup
+	_ = c.StartMonitoring(ctx, &wg)
 
 	assert.Eventually(t, func() bool {
 		c.mu.RLock()

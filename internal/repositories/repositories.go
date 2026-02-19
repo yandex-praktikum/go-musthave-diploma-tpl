@@ -16,7 +16,7 @@ type Repositories struct {
 	WithdrawlRepo repositorieswithdrawals.WithdrawalsRepo
 }
 
-func NewRepositories(ctx context.Context, conn *pgxpool.Pool) *Repositories {
+func NewRepositories(conn *pgxpool.Pool) *Repositories {
 	return &Repositories{
 		UserRepo:      *repositoriesusers.NewUserRepo(conn),
 		OrderRepo:     *repositoriesorders.NewOrderRepo(conn),

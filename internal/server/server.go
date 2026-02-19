@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"sync"
 
 	"github.com/Raime-34/gophermart.git/internal/cfg"
 	"github.com/Raime-34/gophermart.git/internal/consts"
@@ -24,9 +25,7 @@ type Server struct {
 	cookieHandler cookieHandlerInterface
 }
 
-func newServer(dsn string) *Server {
-	ctx := context.Background() // TODO
-
+func newServer(ctx context.Context, dsn string, wg *sync.WaitGroup) *Server {
 	dbConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		logger.Fatal("Failed to create a config", zap.Error(err))
@@ -38,7 +37,7 @@ func newServer(dsn string) *Server {
 	}
 
 	return &Server{
-		gophermart:    gophermart.NewGophermart(ctx, connPool),
+		gophermart:    gophermart.NewGophermart(ctx, connPool, wg),
 		cookieHandler: cookie.NewCookieHandler(),
 	}
 }
@@ -85,11 +84,11 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func StartServer() {
+func StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	config := cfg.GetConfig()
 
 	migration(config.DbDSN)
-	server := newServer(config.DbDSN)
+	server := newServer(ctx, config.DbDSN, wg)
 
 	server.mountHandlers()
 

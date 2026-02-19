@@ -3,6 +3,7 @@ package gophermart
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/Raime-34/gophermart.git/internal/accrual"
 	"github.com/Raime-34/gophermart.git/internal/cfg"
@@ -28,25 +29,42 @@ type Gophermart struct {
 	accrualCalculator accrualCalculator
 }
 
-func NewGophermart(ctx context.Context, connPool *pgxpool.Pool) *Gophermart {
+func NewGophermart(ctx context.Context, connPool *pgxpool.Pool, wg *sync.WaitGroup) *Gophermart {
 	calculator := accrual.NewAccrualCalculator(cfg.GetConfig().AccrualSystemUrl)
-	ch := calculator.StartMonitoring(ctx)
+	ch := calculator.StartMonitoring(ctx, wg)
 
 	gophermart := &Gophermart{
-		repositories:      repositories.NewRepositories(ctx, connPool),
+		repositories:      repositories.NewRepositories(connPool),
 		accrualCalculator: calculator,
 	}
-	go gophermart.handleOrderState(ch)
+	go gophermart.handleOrderState(ctx, ch, wg)
 
 	return gophermart
 }
 
-func (g *Gophermart) handleOrderState(ch <-chan *dto.AccrualCalculatorDTO) {
-	for newState := range ch {
-		fmt.Printf("userID: %v\n", newState.GetUserId())
-		ctx := context.WithValue(context.Background(), consts.UserIdKey, newState.GetUserId())
-		if err := g.repositories.UpdateOrder(ctx, *newState); err != nil {
-			logger.Error("Failed to update order", zap.Error(err))
+func (g *Gophermart) handleOrderState(
+	ctx context.Context,
+	ch <-chan *dto.AccrualCalculatorDTO,
+	wg *sync.WaitGroup,
+) {
+	wg.Add(1)
+	defer wg.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case newState, ok := <-ch:
+			if !ok {
+				return
+			}
+
+			reqCtx := context.WithValue(ctx, consts.UserIdKey, newState.GetUserId())
+
+			if err := g.repositories.UpdateOrder(reqCtx, *newState); err != nil {
+				logger.Error("Failed to update order", zap.Error(err))
+			}
 		}
 	}
 }

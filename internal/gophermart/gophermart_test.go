@@ -3,6 +3,7 @@ package gophermart
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/Raime-34/gophermart.git/internal/consts"
@@ -289,5 +290,6 @@ func TestGophermart_handleOrderState_CallsUpdateOrderAndSetsUserIdInCtx(t *testi
 	ch <- state
 	close(ch)
 
-	g.handleOrderState(ch)
+	var wg sync.WaitGroup
+	g.handleOrderState(t.Context(), ch, &wg)
 }

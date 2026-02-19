@@ -44,15 +44,19 @@ func composeBaseUrl(accrualServiceUrl string) string {
 	return fmt.Sprintf("%v/api/orders/%%v", accrualServiceUrl)
 }
 
-func (c *AccrualCalculator) StartMonitoring(ctx context.Context) <-chan *dto.AccrualCalculatorDTO {
+func (c *AccrualCalculator) StartMonitoring(ctx context.Context, wg *sync.WaitGroup) <-chan *dto.AccrualCalculatorDTO {
 	ch := make(chan *dto.AccrualCalculatorDTO)
 
 	go func(chan<- *dto.AccrualCalculatorDTO) {
+		wg.Add(1)
+		defer wg.Done()
+
 		for {
 			select {
 			case <-ctx.Done():
 				logger.Info("Finished order status monitoring")
 				close(ch)
+
 				return
 			default:
 				c.mu.Lock()

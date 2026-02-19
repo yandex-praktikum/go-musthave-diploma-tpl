@@ -7,6 +7,7 @@ package mock
 import (
 	context "context"
 	reflect "reflect"
+	sync "sync"
 
 	dto "github.com/Raime-34/gophermart.git/internal/dto"
 	gomock "github.com/golang/mock/gomock"
@@ -48,15 +49,15 @@ func (mr *MockaccrualCalculatorMockRecorder) AddToMonitoring(arg0, arg1 interfac
 }
 
 // StartMonitoring mocks base method.
-func (m *MockaccrualCalculator) StartMonitoring(arg0 context.Context) <-chan *dto.AccrualCalculatorDTO {
+func (m *MockaccrualCalculator) StartMonitoring(arg0 context.Context, arg1 *sync.WaitGroup) <-chan *dto.AccrualCalculatorDTO {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartMonitoring", arg0)
+	ret := m.ctrl.Call(m, "StartMonitoring", arg0, arg1)
 	ret0, _ := ret[0].(<-chan *dto.AccrualCalculatorDTO)
 	return ret0
 }
 
 // StartMonitoring indicates an expected call of StartMonitoring.
-func (mr *MockaccrualCalculatorMockRecorder) StartMonitoring(arg0 interface{}) *gomock.Call {
+func (mr *MockaccrualCalculatorMockRecorder) StartMonitoring(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartMonitoring", reflect.TypeOf((*MockaccrualCalculator)(nil).StartMonitoring), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartMonitoring", reflect.TypeOf((*MockaccrualCalculator)(nil).StartMonitoring), arg0, arg1)
 }
