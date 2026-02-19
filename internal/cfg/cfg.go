@@ -34,11 +34,11 @@ func GetConfig() *Config {
 		}
 
 		if tempConfig.DbDSN == "" {
-			flag.StringVar(&tempConfig.DbDSN, "d", "", "адрес подключения к базе данных") // TODO
+			flag.StringVar(&tempConfig.DbDSN, "d", "postgres://gopher:secret@postgres:5432/gophermart?sslmode=disablepostgres://gopher:secret@postgres:5432/gophermart?sslmode=disable", "адрес подключения к базе данных")
 		}
 
 		if tempConfig.AccrualSystemUrl == "" {
-			flag.StringVar(&tempConfig.AccrualSystemUrl, "r", "", "адрес системы расчёта начислений") // TODO
+			flag.StringVar(&tempConfig.AccrualSystemUrl, "r", "", "адрес системы расчёта начислений")
 		}
 
 		flag.Parse()
