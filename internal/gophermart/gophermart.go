@@ -24,6 +24,7 @@ var (
 	ErrNotEnoughBonuses = fmt.Errorf("Not enough bonuses")
 )
 
+// Gophermart — сервис бизнес-логики системы лояльности.
 type Gophermart struct {
 	repositories      repositoriesInt
 	accrualCalculator accrualCalculator
@@ -42,6 +43,8 @@ func NewGophermart(ctx context.Context, connPool *pgxpool.Pool, wg *sync.WaitGro
 	return gophermart
 }
 
+// handleOrderState читает обновления статусов заказов из канала мониторинга
+// и сохраняет изменения в хранилище.
 func (g *Gophermart) handleOrderState(
 	ctx context.Context,
 	ch <-chan *dto.AccrualCalculatorDTO,
@@ -141,6 +144,7 @@ func (g *Gophermart) GetWithdraws(ctx context.Context) ([]*dto.WithdrawInfo, err
 	return g.repositories.GetWithdraws(ctx)
 }
 
+// Хэлпер для получения общего числа зачисленных и снятых бонусов
 func (g *Gophermart) getBonusesNWithdrawls(ctx context.Context) (int, int, error) {
 	orders, err := g.repositories.GetOrders(ctx)
 	if err != nil {
@@ -163,6 +167,7 @@ func (g *Gophermart) getBonusesNWithdrawls(ctx context.Context) (int, int, error
 	return allBonuses, allWithdralws, nil
 }
 
+// Хэлпер для конвертации []*dto.OrderInfo -> []*dto.GetOrdersInfoResp
 func orderInfoSliceToGetOrdersInfoResp(original []*dto.OrderInfo) []*dto.GetOrdersInfoResp {
 	result := []*dto.GetOrdersInfoResp{}
 

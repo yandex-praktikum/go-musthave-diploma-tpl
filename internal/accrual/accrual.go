@@ -40,13 +40,17 @@ func NewAccrualCalculator(accrualServiceUrl string) *AccrualCalculator {
 	return &calculator
 }
 
+// Хэлпер для получения эндпоинта сервиса
 func composeBaseUrl(accrualServiceUrl string) string {
 	return fmt.Sprintf("%v/api/orders/%%v", accrualServiceUrl)
 }
 
+// StartMonitoring запускает фоновый мониторинг заказов.
+// Возвращает канал, в который отправляются обновлённые состояния заказов.
 func (c *AccrualCalculator) StartMonitoring(ctx context.Context, wg *sync.WaitGroup) <-chan *dto.AccrualCalculatorDTO {
 	ch := make(chan *dto.AccrualCalculatorDTO)
 
+	// воркер для опроса внешнего сервиса
 	go func(chan<- *dto.AccrualCalculatorDTO) {
 		wg.Add(1)
 		defer wg.Done()
@@ -96,6 +100,7 @@ func (c *AccrualCalculator) StartMonitoring(ctx context.Context, wg *sync.WaitGr
 	return ch
 }
 
+// Метод, который добавляет заказ для мониторинга
 func (c *AccrualCalculator) AddToMonitoring(orderNumber, userID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -103,10 +108,14 @@ func (c *AccrualCalculator) AddToMonitoring(orderNumber, userID string) {
 	c.orderStates[orderNumber] = dto.NewOrderInfo(orderNumber, userID)
 }
 
+// Хэлпер для гнерации рандомного количества бонусов в режими эмуляции внешнего сервиса
 func getRandomAccrual() int {
 	return rand.IntN(1000) + 200
 }
 
+// getOrderState получает актуальный статус заказа.
+// В режиме эмуляции возвращает фиктивные данные.
+// В обычном режиме выполняет HTTP-запрос к внешнему сервису.
 func (c *AccrualCalculator) getOrderState(orderNumber string) (*dto.AccrualCalculatorDTO, error) {
 	if c.isEmulationMode {
 		return &dto.AccrualCalculatorDTO{

@@ -76,6 +76,7 @@ func (s *Server) mountHandlers() {
 	))
 }
 
+// Мидлвейр для проверки аутентификации
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("sid")

@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// Дженерик структура для кэширования данных
 type Cache[T any] struct {
 	mu   sync.RWMutex
 	data map[string]T
@@ -25,6 +26,7 @@ func (c *Cache[T]) Get(key string) (T, bool) {
 	return value, founded
 }
 
+// Поиск значения по префиксу
 func (c *Cache[T]) GetByPrefix(prefix string) []T {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -45,6 +47,7 @@ func (c *Cache[T]) Set(key string, value T) {
 	c.data[key] = value
 }
 
+// Метод для обновления значения согласно переданой функции action
 func (c *Cache[T]) UpdValue(key string, action func(T)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

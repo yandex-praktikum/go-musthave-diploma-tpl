@@ -7,6 +7,7 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 )
 
+// Хэндле для работы с кукесами, они хранятся в течении 24 часов
 type CookieHandler struct {
 	cache *ttlcache.Cache[string, *dto.UserData]
 }

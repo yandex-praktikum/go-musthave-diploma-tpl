@@ -2,14 +2,17 @@ package utils
 
 import "fmt"
 
+// Хэлпер для получения ключа, по которому значение хранится в кэше
 func GetOrderInfoKey(userId, orderNumber string) string {
 	return fmt.Sprintf("%v%v", GetOrderInfoKeyPrefix(userId), orderNumber)
 }
 
+// Хэлпер для получения перфикса ключа, по которому значение хранится в кэше
 func GetOrderInfoKeyPrefix(userId string) string {
 	return fmt.Sprintf("%v_", userId)
 }
 
+// Хэлпер для проверки алгортма Луны
 func ValidLuhn(number string) bool {
 	sum := 0
 	double := false

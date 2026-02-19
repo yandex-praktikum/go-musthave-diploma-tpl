@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Repositories агрегирует все репозитории приложения
+// и предоставляет единый интерфейс доступа к данным.
 type Repositories struct {
 	UserRepo      repositoriesusers.UserRepo
 	OrderRepo     repositoriesorders.OrderRepo
