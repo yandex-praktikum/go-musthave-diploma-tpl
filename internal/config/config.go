@@ -10,6 +10,7 @@ import (
 	env "github.com/caarlos0/env/v11"
 )
 
+// можно обойтись без этого, но в тестировании были проблемы
 var (
 	flagOnce    sync.Once
 	flagAddress string
