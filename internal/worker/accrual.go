@@ -10,8 +10,16 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/anon-d/gophermarket/internal/repository/postgres"
+	"github.com/anon-d/gophermarket/internal/repository"
 )
+
+// WorkerRepository интерфейс репозитория, используемый воркером
+//
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_repository_test.go -package=worker github.com/anon-d/gophermarket/internal/worker WorkerRepository
+type WorkerRepository interface {
+	GetOrdersForProcessing(ctx context.Context) ([]repository.Order, error)
+	UpdateOrderStatus(ctx context.Context, orderNumber string, status string, accrual float64) error
+}
 
 // AccrualResponse ответ от системы расчёта начислений
 type AccrualResponse struct {
@@ -22,7 +30,7 @@ type AccrualResponse struct {
 
 // AccrualWorker воркер для проверки начислений
 type AccrualWorker struct {
-	repo           *postgres.PostgresDB
+	repo           WorkerRepository
 	accrualAddress string
 	logger         *zap.Logger
 	httpClient     *http.Client
@@ -30,7 +38,7 @@ type AccrualWorker struct {
 }
 
 // NewAccrualWorker создаёт новый воркер
-func NewAccrualWorker(repo *postgres.PostgresDB, accrualAddress string, logger *zap.Logger) *AccrualWorker {
+func NewAccrualWorker(repo WorkerRepository, accrualAddress string, logger *zap.Logger) *AccrualWorker {
 	return &AccrualWorker{
 		repo:           repo,
 		accrualAddress: accrualAddress,

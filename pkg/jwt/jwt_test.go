@@ -3,6 +3,8 @@ package jwt
 import (
 	"testing"
 	"time"
+
+	jwtlib "github.com/golang-jwt/jwt/v5"
 )
 
 const testSecret = "test-secret-key"
@@ -184,6 +186,19 @@ func TestTokenRoundTrip(t *testing.T) {
 	}
 	if scope != "access" {
 		t.Errorf("scope = %v, want access", scope)
+	}
+}
+
+func TestGetClaimsVerified_InvalidToken(t *testing.T) {
+	// Токен с Valid = false
+	invalidToken := &jwtlib.Token{
+		Valid:  false,
+		Claims: jwtlib.MapClaims{"sub": "user-123"},
+	}
+
+	_, err := GetClaimsVerified(invalidToken)
+	if err == nil {
+		t.Error("GetClaimsVerified() should return error for invalid token")
 	}
 }
 

@@ -12,10 +12,24 @@ import (
 
 	"github.com/anon-d/gophermarket/internal/domain"
 	"github.com/anon-d/gophermarket/internal/http/helper"
+	"github.com/anon-d/gophermarket/internal/repository"
 	"github.com/anon-d/gophermarket/internal/repository/postgres"
 	"github.com/anon-d/gophermarket/pkg/jwt"
 	"github.com/anon-d/gophermarket/pkg/luhn"
 )
+
+// Repository интерфейс хранилища данных, используемый сервисом
+//
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_repository_test.go -package=service github.com/anon-d/gophermarket/internal/http/service Repository
+type Repository interface {
+	CreateUser(ctx context.Context, user *repository.User) error
+	GetUserByLogin(ctx context.Context, login string) (*repository.User, error)
+	CreateOrder(ctx context.Context, order *repository.Order) error
+	GetOrdersByUserID(ctx context.Context, userID string) ([]repository.Order, error)
+	GetBalance(ctx context.Context, userID string) (*repository.Balance, error)
+	Withdraw(ctx context.Context, withdrawal *repository.Withdrawal) error
+	GetWithdrawals(ctx context.Context, userID string) ([]repository.Withdrawal, error)
+}
 
 var (
 	// ErrUserExists ошибка - пользователь уже существует
@@ -35,13 +49,13 @@ var (
 // GopherService сервис бизнес-логики
 type GopherService struct {
 	namespace     string
-	repo          *postgres.PostgresDB
+	repo          Repository
 	logger        *zap.Logger
 	jwtSecret     string
 	tokenDuration time.Duration
 }
 
-func NewGopherService(namespace string, repo *postgres.PostgresDB, logger *zap.Logger, jwtSecret string) *GopherService {
+func NewGopherService(namespace string, repo Repository, logger *zap.Logger, jwtSecret string) *GopherService {
 	return &GopherService{
 		namespace:     namespace,
 		repo:          repo,

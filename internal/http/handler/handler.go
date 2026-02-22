@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -10,9 +11,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/anon-d/gophermarket/internal/domain"
 	"github.com/anon-d/gophermarket/internal/http/middleware"
 	"github.com/anon-d/gophermarket/internal/http/service"
 )
+
+// Service интерфейс бизнес-логики, используемый хендлерами
+//
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_service_test.go -package=handler github.com/anon-d/gophermarket/internal/http/handler Service
+type Service interface {
+	RegisterUser(ctx context.Context, login, password string) (string, error)
+	LoginUser(ctx context.Context, login, password string) (string, error)
+	CreateOrder(ctx context.Context, userID, orderNumber string) error
+	GetOrders(ctx context.Context, userID string) ([]domain.Order, error)
+	GetBalance(ctx context.Context, userID string) (*domain.Balance, error)
+	Withdraw(ctx context.Context, userID, orderNumber string, sum float64) error
+	GetWithdrawals(ctx context.Context, userID string) ([]domain.Withdrawal, error)
+}
 
 // AuthRequest структура запроса на регистрацию и логин
 type AuthRequest struct {
@@ -49,10 +64,10 @@ type WithdrawalResponse struct {
 
 // GopherHandler HTTP хендлер
 type GopherHandler struct {
-	service *service.GopherService
+	service Service
 }
 
-func NewGopherHandler(svc *service.GopherService) *GopherHandler {
+func NewGopherHandler(svc Service) *GopherHandler {
 	return &GopherHandler{service: svc}
 }
 

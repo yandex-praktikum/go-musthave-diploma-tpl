@@ -1,10 +1,20 @@
 // Package config содержит конфигурацию приложения
+// Приоритет отдан переменным окружения. Если они не заданы, конфигурация задается через флаги
+// или устанавливается дефолтное значение
 package config
 
 import (
 	"flag"
+	"sync"
 
 	env "github.com/caarlos0/env/v11"
+)
+
+var (
+	flagOnce    sync.Once
+	flagAddress string
+	flagDSN     string
+	flagAccrual string
 )
 
 type Config struct {
@@ -20,11 +30,17 @@ type Config struct {
 func New() (*Config, error) {
 	cfg := &Config{}
 
-	// Парсинг флагов командной строки
-	flag.StringVar(&cfg.SelfAddress, "a", ":8080", "Адрес и порт запуска сервиса")
-	flag.StringVar(&cfg.DSN, "d", "", "Адрес подключения к базе данных")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", "", "Адрес системы расчёта начислений")
-	flag.Parse()
+	// Парсинг флагов командной строки (регистрируем только один раз)
+	flagOnce.Do(func() {
+		flag.StringVar(&flagAddress, "a", ":8080", "Адрес и порт запуска сервиса")
+		flag.StringVar(&flagDSN, "d", "", "Адрес подключения к базе данных")
+		flag.StringVar(&flagAccrual, "r", "", "Адрес системы расчёта начислений")
+		flag.Parse()
+	})
+
+	cfg.SelfAddress = flagAddress
+	cfg.DSN = flagDSN
+	cfg.AccrualSystemAddress = flagAccrual
 
 	// Переменные окружения с более высоким приоритетом
 	envCfg := &Config{}
