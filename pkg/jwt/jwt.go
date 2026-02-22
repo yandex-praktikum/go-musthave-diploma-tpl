@@ -27,7 +27,7 @@ func NewToken(uid string, accessDuration time.Duration, secret string) (string, 
 
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		return "", fmt.Errorf("Signed fail: %v", err.Error())
+		return "", fmt.Errorf("signed fail: %v", err.Error())
 	}
 
 	return tokenString, nil
