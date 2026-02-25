@@ -1,34 +1,34 @@
 name: go vet test
 
 on:
-  pull_request:
-  push:
-    branches:
-      - master
-      - main
+    pull_request:
+    push:
+        branches:
+            - master
+            - main
 
 jobs:
-  statictest:
-    runs-on: ubuntu-latest
-    container: golang:1.24
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    statictest:
+        runs-on: ubuntu-latest
+        container: golang:1.25.6
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
 
-      - name: Download statictest binary
-        uses: robinraju/release-downloader@v1.8
-        with:
-          repository: Yandex-Practicum/go-autotests
-          latest: true
-          fileName: statictest
-          out-file-path: .tools
-          token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Download statictest binary
+              uses: robinraju/release-downloader@v1.8
+              with:
+                  repository: Yandex-Practicum/go-autotests
+                  latest: true
+                  fileName: statictest
+                  out-file-path: .tools
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup autotest binary
-        run: |
-          chmod -R +x $GITHUB_WORKSPACE/.tools/statictest
-          mv $GITHUB_WORKSPACE/.tools/statictest /usr/local/bin/statictest
+            - name: Setup autotest binary
+              run: |
+                  chmod -R +x $GITHUB_WORKSPACE/.tools/statictest
+                  mv $GITHUB_WORKSPACE/.tools/statictest /usr/local/bin/statictest
 
-      - name: Run statictest
-        run: |
-          go vet -vettool=$(which statictest) ./...
+            - name: Run statictest
+              run: |
+                  go vet -vettool=$(which statictest) ./...
