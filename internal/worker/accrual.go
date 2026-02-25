@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"net/http"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 //go:generate go run go.uber.org/mock/mockgen -destination=mock_repository_test.go -package=worker github.com/anon-d/gophermarket/internal/worker WorkerRepository
 type WorkerRepository interface {
 	GetOrdersForProcessing(ctx context.Context) ([]repository.Order, error)
+	StreamOrdersForProcessing(ctx context.Context) iter.Seq[repository.Order]
 	UpdateOrderStatus(ctx context.Context, orderNumber string, status string, accrual float64) error
 }
 
@@ -68,13 +70,8 @@ func (w *AccrualWorker) Start(ctx context.Context) {
 
 // processOrders обрабатывает заказы, ожидающие проверки
 func (w *AccrualWorker) processOrders(ctx context.Context) {
-	orders, err := w.repo.GetOrdersForProcessing(ctx)
-	if err != nil {
-		w.logger.Error("Ошибка получения заказов для обработки", zap.Error(err))
-		return
-	}
-
-	for _, order := range orders {
+	// Используем iter.Seq для стриминга заказов
+	for order := range w.repo.StreamOrdersForProcessing(ctx) {
 		select {
 		case <-ctx.Done():
 			return

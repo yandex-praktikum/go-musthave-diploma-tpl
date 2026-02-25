@@ -10,7 +10,11 @@ import (
 
 // ToRepositoryUser конвертирует domain.User в repository.User
 func ToRepositoryUser(user *domain.User) *repository.User {
-	uid, _ := uuid.Parse(user.ID)
+	uid, err := uuid.Parse(user.ID)
+	if err != nil {
+		// Если ID невалидный, возвращаем нулевой UUID (по идее - маловероятно, точнее вообще такого не должно быть)
+		uid = uuid.UUID{}
+	}
 	return &repository.User{
 		ID:       uid,
 		Login:    user.Login,
@@ -29,7 +33,10 @@ func ToDomainUser(user *repository.User) *domain.User {
 
 // ToRepositoryOrder конвертирует domain.Order в repository.Order
 func ToRepositoryOrder(order *domain.Order) *repository.Order {
-	uid, _ := uuid.Parse(order.UserID)
+	uid, err := uuid.Parse(order.UserID)
+	if err != nil {
+		uid = uuid.UUID{}
+	}
 	return &repository.Order{
 		ID:         order.ID,
 		Number:     order.Number,
@@ -63,7 +70,10 @@ func ToDomainOrders(orders []repository.Order) []domain.Order {
 
 // ToRepositoryBalance конвертирует domain.Balance в repository.Balance
 func ToRepositoryBalance(balance *domain.Balance) *repository.Balance {
-	uid, _ := uuid.Parse(balance.UserID)
+	uid, err := uuid.Parse(balance.UserID)
+	if err != nil {
+		uid = uuid.UUID{}
+	}
 	return &repository.Balance{
 		UserID:    uid,
 		Current:   balance.Current,
@@ -82,7 +92,10 @@ func ToDomainBalance(balance *repository.Balance) *domain.Balance {
 
 // ToRepositoryWithdrawal конвертирует domain.Withdrawal в repository.Withdrawal
 func ToRepositoryWithdrawal(w *domain.Withdrawal) *repository.Withdrawal {
-	uid, _ := uuid.Parse(w.UserID)
+	uid, err := uuid.Parse(w.UserID)
+	if err != nil {
+		uid = uuid.UUID{}
+	}
 	return &repository.Withdrawal{
 		ID:          w.ID,
 		UserID:      uid,

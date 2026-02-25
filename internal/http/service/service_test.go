@@ -12,7 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/anon-d/gophermarket/internal/repository"
-	"github.com/anon-d/gophermarket/internal/repository/postgres"
 	jwtpkg "github.com/anon-d/gophermarket/pkg/jwt"
 )
 
@@ -82,7 +81,7 @@ func TestRegisterUser_UserExists(t *testing.T) {
 
 	mockRepo.EXPECT().
 		CreateUser(gomock.Any(), gomock.Any()).
-		Return(postgres.ErrUserExists)
+		Return(repository.ErrUserExists)
 
 	svc := newTestService(mockRepo)
 	_, err := svc.RegisterUser(context.Background(), "existing", "pass")
@@ -146,7 +145,7 @@ func TestLoginUser_UserNotFound(t *testing.T) {
 
 	mockRepo.EXPECT().
 		GetUserByLogin(gomock.Any(), "unknown").
-		Return(nil, postgres.ErrUserNotFound)
+		Return(nil, repository.ErrUserNotFound)
 
 	svc := newTestService(mockRepo)
 	_, err := svc.LoginUser(context.Background(), "unknown", "pass")
@@ -231,7 +230,7 @@ func TestCreateOrder_OrderExistsSameUser(t *testing.T) {
 
 	mockRepo.EXPECT().
 		CreateOrder(gomock.Any(), gomock.Any()).
-		Return(postgres.ErrOrderExists)
+		Return(repository.ErrOrderExists)
 
 	svc := newTestService(mockRepo)
 	err := svc.CreateOrder(context.Background(), "user-1", "12345678903")
@@ -247,7 +246,7 @@ func TestCreateOrder_OrderExistsAnotherUser(t *testing.T) {
 
 	mockRepo.EXPECT().
 		CreateOrder(gomock.Any(), gomock.Any()).
-		Return(postgres.ErrOrderExistsByAnotherUser)
+		Return(repository.ErrOrderExistsByAnotherUser)
 
 	svc := newTestService(mockRepo)
 	err := svc.CreateOrder(context.Background(), "user-1", "12345678903")
@@ -394,7 +393,7 @@ func TestWithdraw_InsufficientFunds(t *testing.T) {
 
 	mockRepo.EXPECT().
 		Withdraw(gomock.Any(), gomock.Any()).
-		Return(postgres.ErrInsufficientFunds)
+		Return(repository.ErrInsufficientFunds)
 
 	svc := newTestService(mockRepo)
 	err := svc.Withdraw(context.Background(), "user-1", "12345678903", 9999.0)

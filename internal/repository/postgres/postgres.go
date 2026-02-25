@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"iter"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,23 +19,15 @@ import (
 	"github.com/anon-d/gophermarket/migrations"
 )
 
-var (
-	// ErrUserExists ошибка - пользователь уже существует
-	ErrUserExists = errors.New("user already exists")
-	// ErrUserNotFound ошибка - пользователь не найден
-	ErrUserNotFound = errors.New("user not found")
-	// ErrOrderExists ошибка - заказ уже существует
-	ErrOrderExists = errors.New("order already exists")
-	// ErrOrderExistsByAnotherUser ошибка - заказ загружен другим пользователем
-	ErrOrderExistsByAnotherUser = errors.New("order exists by another user")
-	// ErrInsufficientFunds ошибка - недостаточно средств
-	ErrInsufficientFunds = errors.New("insufficient funds")
-)
 
 // PostgresDB репозиторий для работы с PostgreSQL
 type PostgresDB struct {
-	db     *sqlx.DB
-	logger *zap.Logger
+	db         *sqlx.DB
+	logger     *zap.Logger
+	userRepo   *GenericRepository[repository.User]
+	orderRepo  *GenericRepository[repository.Order]
+	balanceRepo *GenericRepository[repository.Balance]
+	withdrawalRepo *GenericRepository[repository.Withdrawal]
 }
 
 // NewPostgres создаёт новый экземпляр репозитория
@@ -49,8 +42,12 @@ func NewPostgres(dsn string, logger *zap.Logger) (*PostgresDB, error) {
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	repo := &PostgresDB{
-		db:     db,
-		logger: logger,
+		db:             db,
+		logger:         logger,
+		userRepo:       NewGenericRepository[repository.User](db),
+		orderRepo:      NewGenericRepository[repository.Order](db),
+		balanceRepo:    NewGenericRepository[repository.Balance](db),
+		withdrawalRepo: NewGenericRepository[repository.Withdrawal](db),
 	}
 
 	// Run migrations
@@ -98,7 +95,7 @@ func (p *PostgresDB) CreateUser(ctx context.Context, user *repository.User) erro
 		return err
 	}
 	if exists {
-		return ErrUserExists
+		return repository.ErrUserExists
 	}
 
 	// Создаём пользователя
@@ -122,30 +119,12 @@ func (p *PostgresDB) CreateUser(ctx context.Context, user *repository.User) erro
 
 // GetUser получает пользователя по ID
 func (p *PostgresDB) GetUser(ctx context.Context, uid string) (*repository.User, error) {
-	var user repository.User
-	err := p.db.GetContext(ctx, &user,
-		"SELECT id, login, pass_hash FROM users WHERE id = $1", uid)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
-	}
-	return &user, nil
+	return p.userRepo.GetOne(ctx, "SELECT id, login, pass_hash FROM users WHERE id = $1", uid)
 }
 
 // GetUserByLogin получает пользователя по логину
 func (p *PostgresDB) GetUserByLogin(ctx context.Context, login string) (*repository.User, error) {
-	var user repository.User
-	err := p.db.GetContext(ctx, &user,
-		"SELECT id, login, pass_hash FROM users WHERE login = $1", login)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
-	}
-	return &user, nil
+	return p.userRepo.GetOne(ctx, "SELECT id, login, pass_hash FROM users WHERE login = $1", login)
 }
 
 // CreateOrder создаёт новый заказ
@@ -158,12 +137,12 @@ func (p *PostgresDB) CreateOrder(ctx context.Context, order *repository.Order) e
 	if err == nil {
 		// Заказ существует
 		if existingOrder.UserID == order.UserID {
-			return ErrOrderExists
+			return repository.ErrOrderExists
 		}
-		return ErrOrderExistsByAnotherUser
+		return repository.ErrOrderExistsByAnotherUser
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return err
+		return fmt.Errorf("%w: %w", repository.ErrInternal, err)
 	}
 
 	_, err = p.db.ExecContext(ctx,
@@ -174,14 +153,7 @@ func (p *PostgresDB) CreateOrder(ctx context.Context, order *repository.Order) e
 
 // GetOrdersByUserID получает заказы пользователя
 func (p *PostgresDB) GetOrdersByUserID(ctx context.Context, userID string) ([]repository.Order, error) {
-	var orders []repository.Order
-	err := p.db.SelectContext(ctx, &orders,
-		"SELECT id, number, user_id, status, accrual, uploaded_at FROM orders WHERE user_id = $1 ORDER BY uploaded_at DESC",
-		userID)
-	if err != nil {
-		return nil, err
-	}
-	return orders, nil
+	return p.orderRepo.GetMany(ctx, "SELECT id, number, user_id, status, accrual, uploaded_at FROM orders WHERE user_id = $1 ORDER BY uploaded_at DESC", userID)
 }
 
 // GetOrdersForProcessing получает заказы для обработки (NEW или PROCESSING)
@@ -193,6 +165,23 @@ func (p *PostgresDB) GetOrdersForProcessing(ctx context.Context) ([]repository.O
 		return nil, err
 	}
 	return orders, nil
+}
+
+// StreamOrdersForProcessing возвращает итератор для заказов в обработке
+func (p *PostgresDB) StreamOrdersForProcessing(ctx context.Context) iter.Seq[repository.Order] {
+	return func(yield func(repository.Order) bool) {
+		orders, err := p.GetOrdersForProcessing(ctx)
+		if err != nil {
+			p.logger.Error("Ошибка получения заказов для обработки", zap.Error(err))
+			return
+		}
+
+		for _, order := range orders {
+			if !yield(order) {
+				return
+			}
+		}
+	}
 }
 
 // UpdateOrderStatus обновляет статус заказа
@@ -260,7 +249,7 @@ func (p *PostgresDB) Withdraw(ctx context.Context, withdrawal *repository.Withdr
 	}
 
 	if currentBalance < withdrawal.Sum {
-		return ErrInsufficientFunds
+		return repository.ErrInsufficientFunds
 	}
 
 	// Списываем с баланса
@@ -284,12 +273,5 @@ func (p *PostgresDB) Withdraw(ctx context.Context, withdrawal *repository.Withdr
 
 // GetWithdrawals получает список списаний пользователя
 func (p *PostgresDB) GetWithdrawals(ctx context.Context, userID string) ([]repository.Withdrawal, error) {
-	var withdrawals []repository.Withdrawal
-	err := p.db.SelectContext(ctx, &withdrawals,
-		"SELECT id, user_id, order_number, sum, processed_at FROM withdrawals WHERE user_id = $1 ORDER BY processed_at DESC",
-		userID)
-	if err != nil {
-		return nil, err
-	}
-	return withdrawals, nil
+	return p.withdrawalRepo.GetMany(ctx, "SELECT id, user_id, order_number, sum, processed_at FROM withdrawals WHERE user_id = $1 ORDER BY processed_at DESC", userID)
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/anon-d/gophermarket/internal/domain"
 	"github.com/anon-d/gophermarket/internal/http/helper"
 	"github.com/anon-d/gophermarket/internal/repository"
-	"github.com/anon-d/gophermarket/internal/repository/postgres"
 	"github.com/anon-d/gophermarket/pkg/jwt"
 	"github.com/anon-d/gophermarket/pkg/luhn"
 )
@@ -44,6 +43,8 @@ var (
 	ErrInvalidOrderNumber = errors.New("invalid order number")
 	// ErrInsufficientFunds ошибка - недостаточно средств
 	ErrInsufficientFunds = errors.New("insufficient funds")
+	// ErrInternal ошибка - внутренняя ошибка сервера
+	ErrInternal = errors.New("internal error")
 )
 
 // GopherService сервис бизнес-логики
@@ -75,7 +76,7 @@ func (s *GopherService) RegisterUser(ctx context.Context, login, password string
 	passHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		s.logger.Error("Ошибка создания хеша пароля", zap.String("op", op), zap.Error(err))
-		return "", err
+		return "", ErrInternal
 	}
 
 	userDomain := domain.User{
@@ -86,18 +87,18 @@ func (s *GopherService) RegisterUser(ctx context.Context, login, password string
 
 	err = s.repo.CreateUser(ctx, helper.ToRepositoryUser(&userDomain))
 	if err != nil {
-		if errors.Is(err, postgres.ErrUserExists) {
+		if errors.Is(err, repository.ErrUserExists) {
 			return "", ErrUserExists
 		}
 		s.logger.Error("Ошибка создания пользователя в БД", zap.String("op", op), zap.Error(err))
-		return "", err
+		return "", ErrInternal
 	}
 
 	// Генерируем токен для автоматической аутентификации
 	token, err := jwt.NewToken(uid.String(), s.tokenDuration, s.jwtSecret)
 	if err != nil {
 		s.logger.Error("Ошибка создания токена", zap.String("op", op), zap.Error(err))
-		return "", err
+		return "", ErrInternal
 	}
 
 	return token, nil
@@ -109,11 +110,11 @@ func (s *GopherService) LoginUser(ctx context.Context, login, password string) (
 
 	userRepository, err := s.repo.GetUserByLogin(ctx, login)
 	if err != nil {
-		if errors.Is(err, postgres.ErrUserNotFound) {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			return "", ErrInvalidCredentials
 		}
 		s.logger.Error("Ошибка получения пользователя", zap.String("op", op), zap.Error(err))
-		return "", err
+		return "", ErrInternal
 	}
 
 	user := helper.ToDomainUser(userRepository)
@@ -125,7 +126,7 @@ func (s *GopherService) LoginUser(ctx context.Context, login, password string) (
 	token, err := jwt.NewToken(user.ID, s.tokenDuration, s.jwtSecret)
 	if err != nil {
 		s.logger.Error("Ошибка создания токена", zap.String("op", op), zap.Error(err))
-		return "", err
+		return "", ErrInternal
 	}
 
 	return token, nil
@@ -150,14 +151,14 @@ func (s *GopherService) CreateOrder(ctx context.Context, userID, orderNumber str
 
 	err := s.repo.CreateOrder(ctx, helper.ToRepositoryOrder(order))
 	if err != nil {
-		if errors.Is(err, postgres.ErrOrderExists) {
+		if errors.Is(err, repository.ErrOrderExists) {
 			return ErrOrderExists
 		}
-		if errors.Is(err, postgres.ErrOrderExistsByAnotherUser) {
+		if errors.Is(err, repository.ErrOrderExistsByAnotherUser) {
 			return ErrOrderExistsByAnotherUser
 		}
 		s.logger.Error("Ошибка создания заказа", zap.String("op", op), zap.Error(err))
-		return err
+		return ErrInternal
 	}
 
 	return nil
@@ -170,7 +171,7 @@ func (s *GopherService) GetOrders(ctx context.Context, userID string) ([]domain.
 	orders, err := s.repo.GetOrdersByUserID(ctx, userID)
 	if err != nil {
 		s.logger.Error("Ошибка получения заказов", zap.String("op", op), zap.Error(err))
-		return nil, err
+		return nil, ErrInternal
 	}
 
 	return helper.ToDomainOrders(orders), nil
@@ -183,7 +184,7 @@ func (s *GopherService) GetBalance(ctx context.Context, userID string) (*domain.
 	balance, err := s.repo.GetBalance(ctx, userID)
 	if err != nil {
 		s.logger.Error("Ошибка получения баланса", zap.String("op", op), zap.Error(err))
-		return nil, err
+		return nil, ErrInternal
 	}
 
 	return helper.ToDomainBalance(balance), nil
@@ -207,11 +208,11 @@ func (s *GopherService) Withdraw(ctx context.Context, userID, orderNumber string
 
 	err := s.repo.Withdraw(ctx, helper.ToRepositoryWithdrawal(withdrawal))
 	if err != nil {
-		if errors.Is(err, postgres.ErrInsufficientFunds) {
+		if errors.Is(err, repository.ErrInsufficientFunds) {
 			return ErrInsufficientFunds
 		}
 		s.logger.Error("Ошибка списания баллов", zap.String("op", op), zap.Error(err))
-		return err
+		return ErrInternal
 	}
 
 	return nil
@@ -224,7 +225,7 @@ func (s *GopherService) GetWithdrawals(ctx context.Context, userID string) ([]do
 	withdrawals, err := s.repo.GetWithdrawals(ctx, userID)
 	if err != nil {
 		s.logger.Error("Ошибка получения списаний", zap.String("op", op), zap.Error(err))
-		return nil, err
+		return nil, ErrInternal
 	}
 
 	return helper.ToDomainWithdrawals(withdrawals), nil

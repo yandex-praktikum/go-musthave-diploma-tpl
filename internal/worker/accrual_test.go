@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"iter"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -68,10 +69,18 @@ func TestProcessOrders_Success(t *testing.T) {
 		{Number: "111", UserID: uid, Status: "NEW"},
 	}
 
-	// Возвращаем заказы
+	// Мокаем итератор
 	mockRepo.EXPECT().
-		GetOrdersForProcessing(gomock.Any()).
-		Return(orders, nil)
+		StreamOrdersForProcessing(gomock.Any()).
+		DoAndReturn(func(ctx context.Context) iter.Seq[repository.Order] {
+			return func(yield func(repository.Order) bool) {
+				for _, order := range orders {
+					if !yield(order) {
+						return
+					}
+				}
+			}
+		})
 
 	// Ожидаем обновление статуса (processOrder вызовет HTTP → mock-сервер → UpdateOrderStatus)
 	mockRepo.EXPECT().
@@ -94,9 +103,14 @@ func TestProcessOrders_DBError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockRepo := NewMockWorkerRepository(ctrl)
 
+	// Мокаем итератор, который ничего не возвращает (ошибка логируется внутри)
 	mockRepo.EXPECT().
-		GetOrdersForProcessing(gomock.Any()).
-		Return(nil, errors.New("db error"))
+		StreamOrdersForProcessing(gomock.Any()).
+		DoAndReturn(func(ctx context.Context) iter.Seq[repository.Order] {
+			return func(yield func(repository.Order) bool) {
+				// Пустой итератор - ошибка уже обработана в StreamOrdersForProcessing
+			}
+		})
 
 	w := NewAccrualWorker(mockRepo, "", testLogger)
 	// Не паникует, просто логирует ошибку
@@ -114,8 +128,16 @@ func TestProcessOrders_ContextCancelDuringIteration(t *testing.T) {
 	}
 
 	mockRepo.EXPECT().
-		GetOrdersForProcessing(gomock.Any()).
-		Return(orders, nil)
+		StreamOrdersForProcessing(gomock.Any()).
+		DoAndReturn(func(ctx context.Context) iter.Seq[repository.Order] {
+			return func(yield func(repository.Order) bool) {
+				for _, order := range orders {
+					if !yield(order) {
+						return
+					}
+				}
+			}
+		})
 
 	// Не ожидаем вызовов UpdateOrderStatus — контекст отменён
 

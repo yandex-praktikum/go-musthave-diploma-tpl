@@ -11,6 +11,7 @@ package worker
 
 import (
 	context "context"
+	iter "iter"
 	reflect "reflect"
 
 	repository "github.com/anon-d/gophermarket/internal/repository"
@@ -54,6 +55,20 @@ func (m *MockWorkerRepository) GetOrdersForProcessing(ctx context.Context) ([]re
 func (mr *MockWorkerRepositoryMockRecorder) GetOrdersForProcessing(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersForProcessing", reflect.TypeOf((*MockWorkerRepository)(nil).GetOrdersForProcessing), ctx)
+}
+
+// StreamOrdersForProcessing mocks base method.
+func (m *MockWorkerRepository) StreamOrdersForProcessing(ctx context.Context) iter.Seq[repository.Order] {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StreamOrdersForProcessing", ctx)
+	ret0, _ := ret[0].(iter.Seq[repository.Order])
+	return ret0
+}
+
+// StreamOrdersForProcessing indicates an expected call of StreamOrdersForProcessing.
+func (mr *MockWorkerRepositoryMockRecorder) StreamOrdersForProcessing(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StreamOrdersForProcessing", reflect.TypeOf((*MockWorkerRepository)(nil).StreamOrdersForProcessing), ctx)
 }
 
 // UpdateOrderStatus mocks base method.
