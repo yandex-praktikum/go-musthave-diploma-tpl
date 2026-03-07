@@ -1,0 +1,226 @@
+package auth
+
+import (
+	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"math/big"
+	"sync/atomic"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"golang.org/x/crypto/bcrypt"
+
+	"gmart/internal/repository/pgc"
+)
+
+const sqlInsertIntoUsers = `
+	INSERT INTO users (login, password_hash)
+	VALUES ($1, $2)
+	RETURNING id
+`
+const sqlSelectFromUsers = `
+	SELECT id, password_hash
+	FROM users
+	WHERE login = $1
+`
+const sqlInsertIntoSessions = `
+	INSERT INTO sessions (id, user_id, user_agent, ip_address, expires_at) VALUES ($1, $2, $3, $4, $5)
+`
+const sqlDeleteFromSessions = `
+	DELETE FROM sessions
+	WHERE id = $1
+`
+const sqlUpdateWithCheck = `
+	UPDATE sessions
+	SET expires_at = $2, ip_address = $3, user_agent = $4
+	WHERE id = $1 AND expires_at > $5
+	RETURNING user_id
+`
+
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrInvalidPassword   = errors.New("invalid password")
+	ErrSessionExpired    = errors.New("session expired")
+	ErrSessionNotFound   = errors.New("session not found")
+)
+
+//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=auth_pg_mock.go  -package=auth
+
+type AuthMetrics interface {
+	IncLoginError(reason string)
+	ObserveBcrypt(d float64)
+}
+
+type AuthRepo struct {
+	pg          pgc.PgInstance
+	metrics     AuthMetrics
+	now         func() time.Time
+	expDuration time.Duration
+	avgBcrypt   atomic.Int64
+}
+
+func NewAuthRepo(pg pgc.PgInstance, m AuthMetrics, expDuration time.Duration) *AuthRepo {
+	r := &AuthRepo{
+		pg:          pg,
+		metrics:     m,
+		now:         time.Now,
+		expDuration: expDuration,
+	}
+	r.avgBcrypt.Store((100 * time.Millisecond).Nanoseconds())
+	return r
+}
+
+// SignUp регистрирует нового пользователя
+func (r *AuthRepo) SignUp(ctx context.Context, login, password string) (int64, error) {
+	startBcrypt := r.now()
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if r.metrics != nil {
+		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt).Seconds())
+	}
+	if err != nil {
+		return 0, fmt.Errorf("hash password fail: %w", err)
+	}
+
+	var userID int64
+	err = r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
+		return pool.QueryRow(ctx, sqlInsertIntoUsers, login, string(hashedPassword)).Scan(&userID)
+	})
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// 23505 - код ошибки unique_violation в PostgreSQL
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				return 0, ErrUserAlreadyExists
+			}
+		}
+		return 0, fmt.Errorf("insert user fail: %w", err)
+	}
+
+	return userID, nil
+}
+
+// SignIn проверяет пароль и создает сессию (Refresh Token)
+func (r *AuthRepo) SignIn(ctx context.Context, login, password string, userAgent, ip string) (uuid.UUID, int64, error) {
+	var userID int64
+	var hash string
+
+	// 1. Получаем хеш из БД
+	err := r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
+		return pool.QueryRow(ctx, sqlSelectFromUsers, login).Scan(&userID, &hash)
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			if r.metrics != nil {
+				r.metrics.IncLoginError("err_user_not_found")
+			}
+			return uuid.Nil, 0, ErrUserNotFound
+		}
+		return uuid.Nil, 0, err
+	}
+
+	// 2. Сравниваем Bcrypt
+	startBcrypt := r.now()
+	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if r.metrics != nil {
+		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt).Seconds())
+	}
+	if err != nil {
+		if r.metrics != nil {
+			r.metrics.IncLoginError("err_invalid_password")
+		}
+		return uuid.Nil, 0, ErrInvalidPassword
+	}
+
+	// 3. Создаем сессию
+	sessionID := uuid.New()
+	expiresAt := r.now().Add(r.expDuration)
+
+	err = r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
+		_, err := pool.Exec(ctx, sqlInsertIntoSessions, sessionID, userID, userAgent, ip, expiresAt)
+		return err
+	})
+
+	if err != nil {
+		return uuid.Nil, 0, fmt.Errorf("create session fail: %w", err)
+	}
+
+	return sessionID, userID, nil
+}
+
+// CheckSession проверяет валидность Refresh Token
+func (r *AuthRepo) RefreshSession(ctx context.Context, sessionID uuid.UUID, userAgent, ip string) (int64, error) {
+	var userID int64
+	currentTime := r.now()
+	newExpiresAt := currentTime.Add(r.expDuration)
+
+	err := r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
+		// UPDATE вернет id пользователя, только если сессия существует и НЕ просрочена
+		return pool.QueryRow(ctx, sqlUpdateWithCheck, sessionID, newExpiresAt, ip, userAgent, currentTime).Scan(&userID)
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Либо сессии нет, либо она уже протухла (не прошла условие expires_at > NOW())
+			return 0, ErrSessionExpired
+		}
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+// SignOut удаляет сессию
+func (r *AuthRepo) SignOut(ctx context.Context, sessionID uuid.UUID) error {
+	return r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
+		ct, err := pool.Exec(ctx, sqlDeleteFromSessions, sessionID)
+		if ct.RowsAffected() == 0 {
+			return ErrSessionNotFound
+		}
+		return err
+	})
+}
+
+// SignInSleep — обертка для защиты от Timing Attack без лишней нагрузки на CPU
+func (r *AuthRepo) SignInSleep(ctx context.Context, login, password, ua, ip string) (uuid.UUID, int64, error) {
+	// Запрашиваем настоящую функцию
+	start := r.now()
+	sid, uid, err := r.SignIn(ctx, login, password, ua, ip)
+	duration := r.now().Sub(start)
+	avgBcrypt := r.avgBcrypt.Load()
+
+	if err == nil || errors.Is(err, ErrInvalidPassword) {
+		// Сработал bcrypt. Собираем статистику
+		if avgBcrypt == 0 {
+			r.avgBcrypt.Store(duration.Nanoseconds())
+		} else {
+			r.avgBcrypt.Store((avgBcrypt*7 + duration.Nanoseconds()*3) / 10)
+		}
+	} else if errors.Is(err, ErrUserNotFound) {
+		// bcrypt не вызывался. Усложняем жизнь хакеру
+		target := time.Duration(avgBcrypt)
+
+		diff := target - duration
+		if diff > 0 {
+			jitter := diff / 7
+			sleepTime := diff - jitter
+			if jitter > 0 {
+				n, _ := rand.Int(rand.Reader, big.NewInt(jitter.Nanoseconds()*2))
+				sleepTime += time.Duration(n.Int64())
+			}
+			select {
+			case <-time.After(sleepTime):
+			case <-ctx.Done():
+				return uuid.Nil, 0, ctx.Err()
+			}
+		}
+	}
+
+	return sid, uid, err
+}
