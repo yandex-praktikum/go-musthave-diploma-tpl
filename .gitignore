@@ -18,6 +18,12 @@ cmd/gophermart/gophermart
 # Dependency directories (remove the comment below to include it)
 vendor/
 
+# Local go build cache (e.g. GOCACHE=./.cache)
+.cache/
+
 # IDEs directories
 .idea
 .vscode
+
+# Local env for tests (copy from .env.test.example)
+.env.test
