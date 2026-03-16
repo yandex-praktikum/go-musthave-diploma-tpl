@@ -1,0 +1,13 @@
+@Starter(Client)
+Client->handlers: POST /api/users/register
+handlers.register(username, password) {
+    usecases.register(username, password) {
+        repository.register(username) {
+           repository.findOne(username)
+           if ("user exist") {
+                return "exist"
+           }
+
+        }
+    }
+}
