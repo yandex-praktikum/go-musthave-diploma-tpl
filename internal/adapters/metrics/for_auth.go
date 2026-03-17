@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -42,6 +44,6 @@ func (m *PrometheusAuthMetrics) IncLoginError(reason string) {
 }
 
 // ObserveBcrypt записывает время работы хеш-функции
-func (m *PrometheusAuthMetrics) ObserveBcrypt(d float64) {
-	m.bcrypt.WithLabelValues(OpBcrypt.String()).Observe(d)
+func (m *PrometheusAuthMetrics) ObserveBcrypt(d time.Duration) {
+	m.bcrypt.WithLabelValues(OpBcrypt.String()).Observe(d.Seconds())
 }

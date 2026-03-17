@@ -11,7 +11,7 @@ package pgc
 
 import (
 	context "context"
-	metrics "gmart/internal/telemetry/metrics"
+	metrics "gmart/internal/adapters/metrics"
 	reflect "reflect"
 
 	pgx "github.com/jackc/pgx/v5"

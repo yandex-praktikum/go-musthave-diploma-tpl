@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"gmart/internal/repository/pgc/backoff"
-	"gmart/internal/repository/pgc/fcounter"
-	"gmart/internal/telemetry/metrics"
+	"gmart/internal/adapters/metrics"
+	"gmart/internal/adapters/pgc/backoff"
+	"gmart/internal/adapters/pgc/fcounter"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"

@@ -1,6 +1,6 @@
-# Auth Repository Module
+# User Repository Module
 
-Пакет `auth` предоставляет реализацию репозитория для управления пользователями и сессиями (Refresh Tokens) в базе данных PostgreSQL с использованием драйвера `pgx/v5`.
+Класс `AuthRepo` представляет собой реализацию репозитория для управления пользователями и сессиями (Refresh Tokens) в базе данных PostgreSQL с использованием адаптера `PgInstance`.
 
 ## Функционал
 
@@ -15,7 +15,7 @@
 ### Инициализация
 
 ```go
-repo := auth.NewAuthRepo(pgInstance, 30 * 24 * time.Hour)
+authRepo := user.NewAuthRepo(pgInstance, 30 * 24 * time.Hour)
 ```
 
 ### Примеры методов
@@ -24,13 +24,13 @@ repo := auth.NewAuthRepo(pgInstance, 30 * 24 * time.Hour)
 ctx := context.Background()
 
 // Регистрация
-userID, err := repo.SignUp(ctx, "admin", "secret_password")
+userID, err := authRepo.SignUp(ctx, "admin", "secret_password")
 
 // Вход в систему
-sessionID, userID, err := repo.SignIn(ctx, "admin", "secret_password", "Mozilla/5.0", "127.0.0.1")
+sessionID, userID, err := authRepo.SignIn(ctx, "admin", "secret_password", "Mozilla/5.0", "127.0.0.1")
 
 // Обновление сессии
-userID, err := repo.RefreshSession(ctx, sessionID, "Mozilla/5.0", "127.0.0.1")
+userID, err := authRepo.RefreshSession(ctx, sessionID, "Mozilla/5.0", "127.0.0.1")
 ```
 
 ## Ошибки

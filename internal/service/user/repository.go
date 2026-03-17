@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"context"
@@ -15,7 +15,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 
-	"gmart/internal/repository/pgc"
+	"gmart/internal/adapters/pgc"
+	"gmart/internal/domain"
 )
 
 const sqlInsertIntoUsers = `
@@ -50,11 +51,11 @@ var (
 	ErrSessionNotFound   = errors.New("session not found")
 )
 
-//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=auth_pg_mock.go  -package=auth
+//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=repository_mock.go  -package=user
 
 type AuthMetrics interface {
 	IncLoginError(reason string)
-	ObserveBcrypt(d float64)
+	ObserveBcrypt(d time.Duration)
 }
 
 type AuthRepo struct {
@@ -65,7 +66,7 @@ type AuthRepo struct {
 	avgBcrypt   atomic.Int64
 }
 
-func NewAuthRepo(pg pgc.PgInstance, m AuthMetrics, expDuration time.Duration) *AuthRepo {
+func NewAuthRepo(pg pgc.PgInstance, expDuration time.Duration, m AuthMetrics) *AuthRepo {
 	r := &AuthRepo{
 		pg:          pg,
 		metrics:     m,
@@ -77,11 +78,11 @@ func NewAuthRepo(pg pgc.PgInstance, m AuthMetrics, expDuration time.Duration) *A
 }
 
 // SignUp регистрирует нового пользователя
-func (r *AuthRepo) SignUp(ctx context.Context, login, password string) (int64, error) {
+func (r *AuthRepo) SignUp(ctx context.Context, login domain.Login, password domain.Password) (int64, error) {
 	startBcrypt := r.now()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if r.metrics != nil {
-		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt).Seconds())
+		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt))
 	}
 	if err != nil {
 		return 0, fmt.Errorf("hash password fail: %w", err)
@@ -107,8 +108,8 @@ func (r *AuthRepo) SignUp(ctx context.Context, login, password string) (int64, e
 }
 
 // SignIn проверяет пароль и создает сессию (Refresh Token)
-func (r *AuthRepo) SignIn(ctx context.Context, login, password string, userAgent, ip string) (uuid.UUID, int64, error) {
-	var userID int64
+func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password domain.Password, userAgent domain.UserAgent, ip string) (domain.SessionID, domain.UserID, error) {
+	var userID domain.UserID
 	var hash string
 
 	// 1. Получаем хеш из БД
@@ -120,26 +121,26 @@ func (r *AuthRepo) SignIn(ctx context.Context, login, password string, userAgent
 			if r.metrics != nil {
 				r.metrics.IncLoginError("err_user_not_found")
 			}
-			return uuid.Nil, 0, ErrUserNotFound
+			return domain.SessionID(uuid.Nil), 0, ErrUserNotFound
 		}
-		return uuid.Nil, 0, err
+		return domain.SessionID(uuid.Nil), 0, err
 	}
 
 	// 2. Сравниваем Bcrypt
 	startBcrypt := r.now()
 	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if r.metrics != nil {
-		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt).Seconds())
+		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt))
 	}
 	if err != nil {
 		if r.metrics != nil {
 			r.metrics.IncLoginError("err_invalid_password")
 		}
-		return uuid.Nil, 0, ErrInvalidPassword
+		return domain.SessionID(uuid.Nil), 0, ErrInvalidPassword
 	}
 
 	// 3. Создаем сессию
-	sessionID := uuid.New()
+	sessionID := domain.SessionID(uuid.New())
 	expiresAt := r.now().Add(r.expDuration)
 
 	err = r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
@@ -148,15 +149,15 @@ func (r *AuthRepo) SignIn(ctx context.Context, login, password string, userAgent
 	})
 
 	if err != nil {
-		return uuid.Nil, 0, fmt.Errorf("create session fail: %w", err)
+		return domain.SessionID(uuid.Nil), 0, fmt.Errorf("create session fail: %w", err)
 	}
 
 	return sessionID, userID, nil
 }
 
 // CheckSession проверяет валидность Refresh Token
-func (r *AuthRepo) RefreshSession(ctx context.Context, sessionID uuid.UUID, userAgent, ip string) (int64, error) {
-	var userID int64
+func (r *AuthRepo) RefreshSession(ctx context.Context, sessionID domain.SessionID, userAgent domain.UserAgent, ip string) (domain.UserID, error) {
+	var userID domain.UserID
 	currentTime := r.now()
 	newExpiresAt := currentTime.Add(r.expDuration)
 
@@ -177,7 +178,7 @@ func (r *AuthRepo) RefreshSession(ctx context.Context, sessionID uuid.UUID, user
 }
 
 // SignOut удаляет сессию
-func (r *AuthRepo) SignOut(ctx context.Context, sessionID uuid.UUID) error {
+func (r *AuthRepo) SignOut(ctx context.Context, sessionID domain.SessionID) error {
 	return r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
 		ct, err := pool.Exec(ctx, sqlDeleteFromSessions, sessionID)
 		if ct.RowsAffected() == 0 {
@@ -188,7 +189,7 @@ func (r *AuthRepo) SignOut(ctx context.Context, sessionID uuid.UUID) error {
 }
 
 // SignInSleep — обертка для защиты от Timing Attack без лишней нагрузки на CPU
-func (r *AuthRepo) SignInSleep(ctx context.Context, login, password, ua, ip string) (uuid.UUID, int64, error) {
+func (r *AuthRepo) SignInSleep(ctx context.Context, login domain.Login, password domain.Password, ua domain.UserAgent, ip string) (domain.SessionID, domain.UserID, error) {
 	// Запрашиваем настоящую функцию
 	start := r.now()
 	sid, uid, err := r.SignIn(ctx, login, password, ua, ip)
@@ -217,7 +218,7 @@ func (r *AuthRepo) SignInSleep(ctx context.Context, login, password, ua, ip stri
 			select {
 			case <-time.After(sleepTime):
 			case <-ctx.Done():
-				return uuid.Nil, 0, ctx.Err()
+				return domain.SessionID(uuid.Nil), 0, ctx.Err()
 			}
 		}
 	}

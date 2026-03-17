@@ -1,11 +1,11 @@
-package auth
+package user
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"gmart/internal/repository/pgc"
+	"gmart/internal/adapters/pgc"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ func TestAuthRepo_SignIn_UserNotFound_Metrics(t *testing.T) {
 
 	mPg := pgc.NewMockPgInstance(ctrl)
 	mMetrics := NewMockAuthMetrics(ctrl)
-	repo := NewAuthRepo(mPg, mMetrics, time.Hour)
+	repo := NewAuthRepo(mPg, time.Hour, mMetrics)
 
 	ctx := context.Background()
 
@@ -45,7 +45,7 @@ func TestAuthRepo_SignInSleep_TimingProtection(t *testing.T) {
 	mPg := pgc.NewMockPgInstance(ctrl)
 	// Метрики не важны для этого теста, передаем nil (проверка nil-safety)
 
-	repo := NewAuthRepo(mPg, nil, time.Hour)
+	repo := NewAuthRepo(mPg, time.Hour, nil)
 
 	// Фиксируем время, чтобы тест не зависел от фаз луны
 	staticTime := time.Now()
@@ -83,7 +83,7 @@ func TestAuthRepo_SignUp_Success(t *testing.T) {
 
 	mPg := pgc.NewMockPgInstance(ctrl)
 	mMetrics := NewMockAuthMetrics(ctrl)
-	repo := NewAuthRepo(mPg, mMetrics, time.Hour)
+	repo := NewAuthRepo(mPg, time.Hour, mMetrics)
 
 	ctx := context.Background()
 
@@ -111,7 +111,7 @@ func TestAuthRepo_SignInSleep_ContextCancel(t *testing.T) {
 	defer ctrl.Finish()
 
 	mPg := pgc.NewMockPgInstance(ctrl)
-	repo := NewAuthRepo(mPg, nil, time.Hour)
+	repo := NewAuthRepo(mPg, time.Hour, nil)
 	repo.avgBcrypt.Store((500 * time.Millisecond).Nanoseconds())
 
 	mPg.EXPECT().PgPool(gomock.Any(), gomock.Any()).Return(pgx.ErrNoRows)

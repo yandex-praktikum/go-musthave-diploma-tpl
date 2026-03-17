@@ -63,7 +63,7 @@ err := pg.PgPool(ctx, func(ctx context.Context, pool instance.PgxPoolIface) erro
 
 ```bash
 # Генерация моков для тестирования репозиториев
-go generate ./internal/repository/pgc/instance/pg_instance.go
+go generate ./internal/adapters/pgc/instance/pg_instance.go
 ```
 
 ---

@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gmart/internal/repository/pgc/backoff"
-	"gmart/internal/repository/pgc/fcounter"
-	"gmart/internal/telemetry/metrics"
+	"gmart/internal/adapters/metrics"
+	"gmart/internal/adapters/pgc/backoff"
+	"gmart/internal/adapters/pgc/fcounter"
 	"gmart/migrations"
 
 	"golang.org/x/sys/cpu"
