@@ -17,19 +17,15 @@ import (
 // ordersUploadInput DTO
 type ordersUploadInput struct {
 	dto.AuthInput
-	Body domain.OrderNumber `minLength:"1" doc:"Номер заказа в формате строки"`
-}
-
-// Реализуем Resolver, чтобы проверять номер заказа прямо при парсинге входа
-func (i *ordersUploadInput) Resolve(ctx huma.Context, prefix string) []error {
-	if !luhn.IsValid(i.Body) {
-		return []error{huma.Error422UnprocessableEntity("неверный формат номера заказа")}
-	}
-	return nil
+	RawBody []byte `contentType:"text/plain" minLength:"1" doc:"Номер заказа в формате строки"`
 }
 
 type orderUploadResponse struct {
 	Status int `status:"202"`
+	Body   struct {
+		Code   int    `json:"code" example:"200"  doc:"Код выполнения"`
+		Status string `json:"status" example:"Accepted" doc:"Статус операции"`
+	}
 }
 
 // signUpHandler возвращает HUMA хэндлер регистрации нового пользователя
@@ -42,10 +38,18 @@ func (o *Orders) ordersUploadHandler() func(ctx context.Context, in *ordersUploa
 			return nil, huma.Error401Unauthorized("пользователь не аутентифицирован")
 		}
 
-		err := o.Upload(ctx, userID, in.Body)
+		orderNumber := domain.OrderNumber(in.RawBody)
+		if !luhn.IsValid(orderNumber) {
+			return nil, huma.Error422UnprocessableEntity("номер заказа не валидируется алгоритмом luhn")
+		}
+
+		err := o.Upload(ctx, userID, orderNumber)
 
 		if errors.Is(err, ErrOrderAlreadyUploaded) {
-			return &orderUploadResponse{Status: 200}, nil
+			resp := &orderUploadResponse{Status: 200}
+			resp.Body.Code = 200
+			resp.Body.Status = "AlreadyUploaded"
+			return resp, nil
 		}
 		if errors.Is(err, ErrOrderConflict) {
 			return nil, huma.Error409Conflict("номер заказа уже был загружен другим пользователем")
@@ -53,17 +57,20 @@ func (o *Orders) ordersUploadHandler() func(ctx context.Context, in *ordersUploa
 		if err != nil {
 			slog.Error("order uploaded fail",
 				slog.Any("user_id", userID),
-				slog.Any("order", in.Body),
+				slog.Any("order", in.RawBody),
 			)
 			return nil, huma.Error500InternalServerError("Внутренняя ошибка сервера")
 		}
 
 		slog.Info("order uploaded successfully",
 			slog.Any("user_id", userID),
-			slog.Any("order", in.Body),
+			slog.Any("order", in.RawBody),
 		)
 
-		return &orderUploadResponse{Status: 202}, nil
+		resp := &orderUploadResponse{Status: 202}
+		resp.Body.Code = 202
+		resp.Body.Status = "Accepted"
+		return resp, nil
 	}
 
 }

@@ -77,38 +77,60 @@ func NewAuthRepo(pg pgc.PgInstance, expDuration time.Duration, m AuthMetrics) *A
 	return r
 }
 
-// SignUp регистрирует нового пользователя
-func (r *AuthRepo) SignUp(ctx context.Context, login domain.Login, password domain.Password) (int64, error) {
-	startBcrypt := r.now()
+// ExpDuration время протухания сессионной куки
+func (r *AuthRepo) ExpDuration() time.Duration {
+	return r.expDuration
+}
+
+// SignUp регистрирует нового пользователя и сразу же создает сессию
+func (r *AuthRepo) SignUp(ctx context.Context, login domain.Login, password domain.Password, userAgent domain.UserAgent, ip string) (domain.UserID, domain.SessionID, error) {
+	start := r.now()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if r.metrics != nil {
-		r.metrics.ObserveBcrypt(r.now().Sub(startBcrypt))
+		r.metrics.ObserveBcrypt(r.now().Sub(start))
 	}
 	if err != nil {
-		return 0, fmt.Errorf("hash password fail: %w", err)
+		return 0, domain.SessionID(uuid.Nil), fmt.Errorf("hash password fail: %w", err)
 	}
 
-	var userID int64
-	err = r.pg.PgPool(ctx, func(ctx context.Context, pool pgc.PgxPoolIface) error {
-		return pool.QueryRow(ctx, sqlInsertIntoUsers, login, string(hashedPassword)).Scan(&userID)
+	// Создаем в БД пользователя и его сессионную куку
+	var userID domain.UserID
+	sessionID := domain.SessionID(uuid.New())
+	err = r.pg.Tx(ctx, func(ctx context.Context, tx pgc.PgxTxIface) error {
+		err := tx.QueryRow(ctx,
+			sqlInsertIntoUsers,
+			login,
+			string(hashedPassword),
+		).Scan(&userID)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx,
+			sqlInsertIntoSessions,
+			sessionID,
+			userID,
+			userAgent,
+			ip,
+			start.Add(r.expDuration),
+		)
+		return err
 	})
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			// 23505 - код ошибки unique_violation в PostgreSQL
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				return 0, ErrUserAlreadyExists
+				return 0, domain.SessionID(uuid.Nil), ErrUserAlreadyExists
 			}
 		}
-		return 0, fmt.Errorf("insert user fail: %w", err)
+		return 0, domain.SessionID(uuid.Nil), fmt.Errorf("create user fail: %w", err)
 	}
 
-	return userID, nil
+	return userID, sessionID, nil
 }
 
 // SignIn проверяет пароль и создает сессию (Refresh Token)
-func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password domain.Password, userAgent domain.UserAgent, ip string) (domain.SessionID, domain.UserID, error) {
+func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password domain.Password, userAgent domain.UserAgent, ip string) (domain.UserID, domain.SessionID, error) {
 	var userID domain.UserID
 	var hash string
 
@@ -121,9 +143,9 @@ func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password doma
 			if r.metrics != nil {
 				r.metrics.IncLoginError("err_user_not_found")
 			}
-			return domain.SessionID(uuid.Nil), 0, ErrUserNotFound
+			return 0, domain.SessionID(uuid.Nil), ErrUserNotFound
 		}
-		return domain.SessionID(uuid.Nil), 0, err
+		return 0, domain.SessionID(uuid.Nil), err
 	}
 
 	// 2. Сравниваем Bcrypt
@@ -136,7 +158,7 @@ func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password doma
 		if r.metrics != nil {
 			r.metrics.IncLoginError("err_invalid_password")
 		}
-		return domain.SessionID(uuid.Nil), 0, ErrInvalidPassword
+		return 0, domain.SessionID(uuid.Nil), ErrInvalidPassword
 	}
 
 	// 3. Создаем сессию
@@ -149,10 +171,10 @@ func (r *AuthRepo) SignIn(ctx context.Context, login domain.Login, password doma
 	})
 
 	if err != nil {
-		return domain.SessionID(uuid.Nil), 0, fmt.Errorf("create session fail: %w", err)
+		return 0, domain.SessionID(uuid.Nil), fmt.Errorf("create session fail: %w", err)
 	}
 
-	return sessionID, userID, nil
+	return userID, sessionID, nil
 }
 
 // CheckSession проверяет валидность Refresh Token
@@ -189,10 +211,10 @@ func (r *AuthRepo) SignOut(ctx context.Context, sessionID domain.SessionID) erro
 }
 
 // SignInSleep — обертка для защиты от Timing Attack без лишней нагрузки на CPU
-func (r *AuthRepo) SignInSleep(ctx context.Context, login domain.Login, password domain.Password, ua domain.UserAgent, ip string) (domain.SessionID, domain.UserID, error) {
+func (r *AuthRepo) SignInSleep(ctx context.Context, login domain.Login, password domain.Password, ua domain.UserAgent, ip string) (domain.UserID, domain.SessionID, error) {
 	// Запрашиваем настоящую функцию
 	start := r.now()
-	sid, uid, err := r.SignIn(ctx, login, password, ua, ip)
+	uid, sid, err := r.SignIn(ctx, login, password, ua, ip)
 	duration := r.now().Sub(start)
 	avgBcrypt := r.avgBcrypt.Load()
 
@@ -218,10 +240,10 @@ func (r *AuthRepo) SignInSleep(ctx context.Context, login domain.Login, password
 			select {
 			case <-time.After(sleepTime):
 			case <-ctx.Done():
-				return domain.SessionID(uuid.Nil), 0, ctx.Err()
+				return 0, domain.SessionID(uuid.Nil), ctx.Err()
 			}
 		}
 	}
 
-	return sid, uid, err
+	return uid, sid, err
 }

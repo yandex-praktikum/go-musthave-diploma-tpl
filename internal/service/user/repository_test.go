@@ -2,12 +2,16 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"gmart/internal/adapters/pgc"
+	"gmart/internal/domain"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 
 	"go.uber.org/mock/gomock"
@@ -83,27 +87,57 @@ func TestAuthRepo_SignUp_Success(t *testing.T) {
 
 	mPg := pgc.NewMockPgInstance(ctrl)
 	mMetrics := NewMockAuthMetrics(ctrl)
-	repo := NewAuthRepo(mPg, time.Hour, mMetrics)
+	mTx := pgc.NewMockPgxTxIface(ctrl)
+	mockRow := pgc.NewMockRow(ctrl) // Создаем мок строки
 
+	repo := NewAuthRepo(mPg, time.Hour, mMetrics)
 	ctx := context.Background()
 
-	// Используем Any(), так как время хеширования всегда разное
-	mMetrics.EXPECT().
-		ObserveBcrypt(gomock.Any()).
-		Times(1)
+	expectedUID := domain.UserID(123)
+	login := domain.Login("new_user")
+	password := domain.Password("password")
 
-	// Ожидаем вызов PgPool
+	// 1. Метрики
+	mMetrics.EXPECT().ObserveBcrypt(gomock.Any()).Times(1)
+
+	// 2. Транзакция
 	mPg.EXPECT().
-		PgPool(ctx, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, fn func(context.Context, pgc.PgxPoolIface) error) error {
-			// Имитируем успешное выполнение колбэка
-			return nil
+		Tx(ctx, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, fn func(context.Context, pgc.PgxTxIface) error) error {
+			return fn(ctx, mTx)
 		})
 
-	uid, err := repo.SignUp(ctx, "new_user", "password")
+	// 3. Scan внутри QueryRow
+	// Важно: Scan принимает слайс интерфейсов. Нам нужно достать первый элемент.
+	mockRow.EXPECT().
+		Scan(gomock.Any()). // Ожидаем один аргумент (&userID)
+		DoAndReturn(func(dest ...interface{}) error {
+			if len(dest) > 0 {
+				if ptr, ok := dest[0].(*domain.UserID); ok {
+					*ptr = expectedUID
+					return nil
+				}
+			}
+			return fmt.Errorf("scan: wrong destination type")
+		})
 
+	// 4. QueryRow возвращает наш настроенный mockRow
+	mTx.EXPECT().
+		QueryRow(ctx, sqlInsertIntoUsers, login, gomock.Any()).
+		Return(mockRow)
+
+	// 5. Создание сессии
+	mTx.EXPECT().
+		Exec(ctx, sqlInsertIntoSessions, gomock.Any(), expectedUID, domain.UserAgent("UserAgent"), "IP", gomock.Any()).
+		Return(pgconn.CommandTag{}, nil)
+
+	// Вызов
+	uid, sessionID, err := repo.SignUp(ctx, login, password, "UserAgent", "IP")
+
+	// Проверки
 	assert.NoError(t, err)
-	assert.Equal(t, int64(0), uid)
+	assert.Equal(t, expectedUID, uid)
+	assert.NotEqual(t, uuid.Nil, sessionID.UUID())
 }
 
 func TestAuthRepo_SignInSleep_ContextCancel(t *testing.T) {

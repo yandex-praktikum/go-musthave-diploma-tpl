@@ -4,10 +4,10 @@ import (
 	"testing"
 )
 
-func TestMoney_MarshalJSON(t *testing.T) {
+func TestAmount_MarshalJSON(t *testing.T) {
 	tests := []struct {
 		name    string
-		m       Money
+		m       Amount
 		want    string
 		wantErr bool
 	}{
@@ -31,11 +31,11 @@ func TestMoney_MarshalJSON(t *testing.T) {
 	}
 }
 
-func TestMoney_UnmarshalJSON(t *testing.T) {
+func TestAmount_UnmarshalJSON(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		want    Money
+		want    Amount
 		wantErr bool
 	}{
 		// Успешные кейсы
@@ -59,7 +59,7 @@ func TestMoney_UnmarshalJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var m Money
+			var m Amount
 			err := m.UnmarshalJSON([]byte(tt.input))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnmarshalJSON(%s) error = %v, wantErr %v", tt.input, err, tt.wantErr)
@@ -73,8 +73,8 @@ func TestMoney_UnmarshalJSON(t *testing.T) {
 }
 
 // Benchmark для проверки аллокаций
-func BenchmarkMoney_MarshalJSON(b *testing.B) {
-	m := Money(123456789)
+func BenchmarkAmount_MarshalJSON(b *testing.B) {
+	m := Amount(123456789)
 	for i := 0; i < b.N; i++ {
 		_, _ = m.MarshalJSON()
 	}

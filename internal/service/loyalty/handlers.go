@@ -13,15 +13,19 @@ import (
 
 // ------------ Balance ------------
 
+type balanceInput struct {
+	dto.AuthInput
+}
+
 type balanceResponse struct {
 	Body struct {
-		Current   domain.Money `json:"current"`
-		Withdrawn domain.Money `json:"withdrawn"`
+		Current   domain.Amount `json:"current" doc:"Денежная сумма текущего баланса"`
+		Withdrawn domain.Amount `json:"withdrawn" doc:"Списанная за все время денежная сумма"`
 	}
 }
 
-func (l *Loyalty) getBalanceHandler() func(ctx context.Context, in *struct{}) (*balanceResponse, error) {
-	return func(ctx context.Context, in *struct{}) (*balanceResponse, error) {
+func (l *Loyalty) getBalanceHandler() func(ctx context.Context, in *balanceInput) (*balanceResponse, error) {
+	return func(ctx context.Context, in *balanceInput) (*balanceResponse, error) {
 		userID, ok := ctx.Value(auth.UserID).(domain.UserID)
 		if !ok {
 			return nil, huma.Error401Unauthorized("пользователь не авторизован")
@@ -42,14 +46,19 @@ func (l *Loyalty) getBalanceHandler() func(ctx context.Context, in *struct{}) (*
 
 // ------------ Withdraw ------------
 
-type withdrawResponse struct {
-	Status int `status:"200"`
-}
-
 type withdrawInput struct {
+	dto.AuthInput
 	Body struct {
 		Order domain.OrderNumber `json:"order" doc:"Номер заказа"`
-		Sum   domain.Money       `json:"sum" doc:"Сумма к списанию"`
+		Sum   domain.Amount      `json:"sum" doc:"Денежная сумма к списанию"`
+	}
+}
+
+type withdrawResponse struct {
+	Status int `status:"200"`
+	Body   struct {
+		Code   int    `json:"code" doc:"Статус код операции"`
+		Status string `json:"status" doc:"Статус операции"`
 	}
 }
 
@@ -79,19 +88,27 @@ func (l *Loyalty) withdrawHandler() func(ctx context.Context, in *withdrawInput)
 			return nil, huma.Error500InternalServerError("внутренняя ошибка сервера")
 		}
 
-		return &withdrawResponse{Status: 200}, nil
+		res := &withdrawResponse{Status: 200}
+		res.Body.Code = 200
+		res.Body.Status = "Success"
+
+		return res, nil
 	}
 }
 
 // ------------ Withdrawals List ------------
+
+type withdrawalsInput struct {
+	dto.AuthInput
+}
 
 type withdrawalsResponse struct {
 	Status int                  `status:"200"`
 	Body   []dto.WithdrawalItem `json:",omitempty"` // omitempty важен для 204
 }
 
-func (l *Loyalty) getWithdrawalsHandler() func(ctx context.Context, in *struct{}) (*withdrawalsResponse, error) {
-	return func(ctx context.Context, in *struct{}) (*withdrawalsResponse, error) {
+func (l *Loyalty) getWithdrawalsHandler() func(ctx context.Context, in *withdrawalsInput) (*withdrawalsResponse, error) {
+	return func(ctx context.Context, in *withdrawalsInput) (*withdrawalsResponse, error) {
 		userID, ok := ctx.Value(auth.UserID).(domain.UserID)
 		if !ok {
 			return nil, huma.Error401Unauthorized("пользователь не авторизован")

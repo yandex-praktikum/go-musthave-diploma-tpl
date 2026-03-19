@@ -8,6 +8,6 @@ import (
 type OrderItem struct {
 	Number     domain.OrderNumber `json:"number"`
 	Status     domain.OrderStatus `json:"status"`
-	Accrual    domain.Money       `json:"accrual"`
+	Accrual    domain.Amount       `json:"accrual,omitempty"`
 	UploadedAt time.Time          `json:"uploaded_at"`
 }

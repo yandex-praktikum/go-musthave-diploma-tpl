@@ -206,7 +206,7 @@ func (r *OrdersRepo) UpdateOrderStatus(
 	ctx context.Context,
 	orderNumber domain.OrderNumber,
 	orderStatus domain.OrderStatus,
-	accrual domain.Money,
+	accrual domain.Amount,
 ) error {
 	start := time.Now()
 	defer func() {

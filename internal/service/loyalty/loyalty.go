@@ -14,8 +14,19 @@ var (
 	ErrInvalidOrderNumber = errors.New("invalid order number")
 )
 
+//go:generate $GOPATH/bin/mockgen -source=$GOFILE -destination=loyalty_mock.go  -package=loyalty
+
+// LoyaltyRepoIface описывает методы репозитория для мокирования
+type LoyaltyRepoIface interface {
+	GetBalance(ctx context.Context, userID domain.UserID) (current, withdrawn domain.Amount, err error)
+	Withdraw(ctx context.Context, userID domain.UserID, order domain.OrderNumber, amount domain.Amount) error
+	GetWithdrawals(ctx context.Context, userID domain.UserID) ([]dto.WithdrawalItem, error)
+}
+
+// ============ Class ============
+
 type Loyalty struct {
-	repo *LoyaltyRepo
+	repo LoyaltyRepoIface
 }
 
 // NewLoyalty создает новый объект манипулирования лояльностью
@@ -25,13 +36,15 @@ func NewLoyalty(cfg config.Config, pg pgc.PgInstance, m LoyaltyMetrics) (*Loyalt
 	}, nil
 }
 
+// ============ UseCase ============
+
 // GetBalance возвращает баланс пользователя
-func (s *Loyalty) GetBalance(ctx context.Context, userID domain.UserID) (current, withdrawn domain.Money, err error) {
+func (s *Loyalty) GetBalance(ctx context.Context, userID domain.UserID) (current, withdrawn domain.Amount, err error) {
 	return s.repo.GetBalance(ctx, userID)
 }
 
 // Withdraw проверяет номер заказа и выполняет списание
-func (s *Loyalty) Withdraw(ctx context.Context, userID domain.UserID, order domain.OrderNumber, amount domain.Money) error {
+func (s *Loyalty) Withdraw(ctx context.Context, userID domain.UserID, order domain.OrderNumber, amount domain.Amount) error {
 	// 1. Проверка номера заказа по алгоритму Луна
 	if !luhn.IsValid(order) {
 		return ErrInvalidOrderNumber

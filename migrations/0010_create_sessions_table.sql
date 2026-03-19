@@ -5,7 +5,7 @@
         user_id       BIGINT NOT NULL,
         
         user_agent    TEXT,
-        ip_address    INET,
+        ip_address    VARCHAR(255),
         device_id     UUID DEFAULT NULL,
         
         expires_at    TIMESTAMPTZ NOT NULL,

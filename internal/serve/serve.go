@@ -122,6 +122,8 @@ func InitHuma(mux *http.ServeMux) huma.API {
 	// API with huma
 	humaConfig := huma.DefaultConfig("GopherMart API", "1.0.0")
 
+	// humaConfig.DocsRenderer = huma.DocsRendererSwaggerUI
+
 	humaConfig.Formats["text/plain"] = huma.DefaultFormats["text/plain"]
 
 	humaConfig.Components = &huma.Components{

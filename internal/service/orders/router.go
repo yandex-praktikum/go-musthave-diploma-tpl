@@ -30,7 +30,8 @@ func (o *Orders) RegistryRoutes(api huma.API, tokenVerifier *auth.TokenVerifier)
 		Middlewares: huma.Middlewares{
 			auth.NewTokenVerifierMiddleware(api, tokenVerifier),
 		},
-		Security: []map[string][]string{{"bearer": {}}},
+		Security:      []map[string][]string{{"bearer": {}}},
+		DefaultStatus: 200,
 	}, o.ordersUploadHandler())
 
 	// Handler GET /api/user/orders

@@ -16,7 +16,7 @@ type Config struct {
 	listenAddr               SocketAddr
 	accrualSystemAddr        SocketAddr
 	dbDSN                    string
-	jwtSecretKey             string
+	jwtSecretKey             []byte
 	jwtTTL                   time.Duration
 	sessTTL                  time.Duration
 	maxBodySize              int64
@@ -31,7 +31,7 @@ func NewConfig() Config {
 		listenAddr:        SocketAddr{hostname: "localhost", port: "8080"},
 		accrualSystemAddr: SocketAddr{hostname: "localhost", port: "8090"},
 		dbDSN:             "",
-		jwtSecretKey:      "",
+		jwtSecretKey:      []byte{},
 		jwtTTL:            10 * time.Minute,
 		sessTTL:           30 * 24 * time.Hour,
 		maxBodySize:       1024 * 1024,
@@ -102,7 +102,7 @@ func WithEnv() ConfigOption {
 			c.dbDSN = val
 		}
 		if val, ok := c.lookupEnv("JWT_SECRET_KEY"); ok {
-			c.jwtSecretKey = val
+			c.jwtSecretKey = []byte(val)
 		}
 		if val, ok := c.lookupEnv("RUN_ADDRESS"); ok {
 			addr, err := NewSocketAddr(val)
@@ -133,7 +133,7 @@ func (c Config) Validate() error {
 	if c.accrualSystemAddr.String() == "" {
 		return fmt.Errorf("accrual system address is required")
 	}
-	if c.jwtSecretKey == "" {
+	if string(c.jwtSecretKey) == "" {
 		return fmt.Errorf("JWT secret key is required")
 	}
 
@@ -156,10 +156,10 @@ func (c Config) SetSessTTL(sessTTL time.Duration) Config {
 	return c
 }
 
-func (c Config) JWTSecretKey() string {
+func (c Config) JWTSecretKey() []byte {
 	return c.jwtSecretKey
 }
-func (c Config) SetJWTSecretKey(jwtSecretKey string) Config {
+func (c Config) SetJWTSecretKey(jwtSecretKey []byte) Config {
 	c.jwtSecretKey = jwtSecretKey
 	return c
 }

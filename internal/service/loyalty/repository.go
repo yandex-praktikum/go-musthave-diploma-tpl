@@ -48,7 +48,7 @@ var (
 type LoyaltyMetrics interface {
 	ObserveDB(op metrics.OpType, duration time.Duration)
 	IncWithdrawal(status string) // success, insufficient_funds, conflict
-	ObserveWithdrawalAmount(amount domain.Money)
+	ObserveWithdrawalAmount(amount domain.Amount)
 }
 
 type LoyaltyRepo struct {
@@ -66,7 +66,7 @@ func NewLoyaltyRepo(pg pgc.PgInstance, m LoyaltyMetrics) *LoyaltyRepo {
 }
 
 // GetBalance возвращает текущий остаток и общую сумму списаний
-func (r *LoyaltyRepo) GetBalance(ctx context.Context, userID domain.UserID) (current domain.Money, withdrawn domain.Money, err error) {
+func (r *LoyaltyRepo) GetBalance(ctx context.Context, userID domain.UserID) (current domain.Amount, withdrawn domain.Amount, err error) {
 	start := time.Now()
 	defer func() {
 		if r.metrics != nil {
@@ -92,7 +92,7 @@ func (r *LoyaltyRepo) GetBalance(ctx context.Context, userID domain.UserID) (cur
 }
 
 // Withdraw регистрирует списание баллов
-func (r *LoyaltyRepo) Withdraw(ctx context.Context, userID domain.UserID, order domain.OrderNumber, amount domain.Money) error {
+func (r *LoyaltyRepo) Withdraw(ctx context.Context, userID domain.UserID, order domain.OrderNumber, amount domain.Amount) error {
 	start := time.Now()
 	defer func() {
 		if r.metrics != nil {

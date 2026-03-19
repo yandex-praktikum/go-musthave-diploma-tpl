@@ -20,6 +20,21 @@ func (u *User) RegistryRoutes(api huma.API) {
 			http.StatusConflict,            // 409
 			http.StatusInternalServerError, // 500
 		},
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Успешный ответ в формате JSON"},
+			"400": {
+				Description: "Неверный формат запроса",
+				Content: map[string]*huma.MediaType{
+					"application/json": {
+						Schema: &huma.Schema{
+							Ref: "#/components/schemas/ErrorModel",
+						},
+					},
+				},
+			},
+			"409": {Description: "Логин уже занят"},
+			"500": {Description: "Внутренняя ошибка сервера"},
+		},
 		Tags: []string{"User"},
 	}, u.signUpHandler())
 
@@ -28,7 +43,7 @@ func (u *User) RegistryRoutes(api huma.API) {
 		OperationID: "user-login",
 		Method:      http.MethodPost,
 		Path:        "/api/user/login",
-		Summary:     "Авторизация пользователя",
+		Summary:     "Аутентификация пользователя",
 		Description: "",
 		Errors: []int{
 			http.StatusBadRequest,          // 400

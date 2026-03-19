@@ -15,7 +15,7 @@
     -- Уникальный индекс для номера заказа.
     -- INCLUDE позволяет UNION-запросу отработать через Index Only Scan.
     CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_order_number_inc
-    ON orders (order_number) INCLUDE (id, user_id);
+    ON orders (order_number) INCLUDE (user_id);
 
     -- Составной индекс для метода List.
     -- Позволяет мгновенно найти заказы юзера и вернуть их уже отсортированными.

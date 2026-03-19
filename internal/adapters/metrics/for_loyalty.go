@@ -56,6 +56,6 @@ func (m *PrometheusLoyaltyMetrics) IncWithdrawal(status string) {
 	m.withdrawCounts.WithLabelValues(status).Inc()
 }
 
-func (m *PrometheusLoyaltyMetrics) ObserveWithdrawalAmount(amount domain.Money) {
+func (m *PrometheusLoyaltyMetrics) ObserveWithdrawalAmount(amount domain.Amount) {
 	m.withdrawalAmount.Observe(float64(amount))
 }

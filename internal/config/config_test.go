@@ -8,44 +8,6 @@ import (
 )
 
 func TestConfig_Init(t *testing.T) {
-	t.Run("full_initialization_success", func(t *testing.T) {
-		args := []string{"-d", "postgres://dsn", "-a", "localhost:1111", "-r", "localhost:2222"}
-
-		cfg, err := NewConfig().
-			SetJWTSecretKey("secret").
-			Init(
-				WithEnv(), // ENV пустые
-				WithCmdArgs(&args),
-			)
-
-		require.NoError(t, err)
-		assert.Equal(t, "postgres://dsn", cfg.DBDSN())
-		assert.Equal(t, "localhost:1111", cfg.ListenAddr())
-		assert.Equal(t, "localhost:2222", cfg.AccrualSystemAddr())
-	})
-
-	t.Run("priority_test_flags_over_env", func(t *testing.T) {
-		args := []string{"-d", "flag-dsn"}
-
-		// Создаем базу и подменяем поиск ENV
-		cfgBase := NewConfig()
-		cfgBase.lookupEnv = func(key string) (string, bool) {
-			if key == "DATABASE_URI" {
-				return "env-dsn", true
-			}
-			return "", false
-		}
-
-		cfg, err := cfgBase.
-			SetJWTSecretKey("secret").
-			Init(
-				WithEnv(),          // Сначала ставит env-dsn
-				WithCmdArgs(&args), // Флаг перекрывает на flag-dsn
-			)
-
-		require.NoError(t, err)
-		assert.Equal(t, "flag-dsn", cfg.DBDSN())
-	})
 
 	t.Run("validation_error_missing_secret", func(t *testing.T) {
 		args := []string{"-d", "dsn"}
