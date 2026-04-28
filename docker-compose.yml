@@ -1,0 +1,16 @@
+services:
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    ports:
+      - "6432:5432"
+    environment:
+      POSTGRES_USER: gophermart
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: yp
+    volumes:
+      - postgres_data:/tmp/postgresql_gophermart_data
+
+volumes:
+  postgres_data:

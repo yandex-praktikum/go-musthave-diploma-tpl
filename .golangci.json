@@ -1,0 +1,134 @@
+{
+  "formatters": {
+    "enable": [
+      "gofumpt",
+      "goimports"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ]
+    }
+  },
+  "issues": {
+    "max-issues-per-linter": 15,
+    "max-same-issues": 5,
+    "uniq-by-line": true
+  },
+  "linters": {
+    "enable": [
+      "asciicheck",
+      "bidichk",
+      "bodyclose",
+      "canonicalheader",
+      "contextcheck",
+      "copyloopvar",
+      "cyclop",
+      "depguard",
+      "exhaustive",
+      "forbidigo",
+      "goconst",
+      "gocritic",
+      "gomoddirectives",
+      "gosec",
+      "lll",
+      "misspell",
+      "musttag",
+      "nestif",
+      "nilnil",
+      "perfsprint",
+      "prealloc",
+      "predeclared",
+      "promlinter",
+      "reassign",
+      "recvcheck",
+      "revive",
+      "sloglint",
+      "spancheck",
+      "staticcheck",
+      "tagalign",
+      "testpackage",
+      "unconvert",
+      "unparam",
+      "usestdlibvars",
+      "usetesting",
+      "wastedassign",
+      "whitespace"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ],
+      "presets": [
+        "comments",
+        "common-false-positives",
+        "legacy",
+        "std-error-handling"
+      ],
+      "rules": [
+        {
+          "linters": [
+            "gosec"
+          ],
+          "path": "internal/models/user.go",
+          "text": "G117: Marshaled struct field \"Password\""
+        }
+      ]      
+    },
+    "settings": {
+      "bidichk": {
+        "first-strong-isolate": false,
+        "left-to-right-embedding": false,
+        "left-to-right-isolate": false,
+        "left-to-right-override": false,
+        "pop-directional-formatting": false,
+        "pop-directional-isolate": false,
+        "right-to-left-embedding": false,
+        "right-to-left-isolate": false,
+        "right-to-left-override": false
+      },
+      "copyloopvar": {
+        "check-alias": true
+      },
+      "cyclop": {
+        "max-complexity": 100
+      },
+      "depguard": {
+        "rules": {
+          "main": {
+            "deny": [
+              {
+                "desc": "use zap logger instead",
+                "pkg": "log"
+              }
+            ]
+          }
+        }
+      },
+      "dupl": {
+        "threshold": 50
+      },
+      "errcheck": {
+        "check-type-assertions": true
+      },
+      "gosec": {
+        "excludes": [
+          "G404"
+        ]
+      },
+      "lll": {
+        "line-length": 150
+      },
+      "nestif": {
+        "min-complexity": 5
+      }
+    }
+  },
+  "version": "2"
+}

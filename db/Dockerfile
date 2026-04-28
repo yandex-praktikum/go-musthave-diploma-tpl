@@ -1,0 +1,7 @@
+FROM postgres:18-alpine
+
+ENV POSTGRES_USER=practicum
+ENV POSTGRES_PASSWORD=secret
+ENV POSTGRES_DB=yp
+
+EXPOSE 5432

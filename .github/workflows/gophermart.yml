@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - master
+      - 'v*'
 
 jobs:
 
@@ -39,11 +40,35 @@ jobs:
           out-file-path: .tools
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            Makefile
+
+      - name: Installing Golang tools
+        run: |
+          apt-get update && \
+          DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends --no-install-suggests ca-certificates curl gcc g++ make
+          curl -sSfL https://golangci-lint.run/install.sh | sh -s v2.11.4
+          mkdir -p $(go env GOPATH)/bin
+          mv bin/* $(go env GOPATH)/bin
+
       - name: Setup autotest binary
         run: |
           chmod -R +x $GITHUB_WORKSPACE/.tools
           mv $GITHUB_WORKSPACE/.tools/gophermarttest /usr/local/bin/gophermarttest
           mv $GITHUB_WORKSPACE/.tools/random /usr/local/bin/random
+
+      - name: Run Lint
+        run: |
+          make lint
 
       - name: Prepare binaries
         run: |
@@ -62,3 +87,22 @@ jobs:
             -accrual-host=localhost \
             -accrual-port=$(random unused-port) \
             -accrual-database-uri="postgresql://postgres:postgres@postgres/praktikum?sslmode=disable"
+
+      - name: Generate Coverage Report for GitHub
+        if: always()
+        run: |
+          echo "## 📊 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          make coverage >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: /tmp/practicum-gophermart-coverage.out
+          fail_ci_if_error: false
+          flags: unittests
+          verbose: true
+          # report_type: test_results # to upload junit.xml
+        continue-on-error: true
