@@ -2,6 +2,10 @@
 
 Шаблон репозитория для индивидуального дипломного проекта курса «Go-разработчик»
 
+## Badges
+
+[![Coverage](https://img.shields.io/codecov/c/github/KalessinD/gophermart?style=flat-square)](https://codecov.io/gh/KalessinD/gophermart)
+
 # Начало работы
 
 1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.

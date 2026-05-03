@@ -12,6 +12,8 @@
 *.out
 
 # Binaries
+cmd/accrual/main
+cmd/accrual/accrual*
 cmd/gophermart/main
 cmd/gophermart/gophermart
 
@@ -21,3 +23,16 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+.continue
+.editorconfig
+scripts
+
+# environments
+.env
+
+# sqlite3
+*.db
+
+thoughts/
+tools/
+
