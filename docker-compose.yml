@@ -1,0 +1,57 @@
+services:
+  db:
+    build:
+      context: ./docker/db
+      dockerfile: Dockerfile
+    ports:
+      - "6432:5432"
+    environment:
+      POSTGRES_USER: gophermart
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: yp
+    volumes:
+      - postgres_data:/tmp/postgresql_gophermart_data
+    networks:
+      - internal
+
+  accrual:
+    container_name: go-accrual
+    build:
+      context: ./
+      dockerfile: ./docker/accrual/Dockerfile
+    depends_on:
+      - db
+    ports:
+      - "${ACCRUAL_PORT:-7081}:${ACCRUAL_PORT:-7081}"
+    environment:
+      DATABASE_URI: postgres://gophermart:secret@db:5432/yp?sslmode=disable
+      RUN_ADDRESS: 0.0.0.0:${ACCRUAL_PORT:-7081}
+    networks:
+      - internal
+
+#  gophermart:
+#    container_name: go-gophermart
+#    build:
+#      context: ./docker/gophermart
+#      additional_contexts:
+#        current: ./
+#      dockerfile: Dockerfile
+#    depends_on:
+#      - db
+#      - accrual
+#    ports:
+#      - "${GOPHERMART_PORT:-7082}:${GOPHERMART_PORT:-7082}"
+#    environment:
+#      DATABASE_URI: postgres://gophermart:secret@db:5432/yp?sslmode=disable
+#      RUN_ADDRESS: 0.0.0.0:${GOPHERMART_PORT:-7082}
+#      ACCRUAL_ADDRESS: "http://accrual:${ACCRUAL_PORT:-7081}"
+#      GODEBUG: netdns=go
+#    networks:
+#      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:
+    driver: bridge
