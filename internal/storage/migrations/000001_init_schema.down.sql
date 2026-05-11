@@ -1,0 +1,5 @@
+-- Откат миграции схемы
+DROP TABLE IF EXISTS withdrawals CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
