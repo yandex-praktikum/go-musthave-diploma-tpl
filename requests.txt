@@ -1,0 +1,18 @@
+
+### application/json
+
+$ echo '{"login": "QWyf3vL", "password": "A61FC9MUWqjhl4UOlXlbj"}' | \
+    curl -X POST http://localhost:9082/api/user/register \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        --data @-; echo
+
+$ wget -O - --server-response --header="Content-Type: application/json" --header="Accept: application/json" \
+    --post-data='{"login": "QWyf3vL3", "password": "A61FC9MUWqjhl4UOlXlbj"}' \
+    http://localhost:9082/api/user/register; echo
+
+$ echo '{"login": "QWyf3vL", "password": "A61FC9MUWqjhl4UOlXlbj"}' | \
+    curl -X POST http://localhost:9082/api/user/login  \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        --data @-; echo

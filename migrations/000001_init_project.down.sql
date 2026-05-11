@@ -1,0 +1,5 @@
+BEGIN;
+
+DROP SCHEMA IF EXISTS gophermart CASCADE;
+
+COMMIT;
