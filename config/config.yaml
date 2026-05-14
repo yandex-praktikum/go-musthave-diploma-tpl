@@ -1,0 +1,13 @@
+Handler:
+  EncryptionKey: secret-key
+  ExpirationTimePerMinute: 5
+Service:
+  SaltLen: 16
+  KeyLength: 16
+Worker:
+  AccrualSystemAddress: http://0.0.0.0:8080
+  CheckInterval: 1
+  RateLimit: 5
+Addr: localhost:8081
+LogLevel: INFO
+DatabaseDSN: postgres://postgres:postgres@localhost:5432/postgres
