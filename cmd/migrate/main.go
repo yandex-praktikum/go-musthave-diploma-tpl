@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 
@@ -62,13 +63,13 @@ func main() {
 	// Выполняем команду
 	switch command {
 	case "up":
-		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			fmt.Printf("Error running up migrations: %v\n", err)
 			os.Exit(1)
 		}
 		fmt.Println("Migrations up completed successfully")
 	case "down":
-		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+		if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			fmt.Printf("Error running down migrations: %v\n", err)
 			os.Exit(1)
 		}

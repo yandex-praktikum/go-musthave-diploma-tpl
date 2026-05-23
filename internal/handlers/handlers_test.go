@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -29,7 +28,7 @@ type HandlerSuite struct {
 	orderService *services.OrderService
 	authHandler  *handlers.AuthHandler
 	orderHandler *handlers.OrderHandler
-	router       *chi.Mux
+	router       *http.ServeMux
 	testUser     *storage.User
 	testToken    string
 }
@@ -57,7 +56,7 @@ func (s *HandlerSuite) SetupTest() {
 	s.orderHandler = handlers.NewOrderHandler(s.orderService)
 
 	// Создаем роутер
-	s.router = chi.NewRouter()
+	s.router = http.NewServeMux()
 	s.setupRoutes()
 
 	// Создаем тестового пользователя и токен
@@ -81,21 +80,25 @@ func (s *HandlerSuite) TearDownSuite() {
 
 func (s *HandlerSuite) setupRoutes() {
 	// Публичные роуты
-	s.router.Post("/api/user/register", s.authHandler.Register)
-	s.router.Post("/api/user/login", s.authHandler.Login)
+	s.router.HandleFunc("POST /api/user/register", s.authHandler.Register)
+	s.router.HandleFunc("POST /api/user/login", s.authHandler.Login)
 
 	// Middleware аутентификации
 	authMiddleware := auth.NewAuthMiddleware(s.tokenManager)
 
-	// Защищенные роуты
-	s.router.Group(func(r chi.Router) {
-		r.Use(authMiddleware.Middleware)
-		r.Post("/api/user/orders", s.orderHandler.UploadOrder)
-		r.Get("/api/user/orders", s.orderHandler.GetOrders)
-		r.Get("/api/user/balance", s.orderHandler.GetBalance)
-		r.Post("/api/user/balance/withdraw", s.orderHandler.Withdraw)
-		r.Get("/api/user/withdrawals", s.orderHandler.GetWithdrawals)
-	})
+	// Вспомогательная функция для применения middleware к хендлеру
+	withAuth := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			authMiddleware.Middleware(handler).ServeHTTP(w, r)
+		}
+	}
+
+	// Защищённые роуты
+	s.router.HandleFunc("POST /api/user/orders", withAuth(s.orderHandler.UploadOrder))
+	s.router.HandleFunc("GET /api/user/orders", withAuth(s.orderHandler.GetOrders))
+	s.router.HandleFunc("GET /api/user/balance", withAuth(s.orderHandler.GetBalance))
+	s.router.HandleFunc("POST /api/user/balance/withdraw", withAuth(s.orderHandler.Withdraw))
+	s.router.HandleFunc("GET /api/user/withdrawals", withAuth(s.orderHandler.GetWithdrawals))
 }
 
 // ============ Тесты регистрации ============

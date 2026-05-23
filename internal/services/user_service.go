@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"go-musthave-diploma-tpl/internal/auth"
+	"go-musthave-diploma-tpl/internal/repository"
 	"go-musthave-diploma-tpl/internal/storage"
 )
 
@@ -17,12 +18,12 @@ var (
 
 // UserService предоставляет методы для работы с пользователями
 type UserService struct {
-	userRepo     *storage.UserRepository
+	userRepo     repository.UserRepository
 	tokenManager *auth.TokenManager
 }
 
 // NewUserService создаёт новый сервис пользователей
-func NewUserService(userRepo *storage.UserRepository, tokenManager *auth.TokenManager) *UserService {
+func NewUserService(userRepo repository.UserRepository, tokenManager *auth.TokenManager) *UserService {
 	return &UserService{
 		userRepo:     userRepo,
 		tokenManager: tokenManager,

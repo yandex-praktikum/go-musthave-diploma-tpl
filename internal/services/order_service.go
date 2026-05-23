@@ -6,25 +6,22 @@ import (
 	"strconv"
 	"strings"
 
+	"go-musthave-diploma-tpl/internal/repository"
 	"go-musthave-diploma-tpl/internal/storage"
 )
 
-// Ошибки сервиса заказов
 var (
-	ErrOrderAlreadyExists      = errors.New("order already exists")
-	ErrInvalidOrderNumber      = errors.New("invalid order number")
-	ErrOrderNotFound           = errors.New("order not found")
-	ErrOrderBelongsToOtherUser = errors.New("order belongs to other user")
+	ErrInvalidOrderNumber = errors.New("invalid order number")
 )
 
 // OrderService предоставляет методы для работы с заказами
 type OrderService struct {
-	orderRepo   *storage.OrderRepository
-	balanceRepo *storage.BalanceRepository
+	orderRepo   repository.OrderRepository
+	balanceRepo repository.BalanceRepository
 }
 
 // NewOrderService создаёт новый сервис заказов
-func NewOrderService(orderRepo *storage.OrderRepository, balanceRepo *storage.BalanceRepository) *OrderService {
+func NewOrderService(orderRepo repository.OrderRepository, balanceRepo repository.BalanceRepository) *OrderService {
 	return &OrderService{
 		orderRepo:   orderRepo,
 		balanceRepo: balanceRepo,
@@ -45,7 +42,7 @@ func (s *OrderService) UploadOrder(ctx context.Context, userID int64, number str
 		// Заказ уже загружен этим пользователем
 		return true, false, nil
 	}
-	if !errors.Is(err, storage.ErrOrderNotFound) {
+	if !errors.Is(err, repository.ErrOrderNotFound) {
 		return false, false, err
 	}
 
@@ -59,7 +56,7 @@ func (s *OrderService) UploadOrder(ctx context.Context, userID int64, number str
 	// Создаём новый заказ
 	_, err = s.orderRepo.Create(ctx, userID, number)
 	if err != nil {
-		if errors.Is(err, storage.ErrOrderAlreadyExists) {
+		if errors.Is(err, repository.ErrOrderAlreadyExists) {
 			// Гонка: заказ уже создан другим процессом
 			return false, true, nil
 		}
@@ -144,24 +141,9 @@ func (s *OrderService) Withdraw(ctx context.Context, userID int64, req WithdrawR
 		return ErrInvalidOrderNumber
 	}
 
-	// Проверяем достаточность средств
-	balance, err := s.balanceRepo.GetBalance(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	if balance.Current < req.Sum {
-		return storage.ErrInsufficientFunds
-	}
-
-	// Добавляем транзакцию списания
-	orderNumber := req.Order
-	if err := s.balanceRepo.AddWithdraw(ctx, userID, req.Sum, &orderNumber); err != nil {
-		return err
-	}
-
-	// Создаём запись о списании
-	if err := s.balanceRepo.CreateWithdrawal(ctx, userID, req.Order, req.Sum); err != nil {
+	// Атомарно обрабатываем списание (транзакция включает проверку баланса,
+	// добавление записи в transactions и создание записи в withdrawals)
+	if err := s.balanceRepo.ProcessWithdraw(ctx, userID, req.Order, req.Sum); err != nil {
 		return err
 	}
 

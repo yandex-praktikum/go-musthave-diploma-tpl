@@ -2,6 +2,8 @@
 package auth
 
 import (
+	"errors"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,5 +22,5 @@ func HashPassword(password string) (string, error) {
 // Возвращает true если пароль верный, false в противном случае
 func VerifyPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	return errors.Is(err, nil)
 }

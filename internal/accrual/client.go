@@ -12,10 +12,9 @@ import (
 	"time"
 )
 
-// Ошибки клиента accrual
 var (
-	ErrOrderNotFound      = errors.New("order not found in accrual system")
-	ErrRateLimitExceeded  = errors.New("rate limit exceeded")
+	ErrOrderNotFound = errors.New("order not found in accrual system")
+
 	ErrAccrualServerError = errors.New("accrual system server error")
 )
 
@@ -51,14 +50,32 @@ type Client struct {
 	httpClient *http.Client
 }
 
-// NewClient создаёт новый клиент для системы accrual
-func NewClient(baseURL string, timeout time.Duration) *Client {
-	return &Client{
+// Option функциональная опция для Client
+type Option func(*Client)
+
+// WithTimeout устанавливает таймаут для HTTP клиента
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		if timeout > 0 {
+			c.httpClient.Timeout = timeout
+		}
+	}
+}
+
+// NewClient создаёт новый клиент для системы accrual с опциями
+func NewClient(baseURL string, opts ...Option) *Client {
+	client := &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: timeout,
+			Timeout: time.Second * 30, // значение по умолчанию
 		},
 	}
+
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
 }
 
 // GetOrderInfo получает информацию о заказе из системы accrual
@@ -74,7 +91,11 @@ func (c *Client) GetOrderInfo(ctx context.Context, number string) (*OrderInfo, e
 	if err != nil {
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusOK:

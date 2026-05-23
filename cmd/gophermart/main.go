@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 
 	"go-musthave-diploma-tpl/internal/accrual"
 	"go-musthave-diploma-tpl/internal/auth"
@@ -63,61 +59,76 @@ func main() {
 	logger.Info("Storage initialized successfully")
 
 	// Инициализируем сервисы
+	// Используем хранилища как реализации интерфейсов repository
 	tokenManager := auth.NewTokenManager("gophermart-secret-key", time.Hour*24*30)
 	userService := services.NewUserService(store.Users, tokenManager)
 	orderService := services.NewOrderService(store.Orders, store.Balance)
 
-	// Инициализируем клиент accrual системы
-	accrualClient := accrual.NewClient(cfg.AccrualSystemAddress, time.Second*30)
+	// Инициализируем клиент accrual системы с опциями
+	accrualClient := accrual.NewClient(cfg.AccrualSystemAddress,
+		accrual.WithTimeout(time.Second*30),
+	)
 
-	// Инициализируем воркер обработки заказов
-	workerConfig := worker.DefaultConfig()
-	orderWorker := worker.New(workerConfig, orderService, accrualClient)
+	// Инициализируем воркер обработки заказов с опциями
+	orderWorker := worker.New(worker.NewConfig(
+		worker.WithPollInterval(time.Second*1),
+		worker.WithBatchLimit(10),
+		worker.WithRetryDelay(time.Second*60),
+	), orderService, accrualClient)
 
 	// Запускаем воркер
 	orderWorker.Run(ctx)
-	logger.Info("Order worker started",
-		slog.Duration("poll_interval", workerConfig.PollInterval),
-		slog.Int("batch_limit", workerConfig.BatchLimit),
-	)
+	logger.Info("Order worker started")
 
 	// Инициализируем хендлеры
 	authHandler := handlers.NewAuthHandler(userService)
 	orderHandler := handlers.NewOrderHandler(orderService)
 
-	// Создаем роутер
-	router := server.Router()
+	// Создаём роутер (ServeMux)
+	mux := server.Router()
+
+	// Middleware аутентификации
+	authMiddleware := auth.NewAuthMiddleware(tokenManager)
+
+	// Вспомогательная функция для применения middleware к хендлеру
+	withAuth := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			authMiddleware.Middleware(handler).ServeHTTP(w, r)
+		}
+	}
 
 	// Публичные роуты
-	router.Post("/api/user/register", authHandler.Register)
-	router.Post("/api/user/login", authHandler.Login)
+	mux.HandleFunc("POST /api/user/register", authHandler.Register)
+	mux.HandleFunc("POST /api/user/login", authHandler.Login)
 
-	// Защищенные роуты
-	authMiddleware := auth.NewAuthMiddleware(tokenManager)
-	router.Group(func(r chi.Router) {
-		r.Use(authMiddleware.Middleware)
-
-		// Заказы
-		r.Post("/api/user/orders", orderHandler.UploadOrder)
-		r.Get("/api/user/orders", orderHandler.GetOrders)
-
-		// Баланс
-		r.Get("/api/user/balance", orderHandler.GetBalance)
-		r.Post("/api/user/balance/withdraw", orderHandler.Withdraw)
-		r.Get("/api/user/withdrawals", orderHandler.GetWithdrawals)
-	})
+	// Защищённые роуты (с middleware аутентификации)
+	mux.HandleFunc("POST /api/user/orders", withAuth(orderHandler.UploadOrder))
+	mux.HandleFunc("GET /api/user/orders", withAuth(orderHandler.GetOrders))
+	mux.HandleFunc("GET /api/user/balance", withAuth(orderHandler.GetBalance))
+	mux.HandleFunc("POST /api/user/balance/withdraw", withAuth(orderHandler.Withdraw))
+	mux.HandleFunc("GET /api/user/withdrawals", withAuth(orderHandler.GetWithdrawals))
 
 	// Health check
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Gophermart API"))
 	})
+
+	// Применяем глобальные middleware к роутеру
+	handler := server.WithMiddleware(mux,
+		server.RealIP,
+		server.RequestID,
+		server.Recovery,
+		server.RequestLogger,
+		server.Gzip,
+		server.GzipRequest,
+	)
 
 	// Создаем HTTP сервер
 	serverConfig := server.DefaultConfig()
 	serverConfig.Address = cfg.RunAddress
 
-	httpServer := server.New(serverConfig, router)
+	httpServer := server.New(serverConfig, handler)
 
 	// Канал для сигналов завершения
 	shutdown := make(chan os.Signal, 1)

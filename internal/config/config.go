@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -42,7 +43,7 @@ func LoadWithFlagSet(fs *flag.FlagSet) (*Config, error) {
 
 	// Валидация обязательных параметров
 	if cfg.DatabaseURI == "" {
-		return nil, fmt.Errorf("DATABASE_URI или флаг -d обязателен")
+		return nil, errors.New("DATABASE_URI или флаг -d обязателен")
 	}
 
 	return cfg, nil

@@ -64,56 +64,6 @@ func (r *BalanceRepository) AddCharge(ctx context.Context, userID int64, amount 
 	return nil
 }
 
-// AddWithdraw добавляет транзакцию списания баллов
-// Возвращает ErrInsufficientFunds если недостаточно средств
-func (r *BalanceRepository) AddWithdraw(ctx context.Context, userID int64, amount float64, orderNumber *string) error {
-	// Проверяем баланс перед списанием
-	balance, err := r.GetBalance(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("check balance before withdraw: %w", err)
-	}
-
-	if balance.Current < amount {
-		return ErrInsufficientFunds
-	}
-
-	query := `
-		INSERT INTO transactions (user_id, type, amount, order_number)
-		VALUES ($1, $2, $3, $4)
-	`
-
-	_, err = r.pool.Exec(ctx, query, userID, TransactionTypeWithdraw, amount, orderNumber)
-	if err != nil {
-		return fmt.Errorf("add withdraw transaction: %w", err)
-	}
-
-	return nil
-}
-
-// CreateWithdrawal создаёт запись о списании
-func (r *BalanceRepository) CreateWithdrawal(ctx context.Context, userID int64, orderNumber string, sum float64) error {
-	query := `
-		INSERT INTO withdrawals (user_id, order_number, sum)
-		VALUES ($1, $2, $3)
-		RETURNING id, user_id, order_number, sum, processed_at
-	`
-
-	var withdrawal Withdrawal
-	err := r.pool.QueryRow(ctx, query, userID, orderNumber, sum).Scan(
-		&withdrawal.ID,
-		&withdrawal.UserID,
-		&withdrawal.OrderNumber,
-		&withdrawal.Sum,
-		&withdrawal.ProcessedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("create withdrawal: %w", err)
-	}
-
-	return nil
-}
-
 // GetWithdrawalsByUser получает все списания пользователя, отсортированные по времени (от новых к старым)
 func (r *BalanceRepository) GetWithdrawalsByUser(ctx context.Context, userID int64) ([]Withdrawal, error) {
 	query := `
@@ -149,6 +99,65 @@ func (r *BalanceRepository) GetWithdrawalsByUser(ctx context.Context, userID int
 	}
 
 	return withdrawals, nil
+}
+
+// ProcessWithdraw атомарно обрабатывает списание средств
+// 1. Проверяет достаточность баланса
+// 2. Добавляет транзакцию списания в transactions
+// 3. Создаёт запись в withdrawals
+// Возвращает ErrInsufficientFunds если недостаточно средств
+func (r *BalanceRepository) ProcessWithdraw(ctx context.Context, userID int64, orderNumber string, amount float64) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Проверяем баланс перед списанием (с блокировкой строк для предотвращения race condition)
+	balanceQuery := `
+		SELECT
+			COALESCE(SUM(CASE WHEN type = $2 THEN amount ELSE 0 END), 0) -
+			COALESCE(SUM(CASE WHEN type = $3 THEN amount ELSE 0 END), 0) AS current
+		FROM transactions
+		WHERE user_id = $1
+		FOR UPDATE
+	`
+	var currentBalance float64
+	err = tx.QueryRow(ctx, balanceQuery, userID, TransactionTypeCharge, TransactionTypeWithdraw).Scan(&currentBalance)
+	if err != nil {
+		return fmt.Errorf("check balance: %w", err)
+	}
+
+	if currentBalance < amount {
+		return ErrInsufficientFunds
+	}
+
+	// Добавляем транзакцию списания
+	transactionQuery := `
+		INSERT INTO transactions (user_id, type, amount, order_number)
+		VALUES ($1, $2, $3, $4)
+	`
+	_, err = tx.Exec(ctx, transactionQuery, userID, TransactionTypeWithdraw, amount, orderNumber)
+	if err != nil {
+		return fmt.Errorf("add withdraw transaction: %w", err)
+	}
+
+	// Создаём запись о списании
+	withdrawalQuery := `
+		INSERT INTO withdrawals (user_id, order_number, sum)
+		VALUES ($1, $2, $3)
+	`
+	_, err = tx.Exec(ctx, withdrawalQuery, userID, orderNumber, amount)
+	if err != nil {
+		return fmt.Errorf("create withdrawal: %w", err)
+	}
+
+	// Коммитим транзакцию
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // ProcessOrderAccrual обрабатывает начисление по заказу в транзакции

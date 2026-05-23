@@ -1,33 +1,43 @@
 package server
 
 import (
+	"context"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
-// Router создаёт и настраивает chi роутер с базовыми middleware
-func Router() *chi.Mux {
-	r := chi.NewMux()
+// Router создаёт и настраивает стандартный ServeMux с middleware
+func Router() *http.ServeMux {
+	mux := http.NewServeMux()
 
-	// Базовые middleware от chi
-	r.Use(middleware.RealIP)
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Recoverer)
+	return mux
+}
 
-	// Наши кастомные middleware
-	r.Use(Recovery)
-	r.Use(RequestLogger)
-	r.Use(Gzip)
-	r.Use(GzipRequest)
+// WithMiddleware применяет middleware к http.Handler
+func WithMiddleware(handler http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	// Применяем middleware в обратном порядке (последний выполняется первым)
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handler = middlewares[i](handler)
+	}
+	return handler
+}
 
-	return r
+// RealIP middleware для определения реального IP клиента
+func RealIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Проверяем X-Forwarded-For и X-Real-IP заголовки
+		if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+			r = r.WithContext(context.WithValue(r.Context(), "remote_addr", ip))
+		} else if ip := r.Header.Get("X-Real-IP"); ip != "" {
+			r = r.WithContext(context.WithValue(r.Context(), "remote_addr", ip))
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // MountAuthMiddleware применяет middleware аутентификации к группе роутов
-func MountAuthMiddleware(r *chi.Mux, authMiddleware http.Handler, paths ...string) {
+// Для стандартного mux просто регистрируем роуты с уже применённым middleware
+func MountAuthMiddleware(mux *http.ServeMux, authMiddleware http.Handler, paths ...string) {
 	for _, path := range paths {
-		r.Mount(path, authMiddleware)
+		mux.Handle(path, authMiddleware)
 	}
 }
