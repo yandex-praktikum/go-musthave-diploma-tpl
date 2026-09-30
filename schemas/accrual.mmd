@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant LoyaltySystem as Система лояльности
+    participant CalculationSystem as Система расчёта баллов лояльности⚖️
+
+    Note over LoyaltySystem: воркер запускается по таймеру
+    loop Опрос повторяется, пока не получен окончательный статус
+        LoyaltySystem->>CalculationSystem: `GET /api/orders/{number}`
+        CalculationSystem-->>LoyaltySystem: ответ со статусом
+        alt REGISTERED
+            LoyaltySystem->>LoyaltySystem: <реакция>
+        else PROCESSING
+            LoyaltySystem->>LoyaltySystem: <реакция>
+        else PROCESSED
+            LoyaltySystem->>LoyaltySystem: <реакция>
+        else INVALID
+            LoyaltySystem->>LoyaltySystem: <реакция>
+        end
+    end

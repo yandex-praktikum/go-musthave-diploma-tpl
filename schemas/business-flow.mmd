@@ -1,0 +1,74 @@
+sequenceDiagram
+    autonumber
+    actor user as Пользователь🙎‍♂️
+    participant Store as Интернет-магазин🏬
+    participant LoyaltySystem as Система лояльности
+    participant CalculationSystem as Система расчёта баллов⚖️
+
+    rect rgb(232, 245, 233)
+        user->>LoyaltySystem: регистрация (POST /api/user/register)
+        LoyaltySystem-->>user: 200 OK + JWT
+        Note over user: клиент сохраняет JWT<br/>(Authorization: Bearer)
+    end
+
+    rect rgb(230, 230, 230)
+        user->>Store: покупка в интернет-магазине «Гофермарт»
+        Store->>Store: формирование заказа
+        Store->>user: возврат номера заказа
+        Store->>CalculationSystem: заказ попадает в систему расчёта баллов
+        Note over user, CalculationSystem: вне зоны реализации
+    end
+
+    user->>LoyaltySystem: передача номера заказа (+ JWT)
+    LoyaltySystem->>LoyaltySystem: проверка номера по алгоритму Луна
+    alt номер некорректен
+        rect rgb(255, 235, 238)
+            LoyaltySystem-->>user: 422 неверный номер заказа
+        end
+    else номер корректен
+        alt 202
+            rect rgb(232, 245, 233)
+                LoyaltySystem-->>user: новый номер принят в обработку
+            end
+        else 200
+            rect rgb(232, 245, 233)
+                LoyaltySystem-->>user: уже загружен этим пользователем
+            end
+        else 409
+            rect rgb(255, 235, 238)
+                LoyaltySystem-->>user: загружен другим пользователем
+            end
+        end
+    end
+
+    LoyaltySystem->>LoyaltySystem: связывает номер заказа с пользователем
+
+    Note over LoyaltySystem, CalculationSystem: асинхронный опрос статуса — см. accrual.mmd
+    loop пока статус не окончательный
+        LoyaltySystem->>CalculationSystem: запрос расчёта по заказу (GET /api/orders/{number})
+        CalculationSystem-->>LoyaltySystem: статус: REGISTERED | PROCESSING
+    end
+    CalculationSystem-->>LoyaltySystem: окончательный статус
+
+    alt PROCESSED + баллы > 0
+        rect rgb(232, 245, 233)
+            LoyaltySystem->>LoyaltySystem: начислить баллы на счёт пользователя
+        end
+    else PROCESSED без баллов / INVALID
+        Note over LoyaltySystem: начисление не производится
+    end
+
+    user->>LoyaltySystem: списание баллов (+ JWT: номер заказа, сумма)
+    alt баланс достаточен
+        rect rgb(232, 245, 233)
+            LoyaltySystem-->>user: 200 OK
+        end
+    else недостаточно средств
+        rect rgb(255, 235, 238)
+            LoyaltySystem-->>user: 402
+        end
+    else неверный номер заказа
+        rect rgb(255, 235, 238)
+            LoyaltySystem-->>user: 422
+        end
+    end

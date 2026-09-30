@@ -1,0 +1,27 @@
+flowchart TD
+    Start([Клиент: POST /api/user/register]) --> V1
+
+    V1{Логин и пароль<br/>соответствуют формату?}
+    V1 -- нет --> E400[["400 Bad Request"]]
+    V1 -- да --> S1[("SELECT login<br/>WHERE login = ?")]
+
+    S1 -- "ошибка БД" --> E500[["500 Internal Server Error"]]
+    S1 -- "логин найден" --> E409[["409 Conflict"]]
+    S1 -- "логин свободен" --> H1["API: хеширование пароля (bcrypt)"]
+
+    H1 --> I1[("INSERT login, password_hash")]
+    I1 -- "ошибка БД" --> E500
+    I1 -- успешно --> J1["API: генерация JWT"]
+
+    J1 --> OK[["200 OK + JWT"]]
+    OK --> T1["клиент сохраняет JWT<br/>(Authorization: Bearer)"]
+
+    E400 --> End([Конец])
+    E409 --> End
+    E500 --> End
+    T1 --> End
+
+    classDef success fill:#e8f5e9,stroke:#2e7d32
+    classDef error fill:#ffebee,stroke:#c62828
+    class OK,T1 success
+    class E400,E409,E500 error

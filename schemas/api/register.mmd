@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    actor user as Клиент
+    participant API as Сервис Гофермарт
+    participant DB as PostgreSQL 🐘
+
+    user->>API: POST /api/user/register (login, password)
+    activate API
+    API->>API: валидация логина и пароля
+
+    alt формат неверный
+        rect rgb(255, 235, 238)
+            API-->>user: 400 Bad Request
+        end
+    else формат верный
+        API->>DB: SELECT login WHERE login = ?
+        DB-->>API: пустой результат | логин найден
+        alt логин найден
+            rect rgb(255, 235, 238)
+                API-->>user: 409 Conflict
+            end
+        else логин свободен
+            API->>API: хеширование пароля (bcrypt)
+            API->>DB: INSERT (login, password_hash)
+            DB-->>API: OK | ошибка
+            alt ошибка БД
+                rect rgb(255, 235, 238)
+                    API-->>user: 500 Internal Server Error
+                end
+            else запись создана
+                API->>API: генерация JWT
+                rect rgb(232, 245, 233)
+                    API-->>user: 200 OK + JWT
+                end
+            end
+        end
+    end
+    deactivate API
+    Note over user: клиент сохраняет JWT<br/>(заголовок Authorization: Bearer<br/>для последующих запросов)
