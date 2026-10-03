@@ -155,13 +155,12 @@ func (h *apiHandler) loadOrder(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var user model.User
-	user.Username = usernameFromContext(req.Context())
+	username := usernameFromContext(req.Context())
 
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	err = h.svc.LoadOrder(ctx, string(orderNumber), user)
+	err = h.svc.LoadOrder(ctx, string(orderNumber), username)
 	if errors.Is(err, model.ErrMissingOrderNumber) || errors.Is(err, model.ErrInvalidOrderNumber) {
 		h.logger.Debug("invalid order number", zap.Error(err))
 		http.Error(w, "Unprocessable Content", http.StatusUnprocessableEntity)
@@ -187,14 +186,12 @@ func (h *apiHandler) loadOrder(w http.ResponseWriter, req *http.Request) {
 
 // listOrders handles GET /api/user/orders.
 func (h *apiHandler) listOrders(w http.ResponseWriter, req *http.Request) {
-	var user model.User
-
-	user.Username = usernameFromContext(req.Context())
+	username := usernameFromContext(req.Context())
 
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	orders, err := h.svc.ListOrders(ctx, user)
+	orders, err := h.svc.GetOrders(ctx, username)
 	if err != nil {
 		h.logger.Error("failed to list orders", zap.Error(err))
 		http.Error(w, "The server failed to fulfill an apparently valid request", http.StatusInternalServerError)
@@ -215,14 +212,12 @@ func (h *apiHandler) listOrders(w http.ResponseWriter, req *http.Request) {
 
 // getBalance handles GET /api/user/balance.
 func (h *apiHandler) getBalance(w http.ResponseWriter, req *http.Request) {
-	var user model.User
-
-	user.Username = usernameFromContext(req.Context())
+	username := usernameFromContext(req.Context())
 
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	balance, err := h.svc.GetBalance(ctx, user)
+	balance, err := h.svc.GetBalance(ctx, username)
 	if err != nil {
 		h.logger.Error("failed to get balance", zap.Error(err))
 		http.Error(w, "The server failed to fulfill an apparently valid request", http.StatusInternalServerError)
@@ -239,7 +234,7 @@ func (h *apiHandler) getBalance(w http.ResponseWriter, req *http.Request) {
 
 // withdraw handles POST /api/user/balance/withdraw.
 func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
-	requestBody, ok := decodeJSON[model.WithdrawalRequest](w, req, h.logger)
+	withdrawalRequest, ok := decodeJSON[model.WithdrawalRequest](w, req, h.logger)
 	if !ok {
 		return
 	}
@@ -248,7 +243,7 @@ func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	err := h.svc.Withdraw(ctx, username, requestBody)
+	err := h.svc.Withdraw(ctx, username, withdrawalRequest)
 
 	if errors.Is(err, model.ErrInsufficientFunds) {
 		http.Error(w, "Payment Required", http.StatusPaymentRequired)
@@ -269,14 +264,12 @@ func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
 
 // listWithdrawals handles GET /api/user/withdrawals.
 func (h *apiHandler) listWithdrawals(w http.ResponseWriter, req *http.Request) {
-	var user model.User
-
-	user.Username = usernameFromContext(req.Context())
+	username := usernameFromContext(req.Context())
 
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	withdrawals, err := h.svc.ListWithdrawals(ctx, user)
+	withdrawals, err := h.svc.ListWithdrawals(ctx, username)
 	if err != nil {
 		h.logger.Error("failed to list withdrawals", zap.Error(err))
 		http.Error(w, "The server failed to fulfill an apparently valid request", http.StatusInternalServerError)
