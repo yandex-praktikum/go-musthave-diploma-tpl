@@ -8,10 +8,10 @@ import (
 
 type ctxKey int
 
-const (
-	usernameKey        ctxKey = 0
-	maxRequestBodySize        = 1 << 20
-)
+const usernameKey ctxKey = 0
+
+// maxRequestBodySize limits the accepted request body size to 1 MiB.
+const maxRequestBodySize = 1 << 20
 
 func requireJSONContent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -51,7 +51,7 @@ func (h *apiHandler) validateToken(next http.Handler) http.Handler {
 	})
 }
 
-// usernameFrom returns the username stored in the context by validateToken, or "".
+// usernameFromContext returns the username stored in the context by validateToken, or "".
 func usernameFromContext(ctx context.Context) string {
 	username, _ := ctx.Value(usernameKey).(string)
 	return username
