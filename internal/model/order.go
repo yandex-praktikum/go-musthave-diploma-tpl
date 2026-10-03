@@ -12,14 +12,6 @@ const (
 	StatusNew        = "NEW"
 )
 
-// Order is a loyalty order bound to a user; it is the internal system contract.
-type Order struct {
-	Username string `json:"login"`
-	Number   string `json:"order"`
-	Status   string `json:"status,omitempty"`
-	Accrual  int    `json:"accrual,omitempty"`
-}
-
 // OrderWriteResult reports whether an order was inserted and, if not, who owns it.
 type OrderWriteResult struct {
 	Inserted bool
@@ -27,11 +19,11 @@ type OrderWriteResult struct {
 }
 
 // Validate reports whether the order number is non-empty and passes the Luhn check.
-func (order Order) Validate() error {
-	if order.Number == "" {
+func ValidateOrderNumber(number string) error {
+	if number == "" {
 		return ErrMissingOrderNumber
 	}
-	if !luhnCheck(order.Number) {
+	if !luhnCheck(number) {
 		return ErrInvalidOrderNumber
 	}
 	return nil
