@@ -12,4 +12,8 @@ type Repository interface {
 	GetPasswordHash(ctx context.Context, username string) (string, error)
 	CreateUser(ctx context.Context, username string, passwordHash string) error
 	RegisterOrder(ctx context.Context, orderNumber string, username string) (model.OrderWriteResult, error)
+	ListOrders(ctx context.Context, username string) ([]model.OrderResponse, error)
+	GetBalance(ctx context.Context, username string) (model.BalanceResponse, error)
+	Withdraw(ctx context.Context, username string, withdrawal model.WithdrawalRequest) error
+	ListWithdrawals(ctx context.Context, username string) ([]model.WithdrawalResponse, error)
 }

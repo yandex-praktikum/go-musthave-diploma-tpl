@@ -13,16 +13,14 @@ import (
 type LoyaltyService struct {
 	repository  Repository
 	authManager AuthManager
-	orderQueue  chan<- string
 	logger      *zap.Logger
 }
 
 // NewLoyaltyService creates a service implementing user registration and loyalty operations.
-func NewLoyaltyService(repository Repository, authManager AuthManager, orderQueue chan<- string, logger *zap.Logger) *LoyaltyService {
+func NewLoyaltyService(repository Repository, authManager AuthManager, logger *zap.Logger) *LoyaltyService {
 	return &LoyaltyService{
 		repository:  repository,
 		authManager: authManager,
-		orderQueue:  orderQueue,
 		logger:      logger,
 	}
 }
@@ -45,12 +43,12 @@ func (svc *LoyaltyService) RegisterUser(ctx context.Context, user model.User) (s
 		return "", err
 	}
 
-	token, err := svc.authManager.IssueToken(user.Username)
+	err = svc.repository.CreateUser(ctx, user.Username, string(hashedPassword))
 	if err != nil {
 		return "", err
 	}
 
-	err = svc.repository.CreateUser(ctx, user.Username, string(hashedPassword))
+	token, err := svc.authManager.IssueToken(user.Username)
 	if err != nil {
 		return "", err
 	}
@@ -94,32 +92,22 @@ func (svc *LoyaltyService) IdentifyUser(token string) (string, error) {
 }
 
 // LoadOrder registers a new order for accrual processing.
-func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, user model.User) error {
-	var order = &model.Order{
-		Username: user.Username,
-		Number:   orderNumber,
-	}
-
-	err := order.Validate()
+func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, username string) error {
+	err := model.ValidateOrderNumber(orderNumber)
 	if err != nil {
 		return err
 	}
 
-	orderWriteResult, err := svc.repository.RegisterOrder(ctx, orderNumber, user.Username)
+	orderWriteResult, err := svc.repository.RegisterOrder(ctx, orderNumber, username)
 	if err != nil {
 		return err
 	}
 
 	if orderWriteResult.Inserted {
-		select {
-		case svc.orderQueue <- orderNumber:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
 		return nil
 	}
 
-	if orderWriteResult.Owner != user.Username {
+	if orderWriteResult.Owner != username {
 		return model.ErrOrderExistsOtherUser
 	}
 
@@ -127,21 +115,49 @@ func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, us
 }
 
 // ListOrders returns all orders of the given user.
-func (svc *LoyaltyService) ListOrders(user model.User) error {
-	return nil
+func (svc *LoyaltyService) ListOrders(ctx context.Context, username string) ([]model.OrderResponse, error) {
+	orders, err := svc.repository.ListOrders(ctx, username)
+	if err != nil {
+		return orders, err
+	}
+	return orders, nil
 }
 
-// GetBalance returns the current balance and total accrued of the given user.
-func (svc *LoyaltyService) GetBalance(user model.User) error {
-	return nil
+// GetBalance returns the current balance and the total withdrawn of the given user.
+func (svc *LoyaltyService) GetBalance(ctx context.Context, username string) (model.BalanceResponse, error) {
+	balance, err := svc.repository.GetBalance(ctx, username)
+	if err != nil {
+		return balance, err
+	}
+	return balance, nil
 }
 
 // Withdraw spends loyalty points on a withdrawal request.
-func (svc *LoyaltyService) Withdraw(user model.User) error {
+func (svc *LoyaltyService) Withdraw(ctx context.Context, username string, withdrawal model.WithdrawalRequest) error {
+	err := model.ValidateOrderNumber(withdrawal.OrderNumber)
+	if err != nil {
+		return err
+	}
+
+	err = svc.repository.Withdraw(ctx, username, withdrawal)
+	if err != nil {
+		return err
+	}
+
+	// audit-log
+	svc.logger.Info("withdrawal recorded",
+		zap.String("username", username),
+		zap.String("order", withdrawal.OrderNumber),
+		zap.Float64("sum", withdrawal.Sum),
+	)
 	return nil
 }
 
 // ListWithdrawals returns the withdrawal history of the given user.
-func (svc *LoyaltyService) ListWithdrawals(user model.User) error {
-	return nil
+func (svc *LoyaltyService) ListWithdrawals(ctx context.Context, username string) ([]model.WithdrawalResponse, error) {
+	response, err := svc.repository.ListWithdrawals(ctx, username)
+	if err != nil {
+		return response, err
+	}
+	return response, nil
 }

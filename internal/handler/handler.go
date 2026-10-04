@@ -191,7 +191,7 @@ func (h *apiHandler) listOrders(w http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), queryTimeout)
 	defer cancel()
 
-	orders, err := h.svc.GetOrders(ctx, username)
+	orders, err := h.svc.ListOrders(ctx, username)
 	if err != nil {
 		h.logger.Error("failed to list orders", zap.Error(err))
 		http.Error(w, "The server failed to fulfill an apparently valid request", http.StatusInternalServerError)
@@ -249,7 +249,8 @@ func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Payment Required", http.StatusPaymentRequired)
 		return
 	}
-	if errors.Is(err, model.ErrInvalidOrderNumber) {
+	if errors.Is(err, model.ErrMissingOrderNumber) || errors.Is(err, model.ErrInvalidOrderNumber) {
+		h.logger.Debug("invalid order number", zap.Error(err))
 		http.Error(w, "Unprocessable Content", http.StatusUnprocessableEntity)
 		return
 	}
