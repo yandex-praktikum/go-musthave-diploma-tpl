@@ -13,7 +13,7 @@ const (
 )
 
 // OrderWriteResult reports whether an order was inserted and, if not, who owns it.
-type OrderWriteResult struct {
+type AccrualWriteResult struct {
 	Inserted bool
 	Owner    string
 }

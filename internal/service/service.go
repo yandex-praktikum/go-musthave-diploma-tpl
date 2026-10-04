@@ -98,7 +98,7 @@ func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, us
 		return err
 	}
 
-	orderWriteResult, err := svc.repository.RegisterOrder(ctx, orderNumber, username)
+	orderWriteResult, err := svc.repository.RegisterAccrual(ctx, orderNumber, username)
 	if err != nil {
 		return err
 	}
@@ -115,8 +115,8 @@ func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, us
 }
 
 // ListOrders returns all orders of the given user.
-func (svc *LoyaltyService) ListOrders(ctx context.Context, username string) ([]model.OrderResponse, error) {
-	orders, err := svc.repository.ListOrders(ctx, username)
+func (svc *LoyaltyService) ListOrders(ctx context.Context, username string) ([]model.AccrualResponse, error) {
+	orders, err := svc.repository.ListAccruals(ctx, username)
 	if err != nil {
 		return orders, err
 	}
