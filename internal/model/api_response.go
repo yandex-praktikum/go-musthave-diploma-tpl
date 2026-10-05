@@ -4,9 +4,10 @@ import (
 	"time"
 )
 
-// AccrualResponse is the order representation returned by GET /api/user/orders.
-type AccrualResponse struct {
-	Number       string    `json:"number"`
+// OrderResponse is the order representation returned by GET /api/user/orders.
+type OrderResponse struct {
+	// OrderNumber is the number of the completed (already processed) order.
+	OrderNumber  string    `json:"number"`
 	Status       Status    `json:"status"`
 	Amount       float64   `json:"accrual,omitempty"`
 	UploadedTime time.Time `json:"uploaded_at"`

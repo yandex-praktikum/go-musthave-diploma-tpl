@@ -1,5 +1,11 @@
 package model
 
+// OrderWriteResult reports whether an order was inserted and, if not, who owns it.
+type OrderWriteResult struct {
+	Inserted bool
+	Owner    string
+}
+
 // Status is the order processing state in the accrual flow.
 type Status string
 
@@ -12,13 +18,7 @@ const (
 	StatusNew        = "NEW"
 )
 
-// OrderWriteResult reports whether an order was inserted and, if not, who owns it.
-type AccrualWriteResult struct {
-	Inserted bool
-	Owner    string
-}
-
-// Validate reports whether the order number is non-empty and passes the Luhn check.
+// ValidateOrderNumber reports whether the order number is non-empty and passes the Luhn check.
 func ValidateOrderNumber(number string) error {
 	if number == "" {
 		return ErrMissingOrderNumber
