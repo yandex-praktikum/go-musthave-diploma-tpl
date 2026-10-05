@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nikitaw13/go-musthave-diploma/internal/model"
 )
 
@@ -40,6 +39,12 @@ func (ps *PostgresStorage) Withdraw(ctx context.Context, username string, withdr
 			return err
 		}
 		defer tx.Rollback(ctx)
+
+		var userID int64
+		err = tx.QueryRow(ctx, lockUserTemplate, username).Scan(&userID)
+		if err != nil {
+			return err
+		}
 
 		err = tx.QueryRow(ctx, getBalanceTemplate, username).Scan(&response.Current, &response.Withdrawn)
 		if err != nil {

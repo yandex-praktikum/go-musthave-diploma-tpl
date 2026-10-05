@@ -13,6 +13,7 @@ const (
 )
 
 var (
+	// User related
 	userExistsTemplate = fmt.Sprintf(`
 	SELECT EXISTS(
 		SELECT 1 
@@ -31,12 +32,13 @@ var (
 	VALUES ($1, $2)
 	`, usersTableName)
 
+	// Accrual related
 	insertOrderTemplate = fmt.Sprintf(`
 	INSERT INTO %s (order_number, user_id)
-	VALUES ($1, (SELECT user_id FROM users WHERE username = $2))
+	VALUES ($1, (SELECT user_id FROM %s WHERE username = $2))
 	ON CONFLICT (order_number) DO NOTHING
 	RETURNING order_id
-	`, accrualsTableName)
+	`, accrualsTableName, usersTableName)
 
 	getOrderOwnerTemplate = fmt.Sprintf(`
 	SELECT u.username 
@@ -52,6 +54,7 @@ var (
 	ORDER BY uploaded_at DESC
 	`, accrualsTableName, usersTableName)
 
+	// Balance related
 	getBalanceTemplate = fmt.Sprintf(`
 	SELECT
     	COALESCE(a.total_accruals, 0) - COALESCE(w.total_withdrawals, 0) AS current_balance,
@@ -70,6 +73,13 @@ var (
 	) w ON w.user_id = u.user_id
 	WHERE u.username = $1
 	`, usersTableName, accrualsTableName, model.StatusProcessed, withdrawalsTableName)
+
+	// Withdraw-related
+	lockUserTemplate = fmt.Sprintf(`
+	SELECT user_id 
+	FROM %s 
+	WHERE username = $1 FOR UPDATE
+	`, usersTableName)
 
 	withdrawTemplate = fmt.Sprintf(`
 	INSERT INTO %s (user_id, order_number, amount)
@@ -92,6 +102,7 @@ var (
     ORDER BY processed_at DESC
 	`, withdrawalsTableName, usersTableName)
 
+	// Accrual related
 	fetchNewOrdersTemplate = fmt.Sprintf(`
 	SELECT order_number
 	FROM %s
