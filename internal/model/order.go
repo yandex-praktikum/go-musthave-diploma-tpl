@@ -1,7 +1,7 @@
 package model
 
-// OrderWriteResult reports whether an order was inserted and, if not, who owns it.
-type OrderWriteResult struct {
+// OrderRegistrationResult reports whether an order was inserted and, if not, who owns it.
+type OrderRegistrationResult struct {
 	Inserted bool
 	Owner    string
 }
