@@ -6,12 +6,18 @@ import (
 	"net/http"
 )
 
+// ctxKey is an unexported type for context keys; it prevents collisions
+// with keys defined in other packages.
 type ctxKey int
 
+// usernameKey is the context key that identifies the authenticated username.
 const usernameKey ctxKey = 0
 
 // maxRequestBodySize limits the accepted request body size to 1 MiB.
 const maxRequestBodySize = 1 << 20
+
+// msgUnauthorized is written to the HTTP response when the request lacks a valid authorization token.
+const msgUnauthorized = "user is not authorized"
 
 func requireJSONContent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -29,20 +35,20 @@ func (h *apiHandler) validateToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authHeader := req.Header.Get("Authorization")
 		if authHeader == "" {
-			http.Error(w, "user is not authorized", http.StatusUnauthorized)
+			http.Error(w, msgUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
 		username, err := h.svc.IdentifyUser(authHeader)
 		if err != nil {
 			h.logger.Debug(err.Error())
-			http.Error(w, "user is not authorized", http.StatusUnauthorized)
+			http.Error(w, msgUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
 		if username == "" {
 			h.logger.Debug("IdentifyUser returned an empty username for a valid token")
-			http.Error(w, "user is not authorized", http.StatusUnauthorized)
+			http.Error(w, msgUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
