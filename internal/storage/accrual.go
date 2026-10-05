@@ -13,23 +13,25 @@ import (
 func (ps *PostgresStorage) FetchNewOrders(ctx context.Context) ([]string, error) {
 	var result []string
 
-	rows, err := ps.db.Query(ctx, fetchNewOrdersTemplate, model.StatusProcessing, model.StatusNew)
-
-	if err != nil {
-		return result, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var orderNumber string
-		err = rows.Scan(&orderNumber)
+	operation := func() error {
+		result = nil
+		rows, err := ps.db.Query(ctx, fetchNewOrdersTemplate, model.StatusProcessing, model.StatusNew)
 		if err != nil {
-			return result, err
+			return err
 		}
-		result = append(result, orderNumber)
+		defer rows.Close()
+		for rows.Next() {
+			var orderNumber string
+			err = rows.Scan(&orderNumber)
+			if err != nil {
+				return err
+			}
+			result = append(result, orderNumber)
+		}
+		return rows.Err()
 	}
 
-	err = rows.Err()
+	err := ps.withRetries(ctx, operation)
 	if err != nil {
 		return result, err
 	}
