@@ -52,4 +52,10 @@ var (
 
 	// ErrNonPositiveAmount is returned when the withdrawal amount is zero or negative.
 	ErrNonPositiveAmount = errors.New("withdrawal amount must be positive")
+
+	// ErrWithdrawalExistsSameUser is returned when the withdrawal was already processed by the same user.
+	ErrWithdrawalExistsSameUser = errors.New("withdrawal already processed by this user")
+
+	// ErrWithdrawalExistsOtherUser is returned when the withdrawal was already processed by another user.
+	ErrWithdrawalExistsOtherUser = errors.New("withdrawal already processed by another user")
 )

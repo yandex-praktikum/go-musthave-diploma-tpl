@@ -17,6 +17,12 @@ type WithdrawalResponse struct {
 	ProcessedTime time.Time `json:"processed_at"`
 }
 
+// WithdrawalRegistrationResult reports whether a withdrawal was inserted and, if not, who owns it.
+type WithdrawalRegistrationResult struct {
+	Inserted bool
+	Owner    string
+}
+
 // ValidateWithdrawalAmount reports whether the withdrawal amount is positive.
 func ValidateWithdrawalAmount(amount float64) error {
 	if amount <= 0 {
