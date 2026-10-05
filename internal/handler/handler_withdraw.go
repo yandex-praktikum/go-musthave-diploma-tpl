@@ -27,7 +27,6 @@ func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Unprocessable Content", http.StatusUnprocessableEntity)
 		return
 	}
-
 	if errors.Is(err, model.ErrInsufficientFunds) {
 		http.Error(w, "Payment Required", http.StatusPaymentRequired)
 		return
@@ -35,6 +34,16 @@ func (h *apiHandler) withdraw(w http.ResponseWriter, req *http.Request) {
 	if errors.Is(err, model.ErrMissingOrderNumber) || errors.Is(err, model.ErrInvalidOrderNumber) {
 		h.logger.Debug("invalid order number", zap.Error(err))
 		http.Error(w, "Unprocessable Content", http.StatusUnprocessableEntity)
+		return
+	}
+	if errors.Is(err, model.ErrWithdrawalExistsOtherUser) {
+		h.logger.Debug("withdrawal already processed by another user", zap.Error(err))
+		http.Error(w, "Conflict", http.StatusConflict)
+		return
+	}
+	if errors.Is(err, model.ErrWithdrawalExistsSameUser) {
+		h.logger.Debug("withdrawal already processed by the same user", zap.Error(err))
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	if err != nil {
