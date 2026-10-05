@@ -1,3 +1,5 @@
+// Package service orchestrates the gophermart use cases: it validates input,
+// calls the Repository or AuthManager, and maps the results to domain errors.
 package service
 
 import (
@@ -98,16 +100,16 @@ func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, us
 		return err
 	}
 
-	orderWriteResult, err := svc.repository.RegisterAccrual(ctx, orderNumber, username)
+	orderRegistrationResult, err := svc.repository.RegisterOrder(ctx, orderNumber, username)
 	if err != nil {
 		return err
 	}
 
-	if orderWriteResult.Inserted {
+	if orderRegistrationResult.Inserted {
 		return nil
 	}
 
-	if orderWriteResult.Owner != username {
+	if orderRegistrationResult.Owner != username {
 		return model.ErrOrderExistsOtherUser
 	}
 
@@ -115,8 +117,8 @@ func (svc *LoyaltyService) LoadOrder(ctx context.Context, orderNumber string, us
 }
 
 // ListOrders returns all orders of the given user.
-func (svc *LoyaltyService) ListOrders(ctx context.Context, username string) ([]model.AccrualResponse, error) {
-	orders, err := svc.repository.ListAccruals(ctx, username)
+func (svc *LoyaltyService) ListOrders(ctx context.Context, username string) ([]model.OrderResponse, error) {
+	orders, err := svc.repository.ListOrders(ctx, username)
 	if err != nil {
 		return orders, err
 	}
@@ -134,23 +136,35 @@ func (svc *LoyaltyService) GetBalance(ctx context.Context, username string) (mod
 
 // Withdraw spends loyalty points on a withdrawal request.
 func (svc *LoyaltyService) Withdraw(ctx context.Context, username string, withdrawal model.WithdrawalRequest) error {
-	err := model.ValidateOrderNumber(withdrawal.OrderNumber)
+	err := model.ValidateWithdrawalAmount(withdrawal.Amount)
 	if err != nil {
 		return err
 	}
 
-	err = svc.repository.Withdraw(ctx, username, withdrawal)
+	err = model.ValidateOrderNumber(withdrawal.OrderNumber)
 	if err != nil {
 		return err
 	}
 
-	// audit-log
-	svc.logger.Info("withdrawal recorded",
-		zap.String("username", username),
-		zap.String("order", withdrawal.OrderNumber),
-		zap.Float64("sum", withdrawal.Sum),
-	)
-	return nil
+	withdrawalRegistrationResult, err := svc.repository.Withdraw(ctx, username, withdrawal)
+	if err != nil {
+		return err
+	}
+
+	if withdrawalRegistrationResult.Inserted {
+		// audit-log
+		svc.logger.Info("withdrawal recorded",
+			zap.String("username", username),
+			zap.String("order", withdrawal.OrderNumber),
+			zap.Float64("amount", withdrawal.Amount),
+		)
+		return nil
+	}
+
+	if withdrawalRegistrationResult.Owner != username {
+		return model.ErrWithdrawalExistsOtherUser
+	}
+	return model.ErrWithdrawalExistsSameUser
 }
 
 // ListWithdrawals returns the withdrawal history of the given user.
