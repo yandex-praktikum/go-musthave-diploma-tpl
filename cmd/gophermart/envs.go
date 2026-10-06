@@ -10,7 +10,7 @@ func parseEnvs() error {
 		flagLogLevel = envLogLevel
 	}
 
-	envDSN, found := os.LookupEnv("DATABASE_DSN")
+	envDSN, found := os.LookupEnv("DATABASE_URI")
 	if found {
 		flagDSN = envDSN
 	}
