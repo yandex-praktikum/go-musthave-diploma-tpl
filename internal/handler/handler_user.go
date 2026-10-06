@@ -43,7 +43,7 @@ func (h *apiHandler) registerUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", token)
+	w.Header().Set("Authorization", bearerPrefix+token)
 	w.WriteHeader(http.StatusOK)
 
 }
@@ -77,6 +77,6 @@ func (h *apiHandler) loginUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", token)
+	w.Header().Set("Authorization", bearerPrefix+token)
 	w.WriteHeader(http.StatusOK)
 }

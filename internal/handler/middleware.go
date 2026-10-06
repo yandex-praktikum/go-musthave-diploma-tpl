@@ -4,6 +4,7 @@ import (
 	"context"
 	"mime"
 	"net/http"
+	"strings"
 )
 
 // ctxKey is an unexported type for context keys; it prevents collisions
@@ -19,6 +20,10 @@ const maxRequestBodySize = 1 << 20
 // msgUnauthorized is written to the HTTP response when the request lacks a valid authorization token.
 const msgUnauthorized = "user is not authorized"
 
+// bearerPrefix is the required prefix of the Authorization header value.
+const bearerPrefix = "Bearer "
+
+// requireJSONContent rejects requests whose Content-Type is not application/json.
 func requireJSONContent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		mediatype, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
@@ -31,15 +36,18 @@ func requireJSONContent(next http.Handler) http.Handler {
 	})
 }
 
+// validateToken rejects requests without a valid Bearer token in the Authorization
+// header and stores the authenticated username in the request context.
 func (h *apiHandler) validateToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authHeader := req.Header.Get("Authorization")
-		if authHeader == "" {
+
+		if !strings.HasPrefix(authHeader, bearerPrefix) {
 			http.Error(w, msgUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
-		username, err := h.svc.IdentifyUser(authHeader)
+		username, err := h.svc.IdentifyUser(strings.TrimPrefix(authHeader, bearerPrefix))
 		if err != nil {
 			h.logger.Debug(err.Error())
 			http.Error(w, msgUnauthorized, http.StatusUnauthorized)
