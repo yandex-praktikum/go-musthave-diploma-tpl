@@ -14,6 +14,7 @@ type accrualWorker struct {
 	repository Repository
 	logger     *zap.Logger
 	interval   time.Duration
+	done       chan struct{}
 }
 
 // NewAccrualWorker creates a worker that polls the accrual system at the given interval.
@@ -23,12 +24,18 @@ func NewAccrualWorker(client *accrualClient, repository Repository, logger *zap.
 		repository: repository,
 		logger:     logger,
 		interval:   interval,
+		done:       make(chan struct{}),
 	}
+}
+
+func (aw *accrualWorker) Done() <-chan struct{} {
+	return aw.done
 }
 
 // ProcessNewOrders periodically fetches new orders from the repository
 // and updates their accrual status until the context is cancelled.
 func (aw *accrualWorker) ProcessNewOrders(ctx context.Context) error {
+	defer close(aw.done)
 	var (
 		orders []string
 		err    error
