@@ -45,6 +45,7 @@ func (ps *PostgresStorage) withRetries(ctx context.Context, operation func() err
 			return err
 		}
 		lastErr = err
+		ps.logger.Warn("attempt failed", zap.Int("attempt", attempt+1), zap.Duration("retry_in", ps.timeouts[attempt]), zap.Error(lastErr))
 
 		ticker := time.NewTicker(ps.timeouts[attempt])
 		select {
@@ -67,5 +68,6 @@ func (ps *PostgresStorage) withRetries(ctx context.Context, operation func() err
 		return lastErr
 	}
 
+	ps.logger.Error("operation aborted", zap.Int("attempts", len(ps.timeouts)+1), zap.Error(lastErr))
 	return fmt.Errorf("operation aborted after %d attempts: %w", len(ps.timeouts)+1, lastErr)
 }
