@@ -12,11 +12,13 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 )
 
+// runMigrations applies the embedded migrations to the database.
+// It is a no-op when the schema is already up to date.
 func runMigrations(pool *pgxpool.Pool) error {
 	sqlDB := stdlib.OpenDBFromPool(pool)
 	defer sqlDB.Close()
 
-	driver, err := iofs.New(migrations.FS, ".")
+	sourceDriver, err := iofs.New(migrations.FS, ".")
 	if err != nil {
 		return err
 	}
@@ -26,7 +28,7 @@ func runMigrations(pool *pgxpool.Pool) error {
 		return err
 	}
 
-	migrator, err := migrate.NewWithInstance("iofs", driver, "pgx5", dbDriver)
+	migrator, err := migrate.NewWithInstance("iofs", sourceDriver, "pgx5", dbDriver)
 	if err != nil {
 		return err
 	}
