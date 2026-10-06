@@ -1,8 +1,6 @@
 package logger
 
 import (
-	"net/http"
-
 	"go.uber.org/zap"
 )
 
@@ -25,36 +23,4 @@ func InitLogger(level string) error {
 
 	Logger = zapLogger
 	return nil
-}
-
-type (
-	// responseInfo holds the HTTP status code and response body size.
-	responseInfo struct {
-		status int
-		size   int
-	}
-
-	// loggingResponseWriter wraps http.ResponseWriter to capture status and size.
-	loggingResponseWriter struct {
-		http.ResponseWriter
-		responseInfo *responseInfo
-	}
-)
-
-// Write records the response body size and defaults status to 200.
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseInfo.size += size
-
-	if r.responseInfo.status == 0 {
-		r.responseInfo.status = http.StatusOK
-	}
-
-	return size, err
-}
-
-// WriteHeader records the HTTP status code.
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseInfo.status = statusCode
 }
