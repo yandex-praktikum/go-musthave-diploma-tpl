@@ -28,6 +28,7 @@ func NewAccrualWorker(client *accrualClient, repository Repository, logger *zap.
 	}
 }
 
+// Done returns a channel that is closed once ProcessNewOrders has fully stopped.
 func (aw *accrualWorker) Done() <-chan struct{} {
 	return aw.done
 }

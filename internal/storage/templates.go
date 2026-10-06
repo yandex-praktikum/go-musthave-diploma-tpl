@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	// User related
+	// User-related
 	userExistsTemplate = fmt.Sprintf(`
 	SELECT EXISTS(
 		SELECT 1 
@@ -32,7 +32,7 @@ var (
 	VALUES ($1, $2)
 	`, usersTableName)
 
-	// Accrual related
+	// Order-related
 	insertOrderTemplate = fmt.Sprintf(`
 	INSERT INTO %s (order_number, user_id)
 	VALUES ($1, (SELECT user_id FROM %s WHERE username = $2))
@@ -54,7 +54,7 @@ var (
 	ORDER BY uploaded_at DESC
 	`, accrualsTableName, usersTableName)
 
-	// Balance related
+	// Balance-related
 	getBalanceTemplate = fmt.Sprintf(`
 	SELECT
     	COALESCE(a.total_accruals, 0) - COALESCE(w.total_withdrawals, 0) AS current_balance,
@@ -102,7 +102,7 @@ var (
     ORDER BY processed_at DESC
 	`, withdrawalsTableName, usersTableName)
 
-	// Accrual related
+	// Accrual-related
 	fetchNewOrdersTemplate = fmt.Sprintf(`
 	SELECT order_number
 	FROM %s
