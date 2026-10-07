@@ -21,7 +21,7 @@ type accrualClient struct {
 // NewAccrualClient creates an HTTP client for the loyalty accrual system at the given address.
 func NewAccrualClient(address string, logger *zap.Logger) *accrualClient {
 	return &accrualClient{
-		address: fmt.Sprintf("http://%s", address),
+		address: address,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},

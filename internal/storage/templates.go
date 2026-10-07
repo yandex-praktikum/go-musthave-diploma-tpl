@@ -63,7 +63,7 @@ var (
 	LEFT JOIN (
     	SELECT user_id, SUM(amount) AS total_accruals
     	FROM %s
-    	WHERE status = %s
+    	WHERE status = '%s'
     	GROUP BY user_id
 	) a ON a.user_id = u.user_id
 	LEFT JOIN (
