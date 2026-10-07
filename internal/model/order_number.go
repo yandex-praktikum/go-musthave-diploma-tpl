@@ -13,6 +13,9 @@ func ValidateOrderNumber(number string) error {
 
 // luhnCheck reports whether orderNumber passes the Luhn checksum algorithm.
 func luhnCheck(orderNumber string) bool {
+	if len(orderNumber) == 0 {
+		return false
+	}
 	sum := 0
 	parity := len(orderNumber) % 2
 
