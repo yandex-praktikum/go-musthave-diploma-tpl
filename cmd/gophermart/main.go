@@ -85,20 +85,20 @@ func run() error {
 	}
 
 	var (
-		timeouts   = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
-		classifier = storage.NewPostgresErrorClassifier()
+		databaseTimeouts = []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 1 * time.Second}
+		classifier       = storage.NewPostgresErrorClassifier()
 	)
 
 	var (
-		pgStorage      = storage.NewPostgresStorage(pool, timeouts, classifier, logger.Logger)
+		pgStorage      = storage.NewPostgresStorage(pool, databaseTimeouts, classifier, logger.Logger)
 		jwtManager     = auth.NewJWTManager(argumentJWTSecretKey, logger.Logger)
 		loyaltyService = service.NewLoyaltyService(pgStorage, jwtManager, logger.Logger)
 		apiHandler     = handler.NewAPIHandler(loyaltyService, logger.Logger)
 		router         = apiHandler.Routes()
 		srv            = &http.Server{
 			Addr:         argumentServiceAddress,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			ReadTimeout:  2 * time.Second,
+			WriteTimeout: 5 * time.Second,
 			IdleTimeout:  120 * time.Second,
 			Handler:      router,
 		}

@@ -48,7 +48,7 @@ var (
 	`, accrualsTableName, usersTableName)
 
 	listOrdersTemplate = fmt.Sprintf(`
-	SELECT order_number, status, amount, uploaded_at
+	SELECT order_number, status, COALESCE(amount, 0), uploaded_at
 	FROM %s
 	WHERE user_id = (SELECT user_id FROM %s WHERE username = $1)
 	ORDER BY uploaded_at DESC
